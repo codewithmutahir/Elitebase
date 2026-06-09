@@ -7,7 +7,7 @@ services:
     name: elitebase-face-service
     runtime: docker
     region: singapore
-    plan: standard
+    plan: free
     rootDir: face-service
     dockerfilePath: ./Dockerfile
     dockerContext: .
