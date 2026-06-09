@@ -1,0 +1,15 @@
+# Elitebase — Render Blueprint (face recognition API)
+# Deploy: Render Dashboard → New → Blueprint → connect this repo
+# Or create the web service manually with runtime: Docker, root dir: face-service
+
+services:
+  - type: web
+    name: elitebase-face-service
+    runtime: docker
+    region: singapore
+    plan: standard
+    rootDir: face-service
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
