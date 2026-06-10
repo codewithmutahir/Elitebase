@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import threading
 import time
 from collections import defaultdict
 from typing import List
@@ -22,8 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL_NAME = "buffalo_l"
+# buffalo_l (~326MB) cannot run on Render free tier (512MB).
+# Use buffalo_sc (~16MB) or buffalo_s (~159MB). Set buffalo_l on Oracle Cloud / 2GB+ RAM.
+MODEL_NAME = os.environ.get("INSIGHTFACE_MODEL", "buffalo_sc").strip() or "buffalo_sc"
+DET_SIZE = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
 model = None
+_model_lock = threading.Lock()
 
 VERIFY_THRESHOLD = 0.45
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
@@ -84,22 +89,27 @@ async def verify_api_key(request: Request, call_next):
     return await call_next(request)
 
 
-@app.on_event("startup")
-async def startup():
+def _ensure_model() -> None:
+    """Lazy-load model on first request so the server binds port within 512MB."""
     global model
-    print(
-        f"[startup] Loading InsightFace model '{MODEL_NAME}' "
-        f"(~300MB download on first run — may take a few minutes)..."
-    )
-    model = insightface.app.FaceAnalysis(
-        name=MODEL_NAME,
-        providers=["CPUExecutionProvider"],
-    )
-    model.prepare(ctx_id=0, det_size=(640, 640))
+    if model is not None:
+        return
 
-    blank = np.zeros((640, 640, 3), dtype=np.uint8)
-    model.get(blank)
-    print(f"[startup] Model '{MODEL_NAME}' warmed up and ready.")
+    with _model_lock:
+        if model is not None:
+            return
+
+        print(
+            f"[model] Loading InsightFace '{MODEL_NAME}' "
+            f"(det_size={DET_SIZE})..."
+        )
+        loaded = insightface.app.FaceAnalysis(
+            name=MODEL_NAME,
+            providers=["CPUExecutionProvider"],
+        )
+        loaded.prepare(ctx_id=0, det_size=(DET_SIZE, DET_SIZE))
+        model = loaded
+        print(f"[model] '{MODEL_NAME}' ready.")
 
 
 async def _read_and_validate_upload(upload: UploadFile) -> bytes:
@@ -128,9 +138,7 @@ def _decode_upload(contents: bytes) -> np.ndarray:
 
 
 def _get_single_face(img: np.ndarray):
-    if model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-
+    _ensure_model()
     faces = model.get(img)
 
     if len(faces) == 0:
@@ -217,9 +225,7 @@ async def verify_face(
     contents = await _read_and_validate_upload(file)
     img = _decode_upload(contents)
 
-    if model is None:
-        raise HTTPException(status_code=503, detail="Model not loaded")
-
+    _ensure_model()
     faces = model.get(img)
 
     if len(faces) == 0:
@@ -299,9 +305,11 @@ async def verify_face(
 
 @app.get("/health")
 async def health():
+    # Always return ok so Render health checks pass before first face request.
     return {
-        "status": "ok" if model is not None else "degraded",
+        "status": "ok",
         "model_loaded": model is not None,
         "model_name": MODEL_NAME,
+        "det_size": DET_SIZE,
         "verify_threshold": VERIFY_THRESHOLD,
     }

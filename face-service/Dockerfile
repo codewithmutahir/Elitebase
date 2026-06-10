@@ -2,6 +2,10 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+ARG INSIGHTFACE_MODEL=buffalo_sc
+ENV INSIGHTFACE_MODEL=${INSIGHTFACE_MODEL}
+ENV INSIGHTFACE_DET_SIZE=320
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgl1 \
@@ -14,18 +18,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Bake buffalo_l into the image (~300MB) so Render cold starts don't re-download.
+# Pre-download model weights into the image (size depends on model pack).
 RUN python -c "\
+import os; \
 from insightface.app import FaceAnalysis; \
-m = FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider']); \
-m.prepare(ctx_id=0, det_size=(640, 640)); \
-print('buffalo_l model cached in image')"
+name = os.environ.get('INSIGHTFACE_MODEL', 'buffalo_sc'); \
+m = FaceAnalysis(name=name, providers=['CPUExecutionProvider']); \
+m.prepare(ctx_id=0, det_size=(320, 320)); \
+print(f'{name} model cached in image')"
 
 COPY main.py start.sh ./
 RUN chmod +x start.sh
 
 ENV PORT=8000
-# Single process on Render free tier (512MB). Set USE_GUNICORN=1 + GUNICORN_WORKERS=2 on paid plans only.
 ENV USE_GUNICORN=0
 EXPOSE 8000
 
