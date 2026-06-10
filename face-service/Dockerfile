@@ -25,7 +25,8 @@ COPY main.py start.sh ./
 RUN chmod +x start.sh
 
 ENV PORT=8000
-ENV USE_GUNICORN=1
+# Single process on Render free tier (512MB). Set USE_GUNICORN=1 + GUNICORN_WORKERS=2 on paid plans only.
+ENV USE_GUNICORN=0
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \

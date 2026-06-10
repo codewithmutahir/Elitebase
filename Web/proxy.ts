@@ -41,12 +41,11 @@ export async function proxy(request: NextRequest) {
 
   const sessionCookie = getSessionCookie(request);
 
+  // Only gate protected routes — do NOT redirect /login → /dashboard based on
+  // cookie presence alone. A stale or invalid cookie causes an infinite loop
+  // when the dashboard layout cannot validate the session server-side.
   if (matchesRoute(pathname, protectedRoutes) && !sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (pathname === "/login" && sessionCookie) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

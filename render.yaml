@@ -17,4 +17,6 @@ services:
       - key: INTERNAL_API_KEY
         sync: false
       - key: USE_GUNICORN
+        value: "0"
+      - key: GUNICORN_WORKERS
         value: "1"
