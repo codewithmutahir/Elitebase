@@ -1,4 +1,5 @@
 .env*
+!.env.example
 .env.local
 .env.*.local
 
@@ -13,6 +14,3 @@ web-temp/
 # Python
 __pycache__/
 *.pyc
-
-# mobile (not ready for deploy)
-mobile/
