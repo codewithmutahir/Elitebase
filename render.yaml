@@ -13,3 +13,8 @@ services:
     dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: USE_GUNICORN
+        value: "1"

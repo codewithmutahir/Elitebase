@@ -25,6 +25,7 @@ COPY main.py start.sh ./
 RUN chmod +x start.sh
 
 ENV PORT=8000
+ENV USE_GUNICORN=1
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \

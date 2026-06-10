@@ -1,0 +1,256 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { requireCompanySession } from "@/lib/employees/session";
+import type { EmploymentType } from "@/lib/employees/profile-queries";
+
+function revalidateEmployee(employeeId: string) {
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+}
+
+export async function updateEmployeeJobDetails(
+  employeeId: string,
+  data: {
+    employment_type: EmploymentType;
+    hourly_rate: number;
+    hire_date: string | null;
+  }
+) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { error } = await admin
+    .from("employees")
+    .update({
+      employment_type: data.employment_type,
+      hourly_rate: data.hourly_rate,
+      hire_date: data.hire_date || null,
+    })
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("updateEmployeeJobDetails:", error.message);
+    return { error: "Could not save job details." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function updateEmployeePersonalInfo(
+  employeeId: string,
+  data: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+    emergency_contact_name: string | null;
+    emergency_contact_phone: string | null;
+    emergency_contact_relation: string | null;
+    date_of_birth: string | null;
+    employment_type: EmploymentType;
+  }
+) {
+  const { company } = await requireCompanySession();
+
+  if (!data.full_name.trim()) {
+    return { error: "Preferred name is required." };
+  }
+
+  const admin = createClient();
+  const { error } = await admin
+    .from("employees")
+    .update({
+      full_name: data.full_name.trim(),
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      emergency_contact_name: data.emergency_contact_name?.trim() || null,
+      emergency_contact_phone: data.emergency_contact_phone?.trim() || null,
+      emergency_contact_relation: data.emergency_contact_relation?.trim() || null,
+      date_of_birth: data.date_of_birth || null,
+      employment_type: data.employment_type,
+    })
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("updateEmployeePersonalInfo:", error.message);
+    return { error: "Could not save personal information." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function terminateEmployee(
+  employeeId: string,
+  reason?: string
+) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { error } = await admin
+    .from("employees")
+    .update({
+      status: "terminated",
+      termination_reason: reason?.trim() || null,
+      terminated_at: new Date().toISOString(),
+    })
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("terminateEmployee:", error.message);
+    return { error: "Could not terminate employee." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function addEmployeeNote(employeeId: string, content: string) {
+  const { company, userId } = await requireCompanySession();
+  const trimmed = content.trim();
+  if (!trimmed) return { error: "Note cannot be empty." };
+
+  const admin = createClient();
+
+  const { data: userRow } = await admin
+    .from("employees")
+    .select("id")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (!userRow) return { error: "Employee not found." };
+
+  const { auth } = await import("@/lib/auth");
+  const { headers } = await import("next/headers");
+  const fullSession = await auth.api.getSession({ headers: await headers() });
+  const authorName = fullSession?.user?.name ?? "Admin";
+
+  const { error } = await admin.from("employee_notes").insert({
+    employee_id: employeeId,
+    company_id: company.id,
+    author_id: userId,
+    author_name: authorName,
+    content: trimmed,
+  });
+
+  if (error) {
+    console.error("addEmployeeNote:", error.message);
+    return { error: "Could not add note." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function deleteEmployeeNote(noteId: string, employeeId: string) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { error } = await admin
+    .from("employee_notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("deleteEmployeeNote:", error.message);
+    return { error: "Could not delete note." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function addEmployeeCertificate(
+  employeeId: string,
+  name: string
+) {
+  const { company } = await requireCompanySession();
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Certificate name is required." };
+
+  const admin = createClient();
+  const { error } = await admin.from("employee_documents").insert({
+    employee_id: employeeId,
+    company_id: company.id,
+    category: "certificate",
+    name: trimmed,
+    status: "not_sent",
+  });
+
+  if (error) {
+    console.error("addEmployeeCertificate:", error.message);
+    return { error: "Could not add certificate." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function uploadEmployeeDocument(
+  employeeId: string,
+  documentId: string,
+  formData: FormData
+) {
+  const { company } = await requireCompanySession();
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Please choose a file to upload." };
+  }
+
+  const admin = createClient();
+
+  const { data: doc } = await admin
+    .from("employee_documents")
+    .select("id, versions")
+    .eq("id", documentId)
+    .eq("employee_id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (!doc) return { error: "Document not found." };
+
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `${company.id}/${employeeId}/${documentId}-${Date.now()}.${ext}`;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: uploadError } = await admin.storage
+    .from("employee-documents")
+    .upload(path, buffer, {
+      contentType: file.type || "application/octet-stream",
+      upsert: true,
+    });
+
+  if (uploadError) {
+    console.error("uploadEmployeeDocument storage:", uploadError.message);
+    return { error: "File upload failed." };
+  }
+
+  const { data: publicUrl } = admin.storage
+    .from("employee-documents")
+    .getPublicUrl(path);
+
+  const { error: updateError } = await admin
+    .from("employee_documents")
+    .update({
+      file_url: publicUrl.publicUrl,
+      status: "completed",
+      versions: (doc.versions ?? 0) + 1,
+    })
+    .eq("id", documentId);
+
+  if (updateError) {
+    console.error("uploadEmployeeDocument update:", updateError.message);
+    return { error: "Could not update document record." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}

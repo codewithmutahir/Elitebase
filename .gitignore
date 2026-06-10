@@ -1,0 +1,18 @@
+.env*
+.env.local
+.env.*.local
+
+# IDE / agent
+.cursor/
+
+# temp / local artifacts
+debug.log
+web-temp/
+.auth.sqlite
+
+# Python
+__pycache__/
+*.pyc
+
+# mobile (not ready for deploy)
+mobile/

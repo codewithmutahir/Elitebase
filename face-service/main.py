@@ -1,11 +1,17 @@
+import io
 import json
+import os
+import time
+from collections import defaultdict
+from typing import List
 
 import cv2
 import insightface
 import numpy as np
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
+from fastapi.responses import JSONResponse
+from PIL import Image
 
 app = FastAPI()
 
@@ -20,6 +26,12 @@ MODEL_NAME = "buffalo_l"
 model = None
 
 VERIFY_THRESHOLD = 0.45
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "").strip()
+GLOBAL_RATE_LIMIT = 100
+GLOBAL_RATE_WINDOW_SECONDS = 60
+
+_rate_limit_buckets: dict[str, list[float]] = defaultdict(list)
 
 
 def _confidence_level(similarity: float) -> str:
@@ -42,6 +54,36 @@ def _average_embeddings(embeddings: list[np.ndarray]) -> np.ndarray:
     return _normalize_embedding(stacked.astype(np.float32))
 
 
+def _check_global_rate_limit() -> None:
+    now = time.time()
+    window_start = now - GLOBAL_RATE_WINDOW_SECONDS
+    bucket = _rate_limit_buckets["global"]
+    _rate_limit_buckets["global"] = [ts for ts in bucket if ts > window_start]
+
+    if len(_rate_limit_buckets["global"]) >= GLOBAL_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
+    _rate_limit_buckets["global"].append(now)
+
+
+@app.middleware("http")
+async def verify_api_key(request: Request, call_next):
+    if request.url.path == "/health" :
+        return await call_next(request)
+
+    if INTERNAL_API_KEY:
+        key = request.headers.get("X-Internal-Key", "")
+        if key != INTERNAL_API_KEY:
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    try:
+        _check_global_rate_limit()
+    except HTTPException as exc:
+        return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
+
+    return await call_next(request)
+
+
 @app.on_event("startup")
 async def startup():
     global model
@@ -54,7 +96,27 @@ async def startup():
         providers=["CPUExecutionProvider"],
     )
     model.prepare(ctx_id=0, det_size=(640, 640))
-    print(f"[startup] Model '{MODEL_NAME}' ready.")
+
+    blank = np.zeros((640, 640, 3), dtype=np.uint8)
+    model.get(blank)
+    print(f"[startup] Model '{MODEL_NAME}' warmed up and ready.")
+
+
+async def _read_and_validate_upload(upload: UploadFile) -> bytes:
+    contents = await upload.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_UPLOAD_BYTES // (1024 * 1024)}MB.",
+        )
+
+    try:
+        img = Image.open(io.BytesIO(contents))
+        img.verify()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid image file") from exc
+
+    return contents
 
 
 def _decode_upload(contents: bytes) -> np.ndarray:
@@ -114,7 +176,7 @@ async def extract_embedding(
     first_bbox: list[float] | None = None
 
     for index, upload in enumerate(uploads):
-        contents = await upload.read()
+        contents = await _read_and_validate_upload(upload)
         img = _decode_upload(contents)
         try:
             face = _get_single_face(img)
@@ -152,7 +214,7 @@ async def verify_face(
     file: UploadFile = File(...),
     stored_embedding: str = Form(...),
 ):
-    contents = await file.read()
+    contents = await _read_and_validate_upload(file)
     img = _decode_upload(contents)
 
     if model is None:
@@ -238,7 +300,7 @@ async def verify_face(
 @app.get("/health")
 async def health():
     return {
-        "status": "ok",
+        "status": "ok" if model is not None else "degraded",
         "model_loaded": model is not None,
         "model_name": MODEL_NAME,
         "verify_threshold": VERIFY_THRESHOLD,
