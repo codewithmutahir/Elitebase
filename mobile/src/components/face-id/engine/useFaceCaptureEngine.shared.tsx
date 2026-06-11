@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import type { FacePhase } from "@/components/face-id/types";
+import { useCameraFacing } from "@/hooks/useCameraFacing";
 import type { FaceCaptureEngine, FaceEngineCallbacks } from "./types";
 
 type CaptureHandler = (uri: string) => Promise<number[]>;
@@ -19,6 +20,7 @@ export function useExpoCameraFaceEngine({
   resetKey,
   captureHandler,
 }: Options): FaceCaptureEngine {
+  const { facing } = useCameraFacing();
   const [permission, requestPermission] = useCameraPermissions();
   const [facePhase, setFacePhase] = useState<FacePhase>("idle");
   const [steadyProgress, setSteadyProgress] = useState(0);
@@ -95,13 +97,14 @@ export function useExpoCameraFaceEngine({
     }
     return (
       <CameraView
+        key={facing}
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
-        facing="front"
+        facing={facing}
         active={enabled}
       />
     );
-  }, [enabled, permission?.granted]);
+  }, [enabled, facing, permission?.granted]);
 
   const isReady = Boolean(permission?.granted);
 

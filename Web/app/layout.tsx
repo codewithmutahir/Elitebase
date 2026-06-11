@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { NavigationProgress } from "@/components/navigation/navigation-progress";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className="flex min-h-full flex-col font-sans"
       >
+        <NavigationProgress />
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>

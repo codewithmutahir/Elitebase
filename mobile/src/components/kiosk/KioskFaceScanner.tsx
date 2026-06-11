@@ -27,6 +27,7 @@ import {
   onPressHaptic,
 } from "@/lib/kioskUi";
 import type { ApiPhase } from "@/components/face-id/types";
+import { useCameraFacing } from "@/hooks/useCameraFacing";
 
 export type { KioskScanState } from "@/components/kiosk/types";
 
@@ -97,6 +98,7 @@ export function KioskFaceScanner({
   onUsePin,
   onCapturePress,
 }: KioskFaceScannerProps) {
+  const { facing, toggleFacing } = useCameraFacing();
   const [permission, requestPermission] = useCameraPermissions();
   const frameShake = useSharedValue(0);
   const checkScale = useSharedValue(0);
@@ -174,9 +176,10 @@ export function KioskFaceScanner({
     <View style={styles.root}>
       {permission?.granted ? (
         <CameraView
+          key={facing}
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
-          facing="back"
+          facing={facing}
           active={apiPhase === "none" || apiPhase === "processing"}
         />
       ) : (
@@ -204,7 +207,22 @@ export function KioskFaceScanner({
         <View style={styles.titleBadge}>
           <Text style={styles.titleBadgeText}>{title.toUpperCase()}</Text>
         </View>
-        <View style={styles.iconBtnPlaceholder} />
+        <Pressable
+          onPress={toggleFacing}
+          disabled={!captureEnabled}
+          onPressIn={() => onPressHaptic("light")}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            !captureEnabled && styles.captureDisabled,
+            pressed && captureEnabled && styles.pressed,
+          ]}
+          hitSlop={8}
+          accessibilityLabel={
+            facing === "front" ? "Switch to back camera" : "Switch to front camera"
+          }
+        >
+          <Ionicons name="camera-reverse-outline" size={22} color={T.text} />
+        </Pressable>
       </View>
 
       <Animated.View
