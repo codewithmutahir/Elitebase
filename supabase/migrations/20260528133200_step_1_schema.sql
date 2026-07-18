@@ -50,9 +50,9 @@ create table if not exists public.kiosk_tablets (
 
 create table if not exists public.attendance (
   id uuid primary key default gen_random_uuid(),
-  employee_id uuid references public.employees(id),
-  company_id uuid references public.companies(id),
-  tablet_id uuid references public.kiosk_tablets(id),
+  employee_id uuid references public.employees(id) on delete cascade,
+  company_id uuid references public.companies(id) on delete cascade,
+  tablet_id uuid references public.kiosk_tablets(id) on delete set null,
   type text check (type in ('clock_in', 'clock_out', 'break_start', 'break_end')),
   timestamp timestamptz default now(),
   face_match_score float,
@@ -61,8 +61,8 @@ create table if not exists public.attendance (
 
 create table if not exists public.schedules (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid references public.companies(id),
-  employee_id uuid references public.employees(id),
+  company_id uuid references public.companies(id) on delete cascade,
+  employee_id uuid references public.employees(id) on delete cascade,
   shift_date date not null,
   start_time time not null,
   end_time time not null,

@@ -8,6 +8,10 @@ import {
   AddEmployeeDrawer,
   AddEmployeeTrigger,
 } from "@/components/employees/add-employee-drawer";
+import {
+  ImportEmployeesDialog,
+  ImportEmployeesTrigger,
+} from "@/components/employees/import-employees-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -48,6 +52,7 @@ type RosterViewProps = {
 
 export function RosterView({ employees, departmentOptions }: RosterViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -82,7 +87,10 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
         <p className="text-sm text-slate-500">
           Manage your team roster, kiosk access, and profiles.
         </p>
-        <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
+        <div className="flex flex-wrap gap-2">
+          <ImportEmployeesTrigger onClick={() => setImportOpen(true)} />
+          <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
+        </div>
       </div>
 
       <div className="flex gap-1 border-b border-slate-200">
@@ -114,7 +122,8 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
           <p className="mt-2 max-w-sm text-sm text-slate-500">
             Create a profile and we&apos;ll generate a kiosk PIN for clock-in.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <ImportEmployeesTrigger onClick={() => setImportOpen(true)} />
             <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
           </div>
         </Card>
@@ -246,6 +255,7 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
         onClose={() => setDrawerOpen(false)}
         departmentOptions={departmentOptions}
       />
+      <ImportEmployeesDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
