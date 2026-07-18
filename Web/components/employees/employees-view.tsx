@@ -7,6 +7,10 @@ import {
   AddEmployeeDrawer,
   AddEmployeeTrigger,
 } from "@/components/employees/add-employee-drawer";
+import {
+  ImportEmployeesDialog,
+  ImportEmployeesTrigger,
+} from "@/components/employees/import-employees-dialog";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
@@ -54,6 +58,7 @@ export function EmployeesView({
   departmentOptions,
 }: EmployeesViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState("all");
 
@@ -78,7 +83,10 @@ export function EmployeesView({
         <p className="text-sm text-slate-500">
           Manage your team, kiosk PINs, and face enrollment.
         </p>
-        <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
+        <div className="flex flex-wrap gap-2">
+          <ImportEmployeesTrigger onClick={() => setImportOpen(true)} />
+          <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
+        </div>
       </div>
 
       {employees.length === 0 ? (
@@ -93,7 +101,8 @@ export function EmployeesView({
             Create a profile and we&apos;ll generate a kiosk PIN they can use to
             clock in at your tablet.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <ImportEmployeesTrigger onClick={() => setImportOpen(true)} />
             <AddEmployeeTrigger onClick={() => setDrawerOpen(true)} />
           </div>
         </Card>
@@ -205,6 +214,10 @@ export function EmployeesView({
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         departmentOptions={departmentOptions}
+      />
+      <ImportEmployeesDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
       />
     </div>
   );
