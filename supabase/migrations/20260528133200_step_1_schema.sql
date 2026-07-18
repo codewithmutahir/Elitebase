@@ -76,6 +76,25 @@ alter table public.kiosk_tablets enable row level security;
 alter table public.attendance enable row level security;
 alter table public.schedules enable row level security;
 
+drop policy if exists "companies_owner_select" on public.companies;
+drop policy if exists "companies_owner_insert" on public.companies;
+drop policy if exists "companies_owner_update" on public.companies;
+drop policy if exists "employees_company_select" on public.employees;
+drop policy if exists "employees_company_insert" on public.employees;
+drop policy if exists "employees_company_update" on public.employees;
+drop policy if exists "employee_pins_company_select" on public.employee_pins;
+drop policy if exists "employee_pins_company_insert" on public.employee_pins;
+drop policy if exists "employee_pins_company_update" on public.employee_pins;
+drop policy if exists "kiosk_tablets_company_select" on public.kiosk_tablets;
+drop policy if exists "kiosk_tablets_company_insert" on public.kiosk_tablets;
+drop policy if exists "kiosk_tablets_company_update" on public.kiosk_tablets;
+drop policy if exists "attendance_company_select" on public.attendance;
+drop policy if exists "attendance_company_insert" on public.attendance;
+drop policy if exists "attendance_company_update" on public.attendance;
+drop policy if exists "schedules_company_select" on public.schedules;
+drop policy if exists "schedules_company_insert" on public.schedules;
+drop policy if exists "schedules_company_update" on public.schedules;
+
 create policy "companies_owner_select"
   on public.companies
   for select
