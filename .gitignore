@@ -10,6 +10,7 @@
 debug.log
 web-temp/
 .auth.sqlite
+scripts/.pg-tmp/
 
 # Python
 __pycache__/
