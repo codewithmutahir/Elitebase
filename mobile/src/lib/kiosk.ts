@@ -201,9 +201,34 @@ export function getRegisterTabletErrorMessage(error: unknown): string {
 
   if (axios.isAxiosError(error)) {
     if (!error.response) {
-      return `Cannot reach ${baseUrl}. Start the web app (cd Web && npm run dev), use the same Wi‑Fi as this device, and use your PC's LAN IP—not localhost—in mobile/.env.`;
+      return `Cannot reach ${baseUrl}. Check Wi‑Fi and that the web app is running.`;
     }
-    return "Invalid setup code. Please try again.";
+
+    const apiError =
+      typeof error.response.data === "object" &&
+      error.response.data !== null &&
+      "error" in error.response.data &&
+      typeof (error.response.data as { error: unknown }).error === "string"
+        ? (error.response.data as { error: string }).error
+        : null;
+
+    if (apiError) return apiError;
+
+    if (error.response.status === 409) {
+      return "This setup code was already used. Generate a new code in the dashboard.";
+    }
+    if (error.response.status === 403) {
+      return "This tablet setup was deactivated. Generate a new code.";
+    }
+    if (error.response.status === 429) {
+      return "Too many attempts. Wait a minute and try again.";
+    }
+    if (error.response.status >= 500) {
+      return "Server error. Try again in a moment or contact support.";
+    }
+
+    return "Invalid or expired setup code.";
   }
-  return "Invalid setup code. Please try again.";
+
+  return "Could not connect this tablet. Please try again.";
 }

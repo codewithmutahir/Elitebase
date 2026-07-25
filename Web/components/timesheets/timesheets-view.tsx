@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
+import { EditTimesheetDialog } from "@/components/timesheets/edit-timesheet-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -124,12 +125,13 @@ export function TimesheetsView({
               <DataTableHead>Clock out</DataTableHead>
               <DataTableHead>Hours</DataTableHead>
               <DataTableHead>Status</DataTableHead>
+              <DataTableHead className="w-28">Actions</DataTableHead>
             </tr>
           </DataTableHeader>
           <DataTableBody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <DataTableEmpty>
                     No attendance records for this date range.
                   </DataTableEmpty>
@@ -169,25 +171,40 @@ export function TimesheetsView({
                           : "—"}
                       </DataTableCell>
                       <DataTableCell>{rowStatusBadge(row)}</DataTableCell>
+                      <DataTableCell onClick={(e) => e.stopPropagation()}>
+                        <EditTimesheetDialog row={row} timezone={timezone} />
+                      </DataTableCell>
                     </DataTableRow>
                     {isOpen ? (
                       <tr className="bg-slate-50">
-                        <td colSpan={7} className="px-6 py-4">
-                          <div className="grid gap-2 text-sm sm:grid-cols-3">
-                            <p>
-                              <span className="text-slate-500">Employee ID:</span>{" "}
-                              <span className="font-mono text-slate-700">
-                                {row.employeeId}
-                              </span>
-                            </p>
-                            <p>
-                              <span className="text-slate-500">Shift status:</span>{" "}
-                              {row.status}
-                            </p>
-                            <p>
-                              <span className="text-slate-500">Recorded hours:</span>{" "}
-                              {row.totalHours ?? "In progress"}
-                            </p>
+                        <td colSpan={8} className="px-6 py-4">
+                          <div className="flex flex-wrap items-end justify-between gap-4">
+                            <div className="grid gap-2 text-sm sm:grid-cols-3">
+                              <p>
+                                <span className="text-slate-500">
+                                  Employee ID:
+                                </span>{" "}
+                                <span className="font-mono text-slate-700">
+                                  {row.employeeId}
+                                </span>
+                              </p>
+                              <p>
+                                <span className="text-slate-500">
+                                  Shift status:
+                                </span>{" "}
+                                {row.status}
+                              </p>
+                              <p>
+                                <span className="text-slate-500">
+                                  Recorded hours:
+                                </span>{" "}
+                                {row.totalHours ?? "In progress"}
+                              </p>
+                            </div>
+                            <EditTimesheetDialog
+                              row={row}
+                              timezone={timezone}
+                            />
                           </div>
                         </td>
                       </tr>

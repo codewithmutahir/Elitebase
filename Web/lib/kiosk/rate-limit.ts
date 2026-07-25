@@ -66,17 +66,23 @@ export async function checkKioskRateLimit(
   request: NextRequest,
   route: string
 ): Promise<RateLimitResult> {
-  const limiter = getLimiter(route);
-  if (!limiter) return { limited: false };
+  try {
+    const limiter = getLimiter(route);
+    if (!limiter) return { limited: false };
 
-  const identifier = getRateLimitIdentifier(request, route);
-  const { success, reset } = await limiter.limit(identifier);
+    const identifier = getRateLimitIdentifier(request, route);
+    const { success, reset } = await limiter.limit(identifier);
 
-  if (success) return { limited: false };
+    if (success) return { limited: false };
 
-  const retryAfterSeconds = Math.max(
-    1,
-    Math.ceil((reset - Date.now()) / 1000)
-  );
-  return { limited: true, retryAfterSeconds };
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((reset - Date.now()) / 1000)
+    );
+    return { limited: true, retryAfterSeconds };
+  } catch (error) {
+    console.error(`[kiosk rate-limit] ${route} unavailable:`, error);
+    // Do not block kiosk clock-in if Upstash is misconfigured or unreachable.
+    return { limited: false };
+  }
 }

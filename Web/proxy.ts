@@ -28,15 +28,21 @@ export async function proxy(request: NextRequest) {
 
   const kioskRoute = getKioskRouteName(pathname);
   if (kioskRoute) {
-    const rateLimit = await checkKioskRateLimit(request, kioskRoute);
-    if (rateLimit.limited) {
-      return new NextResponse("Too Many Requests", {
-        status: 429,
-        headers: {
-          "Retry-After": String(rateLimit.retryAfterSeconds),
-        },
-      });
+    try {
+      const rateLimit = await checkKioskRateLimit(request, kioskRoute);
+      if (rateLimit.limited) {
+        return new NextResponse("Too Many Requests", {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+          },
+        });
+      }
+    } catch (error) {
+      console.error("[proxy] kiosk rate limit failed:", error);
     }
+
+    return NextResponse.next();
   }
 
   const sessionCookie = getSessionCookie(request);

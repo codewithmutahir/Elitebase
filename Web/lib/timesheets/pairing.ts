@@ -17,6 +17,8 @@ export type TimesheetRow = {
   date: string;
   clockIn: string | null;
   clockOut: string | null;
+  clockInEventId: string | null;
+  clockOutEventId: string | null;
   totalHours: number | null;
   status: "open" | "complete" | "incomplete";
 };
@@ -125,6 +127,8 @@ export function buildTimesheetRows(
       date,
       clockIn: clockInEvent?.timestamp ?? null,
       clockOut: open ? null : clockOutEvent?.timestamp ?? null,
+      clockInEventId: clockInEvent?.id ?? null,
+      clockOutEventId: open ? null : clockOutEvent?.id ?? null,
       totalHours: open ? null : totalHours,
       status,
     });
