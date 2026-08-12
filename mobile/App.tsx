@@ -19,6 +19,7 @@ import { T } from "@/constants/tokens";
 import { useKioskImmersiveMode } from "@/hooks/useKioskImmersiveMode";
 import { loadSounds, unloadSounds } from "@/lib/sounds";
 import { getTabletToken } from "@/lib/storage";
+import { warmupFaceService } from "@/lib/faceWarmup";
 import {
   subscribeTabletSessionInvalidated,
   validateTabletSession,
@@ -77,11 +78,15 @@ function KioskAppTree() {
           setInitialRoute(valid ? "Idle" : "Setup");
           setAuthReady(true);
         }
+        if (valid) {
+          void warmupFaceService();
+        }
       } catch {
         if (mounted) {
           setInitialRoute("Idle");
           setAuthReady(true);
         }
+        void warmupFaceService();
       }
     }
 

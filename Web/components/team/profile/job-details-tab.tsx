@@ -199,7 +199,11 @@ export function JobDetailsTab({
           <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-sm text-slate-600">
             <p>
               Kiosk face:{" "}
-              {employee.face_registered_at ? (
+              {employee.needs_reenrollment ? (
+                <span className="font-medium text-amber-700">
+                  Re-scan required at kiosk
+                </span>
+              ) : employee.face_registered_at ? (
                 <span className="font-medium text-emerald-700">Enrolled</span>
               ) : (
                 <span className="font-medium text-amber-700">Pending at kiosk</span>
@@ -207,6 +211,12 @@ export function JobDetailsTab({
               {" · "}
               PIN {employee.hasPin ? "configured" : "not set"}
             </p>
+            {employee.needs_reenrollment ? (
+              <p className="mt-2 text-xs text-amber-800">
+                Their face was enrolled under the previous recognition model.
+                Next clock-in they will be guided to re-scan once.
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>

@@ -55,6 +55,13 @@ export async function POST(request: NextRequest) {
     return jsonError("Face not registered for this employee.", 400);
   }
 
+  if (employee.needs_reenrollment) {
+    return jsonError(
+      "Face re-enrollment required. Please re-scan your face at the kiosk.",
+      409
+    );
+  }
+
   const preSwitch = isPreBuffaloScEnrollment(employee.face_registered_at);
   const storedEmbedding = parseStoredDescriptor(employee.face_descriptor);
   if (!storedEmbedding) {

@@ -11,6 +11,7 @@ const KIOSK_ROUTE_LIMITS: Record<string, { requests: number; window: "1 m" }> = 
   "validate-tablet": { requests: 10, window: "1 m" },
   "register-tablet": { requests: 5, window: "1 m" },
   "face-verify-log": { requests: 30, window: "1 m" },
+  "face-warmup": { requests: 10, window: "1 m" },
 };
 
 const limiterCache = new Map<string, Ratelimit>();

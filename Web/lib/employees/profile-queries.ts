@@ -54,6 +54,7 @@ export type EmployeeProfile = {
   face_registered_at: string | null;
   face_consent: boolean;
   face_consent_at: string | null;
+  needs_reenrollment: boolean;
   created_at: string;
   hasPin: boolean;
   /** Plain kiosk PIN for admin display (from employee_pins.pin_plain). */
@@ -87,7 +88,7 @@ export async function getEmployeeProfile(
       department_id, departments ( name ), position, hire_date, hourly_rate,
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
-      is_active, face_registered_at, face_consent, face_consent_at, created_at,
+      is_active, face_registered_at, face_consent, face_consent_at, needs_reenrollment, created_at,
       employee_pins ( id, pin_plain, created_at )
     `
     )
@@ -149,6 +150,7 @@ export async function getEmployeeProfile(
     face_registered_at: data.face_registered_at,
     face_consent: data.face_consent,
     face_consent_at: data.face_consent_at,
+    needs_reenrollment: Boolean(data.needs_reenrollment),
     created_at: data.created_at,
     hasPin: Boolean(pinRow),
     pin: pinRow?.pin_plain ?? null,

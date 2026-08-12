@@ -1,6 +1,8 @@
 export const FACE_DESCRIPTOR_LENGTH = 512;
-/** InsightFace cosine similarity threshold (see face-service verify-face). */
-export const FACE_MATCH_THRESHOLD = 0.45;
+/** InsightFace cosine similarity threshold (override via FACE_VERIFY_THRESHOLD). */
+export const FACE_MATCH_THRESHOLD = Number.parseFloat(
+  process.env.FACE_VERIFY_THRESHOLD?.trim() || "0.45"
+) || 0.45;
 
 export function parseFaceDescriptor(value: unknown): number[] | null {
   if (!Array.isArray(value)) return null;

@@ -163,7 +163,10 @@ export function PinScreen() {
         const kioskEmployee = toKioskEmployee(employee, tabletConfig.company_id);
         failedAttemptsRef.current = 0;
 
-        if (employee.has_face_descriptor) {
+        if (employee.needs_reenrollment) {
+          // Model switch / forced re-scan — skip verify loop, go to guided re-enroll.
+          navigation.replace("FaceRegister", { employee: kioskEmployee });
+        } else if (employee.has_face_descriptor) {
           navigation.replace("FaceScan", { employee: kioskEmployee });
         } else if (employee.face_registered) {
           // Registered before but no usable descriptor (e.g. reset): let them

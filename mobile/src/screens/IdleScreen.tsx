@@ -25,6 +25,7 @@ import { hapticMedium, onPressHaptic } from "@/lib/kioskUi";
 import type { RootStackParamList, TabletConfig } from "@/types";
 import { getTabletConfig } from "@/lib/storage";
 import { validateTabletSession } from "@/lib/tabletSession";
+import { warmupFaceService } from "@/lib/faceWarmup";
 
 type IdleNavigation = NativeStackNavigationProp<RootStackParamList, "Idle">;
 
@@ -102,9 +103,11 @@ export function IdleScreen() {
           }
           const tabletConfig = await getTabletConfig();
           if (mounted) setConfig(tabletConfig);
+          void warmupFaceService();
         } catch {
           const tabletConfig = await getTabletConfig();
           if (mounted) setConfig(tabletConfig);
+          void warmupFaceService();
         }
       }
 

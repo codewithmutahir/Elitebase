@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
       face_consent: true,
       face_consent_at: now,
       face_registered_at: now,
+      needs_reenrollment: false,
     })
     .eq("id", employeeId)
     .eq("company_id", tablet.company_id);

@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getKioskApiErrorMessage } from "@/lib/kiosk";
 import { detectAndCropFace } from "@/lib/faceDetection";
+import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
 import {
   buildFaceUploadFormData,
   faceDetectionReasonToScanState,
@@ -73,6 +74,45 @@ async function logClientFaceFailure(
   }
 }
 
+function classifyVerifyTransportError(err: unknown): {
+  reason: ClientFailureReason;
+  message: string;
+} {
+  if (axios.isAxiosError(err) && !err.response) {
+    const isTimeout =
+      err.code === "ECONNABORTED" ||
+      /timeout/i.test(String(err.message ?? ""));
+    return {
+      reason: isTimeout ? "TIMEOUT" : "API_ERROR",
+      message: isTimeout
+        ? "Face service timed out. Please try again in a moment."
+        : "Could not reach face service. Check network and try again.",
+    };
+  }
+
+  if (axios.isAxiosError(err)) {
+    const status = err.response?.status ?? 0;
+    if (status === 503 || status >= 500) {
+      return {
+        reason: "API_ERROR",
+        message:
+          getKioskApiErrorMessage(
+            err,
+            "Face service is temporarily unavailable. Please try again."
+          ) || "Face service is temporarily unavailable. Please try again.",
+      };
+    }
+  }
+
+  return {
+    reason: "API_ERROR",
+    message: getKioskApiErrorMessage(
+      err,
+      "Face service error. Please try again."
+    ),
+  };
+}
+
 export function FaceScanScreen() {
   const route = useRoute<FaceScanRoute>();
   const navigation = useNavigation<FaceScanNavigation>();
@@ -86,10 +126,11 @@ export function FaceScanScreen() {
   const [captureKey, setCaptureKey] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [showManager, setShowManager] = useState(false);
+  const [showServiceIssue, setShowServiceIssue] = useState(false);
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
-  const showUsePin = attempts >= 1 && !showManager;
+  const showUsePin = attempts >= 1 && !showManager && !showServiceIssue;
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
@@ -116,7 +157,9 @@ export function FaceScanScreen() {
     navigation.replace("Idle");
   }, [navigation]);
 
-  const handleCaptureFailed = useCallback((message?: string | null) => {
+  /** Match / detection failures count toward the manager screen. */
+  const handleMatchFailed = useCallback((message?: string | null) => {
+    setShowServiceIssue(false);
     setAttempts((prev) => {
       const next = prev + 1;
       if (next >= MAX_ATTEMPTS) setShowManager(true);
@@ -128,10 +171,22 @@ export function FaceScanScreen() {
     setCaptureKey((k) => k + 1);
   }, []);
 
+  /** Service/timeout failures do NOT burn match attempts. */
+  const handleServiceFailed = useCallback((message: string) => {
+    setShowManager(false);
+    setShowServiceIssue(true);
+    void hapticError();
+    setErrorMessage(message);
+    setScanState("failed_service");
+    setApiPhase("failed");
+    setCaptureKey((k) => k + 1);
+  }, []);
+
   const handleCapture = useCallback(async () => {
     if (scanState !== "idle" || apiPhase !== "none") return;
 
     setErrorMessage(null);
+    setShowServiceIssue(false);
     setScanState("detecting");
 
     if (isExpoGo() || !cameraRef.current) {
@@ -141,7 +196,7 @@ export function FaceScanScreen() {
         "NO_FACE_DETECTED",
         "expo_go_or_missing_camera"
       );
-      handleCaptureFailed();
+      handleMatchFailed();
       return;
     }
 
@@ -158,7 +213,7 @@ export function FaceScanScreen() {
         "NO_FACE_DETECTED",
         "empty_photo"
       );
-      handleCaptureFailed();
+      handleMatchFailed();
       return;
     }
 
@@ -175,7 +230,7 @@ export function FaceScanScreen() {
           ? "LOCAL_LOW_CONFIDENCE"
           : "NO_FACE_DETECTED";
       void logClientFaceFailure(employee.id, clientReason, detection.reason);
-      handleCaptureFailed();
+      handleMatchFailed();
       return;
     }
 
@@ -184,7 +239,6 @@ export function FaceScanScreen() {
 
     try {
       const tabletToken = await getTabletToken();
-      // Send the full photo — InsightFace re-runs detection and needs resolution context.
       const formData = buildFaceUploadFormData(photo.uri, employee.id);
 
       const { data } = await api.post<VerifyFaceResponse>(
@@ -195,6 +249,7 @@ export function FaceScanScreen() {
             "Content-Type": "multipart/form-data",
             "x-tablet-token": tabletToken ?? "",
           },
+          timeout: FACE_API_TIMEOUT_MS,
         }
       );
 
@@ -211,36 +266,73 @@ export function FaceScanScreen() {
         return;
       }
 
-      // API_NO_MATCH is already recorded server-side; no client duplicate.
       setScanState("failed_no_match");
-      handleCaptureFailed();
+      handleMatchFailed("Face not recognized. Try again.");
     } catch (err) {
-      setScanState("failed_no_match");
-      if (axios.isAxiosError(err) && !err.response) {
-        const isTimeout =
-          err.code === "ECONNABORTED" ||
-          /timeout/i.test(String(err.message ?? ""));
-        void logClientFaceFailure(
-          employee.id,
-          isTimeout ? "TIMEOUT" : "API_ERROR",
-          err.message
-        );
-      } else if (axios.isAxiosError(err) && (err.response?.status ?? 0) >= 500) {
-        void logClientFaceFailure(
-          employee.id,
-          "API_ERROR",
-          `http_${err.response?.status}`
-        );
-      }
-      handleCaptureFailed(getKioskApiErrorMessage(err, ""));
+      const classified = classifyVerifyTransportError(err);
+      void logClientFaceFailure(
+        employee.id,
+        classified.reason,
+        axios.isAxiosError(err) ? err.message : classified.reason
+      );
+      handleServiceFailed(classified.message);
     }
   }, [
     apiPhase,
     employee,
-    handleCaptureFailed,
+    handleMatchFailed,
+    handleServiceFailed,
     navigation,
     scanState,
   ]);
+
+  if (showServiceIssue) {
+    return (
+      <ScreenBackground>
+        <ScrollView
+          contentContainerStyle={styles.managerScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <Feather name="wifi-off" size={56} color={T.warning} />
+          <Text style={styles.managerTitle}>Face service unavailable</Text>
+          <Text style={styles.managerBody}>
+            {errorMessage ??
+              "We could not reach face recognition right now. This is a temporary service issue — not a failed identity check."}
+          </Text>
+          <Pressable
+            onPress={() => {
+              setShowServiceIssue(false);
+              setErrorMessage(null);
+              setApiPhase("none");
+              setScanState("idle");
+              setCaptureKey((k) => k + 1);
+            }}
+            onPressIn={() => onPressHaptic("medium")}
+            style={({ pressed }) => [
+              styles.managerBtn,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.managerBtnText}>Try again</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => navigation.replace("Pin")}
+            onPressIn={() => onPressHaptic("light")}
+            style={({ pressed }) => [styles.pinBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.pinBtnText}>Use PIN clock-in path</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleBack}
+            onPressIn={() => onPressHaptic("light")}
+            style={styles.cancelLink}
+          >
+            <Text style={styles.cancelText}>Return to Home</Text>
+          </Pressable>
+        </ScrollView>
+      </ScreenBackground>
+    );
+  }
 
   if (showManager) {
     return (
@@ -335,5 +427,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pinBtnText: { ...T.btn, color: T.textMuted },
+  cancelLink: { minHeight: 44, justifyContent: "center" },
+  cancelText: { ...T.body, color: T.textMuted },
   pressed: { opacity: 0.88 },
 });

@@ -30,7 +30,7 @@ DET_SIZE = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
 model = None
 _model_lock = threading.Lock()
 
-VERIFY_THRESHOLD = 0.45
+VERIFY_THRESHOLD = float(os.environ.get("FACE_VERIFY_THRESHOLD", "0.45"))
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "").strip()
 GLOBAL_RATE_LIMIT = 100

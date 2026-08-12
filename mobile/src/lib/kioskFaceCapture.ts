@@ -13,12 +13,23 @@ export function buildFaceUploadFormData(
   employeeId: string,
   options?: { includeConsent?: boolean }
 ) {
+  return buildFaceUploadFormDataFromUris([croppedUri], employeeId, options);
+}
+
+/** Multi-sample enrollment: appends each URI as `files` for server-side averaging. */
+export function buildFaceUploadFormDataFromUris(
+  uris: string[],
+  employeeId: string,
+  options?: { includeConsent?: boolean }
+) {
   const formData = new FormData();
-  formData.append("file", {
-    uri: croppedUri,
-    type: "image/jpeg",
-    name: "face.jpg",
-  } as unknown as Blob);
+  uris.forEach((uri, index) => {
+    formData.append("files", {
+      uri,
+      type: "image/jpeg",
+      name: `face_${index + 1}.jpg`,
+    } as unknown as Blob);
+  });
   formData.append("employee_id", employeeId);
   if (options?.includeConsent) {
     formData.append("consent", "true");

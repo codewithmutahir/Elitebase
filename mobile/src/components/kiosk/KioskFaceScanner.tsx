@@ -45,6 +45,8 @@ export type KioskFaceScannerProps = {
   mode?: "register" | "verify";
   /** When set, overrides the generic failed-status text with the real reason. */
   errorMessage?: string | null;
+  /** Optional idle/capture guidance (e.g. multi-sample enrollment prompts). */
+  captureHint?: string | null;
   cameraRef: RefObject<CameraView | null>;
   scanState: KioskScanState;
   onBack: () => void;
@@ -60,10 +62,16 @@ function CornerBracket({ style }: { style: object }) {
   return <View style={[styles.bracket, style]} />;
 }
 
-function statusMessage(state: KioskScanState, mode: "register" | "verify"): string {
+function statusMessage(
+  state: KioskScanState,
+  mode: "register" | "verify",
+  captureHint?: string | null
+): string {
   switch (state) {
     case "idle":
-      return "📷 Tap to capture";
+      return captureHint?.trim()
+        ? `📷 ${captureHint.trim()}`
+        : "📷 Tap to capture";
     case "capturing":
     case "detecting":
       return "⏳ Detecting face...";
@@ -78,6 +86,8 @@ function statusMessage(state: KioskScanState, mode: "register" | "verify"): stri
       return "⚠️ One face only";
     case "failed_no_match":
       return "❌ Not recognized";
+    case "failed_service":
+      return "⚠️ Service issue — try again";
     default:
       return "";
   }
@@ -92,6 +102,7 @@ export function KioskFaceScanner({
   resetKey = 0,
   mode = "register",
   errorMessage,
+  captureHint,
   cameraRef,
   scanState,
   onBack,
@@ -107,9 +118,11 @@ export function KioskFaceScanner({
       ? "processing"
       : apiPhase === "success"
         ? "success"
-        : apiPhase === "failed" && mode === "verify"
-          ? "failed_no_match"
-          : scanState;
+        : apiPhase === "failed" && mode === "verify" && scanState === "failed_service"
+          ? "failed_service"
+          : apiPhase === "failed" && mode === "verify"
+            ? "failed_no_match"
+            : scanState;
 
   const captureEnabled = displayState === "idle" && apiPhase === "none";
   const isFailed =
@@ -311,7 +324,7 @@ export function KioskFaceScanner({
           <Text style={styles.statusText}>
             {isFailed && errorMessage
               ? `⚠️ ${errorMessage}`
-              : statusMessage(displayState, mode)}
+              : statusMessage(displayState, mode, captureHint)}
           </Text>
         </View>
       </Animated.View>

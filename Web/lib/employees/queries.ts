@@ -15,6 +15,8 @@ export type EmployeeListItem = {
   /** Plain kiosk PIN for admin display (null for legacy rows). */
   pin: string | null;
   face_registered_at: string | null;
+  /** True when face must be re-scanned after InsightFace model change. */
+  needs_reenrollment: boolean;
 };
 
 export type EmployeeDetail = {
@@ -60,7 +62,7 @@ export async function listEmployees(companyId: string) {
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, email, department_id, departments ( name ), position, role, status, is_active, face_registered_at, employee_pins ( id, pin_plain )"
+      "id, full_name, email, department_id, departments ( name ), position, role, status, is_active, face_registered_at, needs_reenrollment, employee_pins ( id, pin_plain )"
     )
     .eq("company_id", companyId)
     .order("full_name", { ascending: true });
@@ -91,6 +93,7 @@ export async function listEmployees(companyId: string) {
       hasPin,
       pin: pinRow?.pin_plain ?? null,
       face_registered_at: row.face_registered_at,
+      needs_reenrollment: Boolean(row.needs_reenrollment),
     } satisfies EmployeeListItem;
   });
 }

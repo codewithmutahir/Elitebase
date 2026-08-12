@@ -1,5 +1,8 @@
 export const FACE_DESCRIPTOR_LENGTH = 512;
-export const FACE_VERIFY_THRESHOLD = 0.45;
+/** Default InsightFace cosine similarity threshold; override via FACE_VERIFY_THRESHOLD. */
+export const FACE_VERIFY_THRESHOLD = Number.parseFloat(
+  process.env.FACE_VERIFY_THRESHOLD?.trim() || "0.45"
+) || 0.45;
 
 export type ExtractEmbeddingResult = {
   embedding: number[];

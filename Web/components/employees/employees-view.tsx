@@ -39,6 +39,9 @@ function initials(name: string) {
 }
 
 function faceBadge(employee: EmployeeListItem) {
+  if (employee.face_registered_at && employee.needs_reenrollment) {
+    return <StatusBadge tone="warning">Re-scan needed</StatusBadge>;
+  }
   if (employee.face_registered_at) {
     return <StatusBadge tone="success">Enrolled</StatusBadge>;
   }

@@ -13,12 +13,18 @@ import type { ApiPhase } from "@/components/face-id/types";
 import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { detectAndCropFace } from "@/lib/faceDetection";
+import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
 import { getRegisterFaceErrorMessage } from "@/lib/kiosk";
 import {
-  buildFaceUploadFormData,
+  buildFaceUploadFormDataFromUris,
   faceDetectionReasonToScanState,
 } from "@/lib/kioskFaceCapture";
-import { hapticError, hapticMedium, hapticSuccess, onPressHaptic } from "@/lib/kioskUi";
+import {
+  hapticError,
+  hapticMedium,
+  hapticSuccess,
+  onPressHaptic,
+} from "@/lib/kioskUi";
 import { isExpoGo } from "@/lib/runtime";
 import { getTabletConfig, getTabletToken } from "@/lib/storage";
 import type { KioskEmployee, RootStackParamList } from "@/types";
@@ -31,14 +37,21 @@ type FaceRegisterNavigation = NativeStackNavigationProp<
 
 type Phase = "confirm" | "camera";
 
+const SAMPLE_COUNT = 3;
+const SAMPLE_PROMPTS = [
+  "Look straight at the camera",
+  "Turn slightly left",
+  "Turn slightly right",
+] as const;
+
 export function FaceRegisterScreen() {
   const route = useRoute<FaceRegisterRoute>();
   const navigation = useNavigation<FaceRegisterNavigation>();
   const { employee } = route.params;
 
-  // Employees who registered before (e.g. descriptor reset by a migration) get a
-  // re-register confirmation instead of being silently re-enrolled.
-  const isReRegister = employee.face_registered;
+  const needsReenrollment = Boolean(employee.needs_reenrollment);
+  // Forced re-scan or prior registration — show confirm first.
+  const isReRegister = needsReenrollment || employee.face_registered;
 
   const cameraRef = useRef<CameraView>(null);
   const [phase, setPhase] = useState<Phase>(isReRegister ? "confirm" : "camera");
@@ -47,6 +60,12 @@ export function FaceRegisterScreen() {
   const [scanState, setScanState] = useState<KioskScanState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [captureKey, setCaptureKey] = useState(0);
+  const [sampleUris, setSampleUris] = useState<string[]>([]);
+
+  const sampleIndex = sampleUris.length;
+  const samplePrompt =
+    SAMPLE_PROMPTS[Math.min(sampleIndex, SAMPLE_PROMPTS.length - 1)] ??
+    SAMPLE_PROMPTS[0];
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
@@ -82,6 +101,49 @@ export function FaceRegisterScreen() {
     setApiPhase("failed");
     setCaptureKey((k) => k + 1);
   }, []);
+
+  const submitSamples = useCallback(
+    async (uris: string[]) => {
+      setScanState("processing");
+      setApiPhase("processing");
+
+      try {
+        const tabletToken = await getTabletToken();
+        const formData = buildFaceUploadFormDataFromUris(uris, employee.id, {
+          includeConsent: true,
+        });
+
+        await api.post("/api/kiosk/register-face", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            "x-tablet-token": tabletToken ?? "",
+          },
+          timeout: FACE_API_TIMEOUT_MS,
+        });
+
+        setScanState("success");
+        setApiPhase("success");
+        void hapticSuccess();
+
+        const updatedEmployee: KioskEmployee = {
+          ...employee,
+          face_consent: true,
+          face_registered: true,
+          has_face_descriptor: true,
+          needs_reenrollment: false,
+        };
+
+        setTimeout(() => {
+          navigation.replace("Action", { employee: updatedEmployee });
+        }, 1200);
+      } catch (err) {
+        setSampleUris([]);
+        setScanState("failed_no_face");
+        handleCaptureFailed(getRegisterFaceErrorMessage(err));
+      }
+    },
+    [employee, handleCaptureFailed, navigation]
+  );
 
   const handleCapture = useCallback(async () => {
     if (scanState !== "idle" || apiPhase !== "none") return;
@@ -119,47 +181,24 @@ export function FaceRegisterScreen() {
       return;
     }
 
-    setScanState("processing");
-    setApiPhase("processing");
+    // Keep full-frame photo for InsightFace (same as verify).
+    const nextUris = [...sampleUris, photo.uri];
+    setSampleUris(nextUris);
+    void hapticMedium();
 
-    try {
-      const tabletToken = await getTabletToken();
-      // Send the full photo — InsightFace re-runs detection and needs resolution context.
-      const formData = buildFaceUploadFormData(photo.uri, employee.id, {
-        includeConsent: true,
-      });
-
-      await api.post("/api/kiosk/register-face", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          "x-tablet-token": tabletToken ?? "",
-        },
-      });
-
-      setScanState("success");
-      setApiPhase("success");
-      void hapticSuccess();
-
-      const updatedEmployee: KioskEmployee = {
-        ...employee,
-        face_consent: true,
-        face_registered: true,
-        has_face_descriptor: true,
-      };
-
-      setTimeout(() => {
-        navigation.replace("Action", { employee: updatedEmployee });
-      }, 1200);
-    } catch (err) {
-      setScanState("failed_no_face");
-      handleCaptureFailed(getRegisterFaceErrorMessage(err));
+    if (nextUris.length < SAMPLE_COUNT) {
+      setScanState("idle");
+      setCaptureKey((k) => k + 1);
+      return;
     }
+
+    await submitSamples(nextUris);
   }, [
     apiPhase,
-    employee,
     handleCaptureFailed,
-    navigation,
+    sampleUris,
     scanState,
+    submitSamples,
   ]);
 
   if (phase === "confirm") {
@@ -168,17 +207,27 @@ export function FaceRegisterScreen() {
         <View style={styles.confirmRoot}>
           <View style={styles.confirmCard}>
             <View style={styles.confirmIcon}>
-              <Feather name="refresh-ccw" size={28} color={T.primary} />
+              <Feather
+                name={needsReenrollment ? "alert-circle" : "refresh-ccw"}
+                size={28}
+                color={needsReenrollment ? T.warning : T.primary}
+              />
             </View>
-            <Text style={styles.confirmTitle}>Your face is already registered</Text>
+            <Text style={styles.confirmTitle}>
+              {needsReenrollment
+                ? "Please re-scan your face"
+                : "Your face is already registered"}
+            </Text>
             <Text style={styles.confirmBody}>
-              {employee.full_name}, we already have a face on file for you. Do you
-              want to capture a new one and replace it?
+              {needsReenrollment
+                ? `${employee.full_name}, we upgraded face recognition. Capture three short photos (center, left, right) so clock-in works again.`
+                : `${employee.full_name}, we already have a face on file for you. Do you want to capture a new one and replace it?`}
             </Text>
 
             <Pressable
               onPress={() => {
                 void hapticMedium();
+                setSampleUris([]);
                 setPhase("camera");
               }}
               onPressIn={() => onPressHaptic("medium")}
@@ -187,19 +236,25 @@ export function FaceRegisterScreen() {
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.primaryBtnText}>Re-register Face</Text>
+              <Text style={styles.primaryBtnText}>
+                {needsReenrollment ? "Start face re-scan" : "Re-register Face"}
+              </Text>
             </Pressable>
 
-            <Pressable
-              onPress={() => navigation.replace("FaceScan", { employee })}
-              onPressIn={() => onPressHaptic("light")}
-              style={({ pressed }) => [
-                styles.secondaryBtn,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.secondaryBtnText}>Keep current · Verify instead</Text>
-            </Pressable>
+            {!needsReenrollment ? (
+              <Pressable
+                onPress={() => navigation.replace("FaceScan", { employee })}
+                onPressIn={() => onPressHaptic("light")}
+                style={({ pressed }) => [
+                  styles.secondaryBtn,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.secondaryBtnText}>
+                  Keep current · Verify instead
+                </Text>
+              </Pressable>
+            ) : null}
 
             <Pressable
               onPress={handleBack}
@@ -219,7 +274,13 @@ export function FaceRegisterScreen() {
     <View style={styles.root}>
       <FaceCaptureView
         mode="register"
-        title={isReRegister ? "Re-register Face" : "Face Registration"}
+        title={
+          needsReenrollment
+            ? "Re-scan Face"
+            : isReRegister
+              ? "Re-register Face"
+              : "Face Registration"
+        }
         employeeName={employee.full_name}
         employeeId={employee.id}
         companyName={companyName}
@@ -232,6 +293,7 @@ export function FaceRegisterScreen() {
         errorMessage={errorMessage}
         cameraRef={cameraRef}
         scanState={scanState}
+        captureHint={`Photo ${sampleIndex + 1} of ${SAMPLE_COUNT} — ${samplePrompt}`}
         onBack={handleBack}
         onCapturePress={handleCapture}
       />

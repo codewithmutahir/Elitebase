@@ -6,6 +6,8 @@ export interface KioskEmployee {
   face_consent: boolean;
   has_face_descriptor: boolean;
   face_registered: boolean;
+  /** True when face must be re-scanned after model change. */
+  needs_reenrollment: boolean;
 }
 
 export interface TabletConfig {

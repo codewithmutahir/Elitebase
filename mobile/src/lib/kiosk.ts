@@ -36,6 +36,7 @@ export type GetEmployeeApiEmployee = {
   face_registered: boolean;
   face_consent: boolean;
   has_face_descriptor: boolean;
+  needs_reenrollment: boolean;
 };
 
 export type GetEmployeeResponse = {
@@ -63,6 +64,7 @@ export function toKioskEmployee(
     face_consent: employee.face_consent,
     has_face_descriptor: employee.has_face_descriptor,
     face_registered: employee.face_registered,
+    needs_reenrollment: Boolean(employee.needs_reenrollment),
   };
 }
 

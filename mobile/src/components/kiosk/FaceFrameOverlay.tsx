@@ -75,7 +75,8 @@ export function FaceFrameOverlay({
     state === "failed_no_face" ||
     state === "failed_multiple" ||
     state === "failed_too_small" ||
-    state === "failed_no_match";
+    state === "failed_no_match" ||
+    state === "failed_service";
 
   useEffect(() => {
     if (state === "idle") {

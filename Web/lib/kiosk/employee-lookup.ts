@@ -16,6 +16,7 @@ type PinRow = {
     face_descriptor: unknown;
     face_consent: boolean;
     face_registered_at: string | null;
+    needs_reenrollment: boolean | null;
   } | {
     id: string;
     full_name: string;
@@ -23,6 +24,7 @@ type PinRow = {
     face_descriptor: unknown;
     face_consent: boolean;
     face_registered_at: string | null;
+    needs_reenrollment: boolean | null;
   }[] | null;
 };
 
@@ -82,7 +84,8 @@ export async function findEmployeeByPin(companyId: string, pin: string) {
         is_active,
         face_descriptor,
         face_consent,
-        face_registered_at
+        face_registered_at,
+        needs_reenrollment
       )
     `
     )
@@ -147,6 +150,7 @@ export async function findEmployeeByPin(companyId: string, pin: string) {
         face_registered: Boolean(employee.face_registered_at),
         face_consent: employee.face_consent,
         has_face_descriptor: hasFaceDescriptor,
+        needs_reenrollment: Boolean(employee.needs_reenrollment),
       },
     };
   }
@@ -174,7 +178,7 @@ export async function getEmployeeForTablet(
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, is_active, face_descriptor, face_consent, face_registered_at"
+      "id, full_name, is_active, face_descriptor, face_consent, face_registered_at, needs_reenrollment"
     )
     .eq("company_id", companyId)
     .eq("id", employeeId)

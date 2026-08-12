@@ -7,4 +7,5 @@ export type KioskScanState =
   | "failed_no_face"
   | "failed_multiple"
   | "failed_too_small"
-  | "failed_no_match";
+  | "failed_no_match"
+  | "failed_service";

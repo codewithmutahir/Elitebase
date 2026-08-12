@@ -36,6 +36,9 @@ function faceBadge(employee: EmployeeListItem) {
   if (employee.status === "terminated") {
     return <StatusBadge tone="error">Terminated</StatusBadge>;
   }
+  if (employee.needs_reenrollment) {
+    return <StatusBadge tone="warning">Re-scan needed</StatusBadge>;
+  }
   if (employee.face_registered_at) {
     return <StatusBadge tone="success">Enrolled</StatusBadge>;
   }
