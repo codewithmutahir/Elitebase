@@ -1,9 +1,9 @@
 import { useCallback, useEffect } from "react";
 import {
   BackHandler,
-  Dimensions,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
@@ -34,7 +34,6 @@ type SuccessNavigation = NativeStackNavigationProp<
 >;
 
 const DISMISS_MS = 3500;
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function gradientForAction(type: AttendanceActionType): readonly [string, string] {
   switch (type) {
@@ -131,6 +130,7 @@ export function SuccessScreen() {
   const gradient = gradientForAction(actionType);
   const accent = accentForAction(actionType);
   const title = titleForAction(actionType);
+  const { width: windowWidth } = useWindowDimensions();
 
   const checkScale = useSharedValue(0);
   const ringScale = useSharedValue(1);
@@ -175,7 +175,7 @@ export function SuccessScreen() {
 
     timeScale.value = withDelay(300, withSpring(1, T.spring));
 
-    progressWidth.value = withTiming(SCREEN_WIDTH, {
+    progressWidth.value = withTiming(windowWidth, {
       duration: DISMISS_MS,
       easing: Easing.linear,
     });
@@ -190,6 +190,7 @@ export function SuccessScreen() {
     timeScale,
     titleOpacity,
     titleY,
+    windowWidth,
   ]);
 
   useFocusEffect(
@@ -280,6 +281,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
+    width: "100%",
+    maxWidth: 560,
+    alignSelf: "center",
   },
   checkWrap: {
     width: 140,

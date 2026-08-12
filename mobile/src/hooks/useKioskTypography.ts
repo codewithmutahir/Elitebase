@@ -57,6 +57,7 @@ export function getKioskTypography(width: number): KioskTypography {
 }
 
 export function useKioskTypography(): KioskTypography {
-  const { width } = useWindowDimensions();
-  return useMemo(() => getKioskTypography(width), [width]);
+  const { width, height } = useWindowDimensions();
+  const shortest = Math.min(width, height);
+  return useMemo(() => getKioskTypography(shortest), [shortest]);
 }

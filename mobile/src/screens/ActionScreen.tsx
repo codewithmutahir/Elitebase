@@ -18,7 +18,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { ScreenBackground } from "@/components/ScreenBackground";
+import { KioskFrame } from "@/components/kiosk/KioskFrame";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import {
   avatarColor,
   employeeInitials,
@@ -146,74 +148,92 @@ export function ActionScreen() {
     ? "break_end"
     : "break_start";
   const breakLabel = onBreak ? "End Break" : "Start Break";
+  const layout = useKioskLayout();
+
+  const identity = (
+    <View style={styles.top}>
+      <Animated.View style={[styles.verifiedBadge, badgeStyle]}>
+        <Feather name="check-circle" size={16} color={T.success} />
+        <Text style={styles.verifiedText}>IDENTITY VERIFIED</Text>
+      </Animated.View>
+
+      <Animated.View
+        style={[styles.avatar, { backgroundColor: avatarBg }, avatarStyle]}
+      >
+        <Text style={styles.avatarText}>{initials}</Text>
+      </Animated.View>
+
+      <Text style={styles.name}>{employee.full_name}</Text>
+      <Text style={styles.timeLine}>{weekdayTime(now)}</Text>
+
+      {loadingStatus ? (
+        <ActivityIndicator color={T.primary} size="small" />
+      ) : (
+        <Text style={[styles.status, { color: statusLine.color }]}>
+          {statusLine.text}
+        </Text>
+      )}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+
+  const actions = (
+    <View
+      style={[
+        styles.actions,
+        layout.isLandscape && styles.actionsLandscape,
+      ]}
+    >
+      <ActionButton
+        label={submitting === "clock_in" ? "..." : "Clock In"}
+        icon="log-in"
+        bg={isClockedIn ? T.surfaceHi : T.success}
+        disabled={isClockedIn || loadingStatus || submitting !== null}
+        onPress={() => void handleAction("clock_in")}
+      />
+      <ActionButton
+        label={submitting === "clock_out" ? "..." : "Clock Out"}
+        icon="log-out"
+        bg={!isClockedIn ? T.surfaceHi : T.error}
+        disabled={!isClockedIn || loadingStatus || submitting !== null}
+        onPress={() => void handleAction("clock_out")}
+      />
+      <ActionButton
+        label={submitting === breakAction ? "..." : breakLabel}
+        icon="coffee"
+        bg={T.surfaceHi}
+        bordered
+        disabled={!isClockedIn || loadingStatus || submitting !== null}
+        onPress={() => void handleAction(breakAction)}
+        compact
+      />
+    </View>
+  );
 
   return (
     <ScreenBackground>
-      <View style={styles.root}>
-        <View style={styles.top}>
-          <Animated.View style={[styles.verifiedBadge, badgeStyle]}>
-            <Feather name="check-circle" size={16} color={T.success} />
-            <Text style={styles.verifiedText}>IDENTITY VERIFIED</Text>
-          </Animated.View>
-
-          <Animated.View
+      <KioskFrame maxWidth={layout.isLandscape ? 880 : layout.contentMaxWidth}>
+        <View style={styles.root}>
+          <View
             style={[
-              styles.avatar,
-              { backgroundColor: avatarBg },
-              avatarStyle,
+              styles.body,
+              layout.isLandscape && styles.bodyLandscape,
             ]}
           >
-            <Text style={styles.avatarText}>{initials}</Text>
-          </Animated.View>
+            {identity}
+            {actions}
+          </View>
 
-          <Text style={styles.name}>{employee.full_name}</Text>
-          <Text style={styles.timeLine}>{weekdayTime(now)}</Text>
-
-          {loadingStatus ? (
-            <ActivityIndicator color={T.primary} size="small" />
-          ) : (
-            <Text style={[styles.status, { color: statusLine.color }]}>
-              {statusLine.text}
-            </Text>
-          )}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Pressable
+            onPress={() => navigation.replace("Idle")}
+            onPressIn={() => onPressHaptic("light")}
+            hitSlop={12}
+            style={({ pressed }) => [styles.notYou, pressed && styles.pressed]}
+          >
+            <Text style={styles.notYouText}>Not you?</Text>
+          </Pressable>
         </View>
-
-        <View style={styles.actions}>
-          <ActionButton
-            label={submitting === "clock_in" ? "..." : "Clock In"}
-            icon="log-in"
-            bg={isClockedIn ? T.surfaceHi : T.success}
-            disabled={isClockedIn || loadingStatus || submitting !== null}
-            onPress={() => void handleAction("clock_in")}
-          />
-          <ActionButton
-            label={submitting === "clock_out" ? "..." : "Clock Out"}
-            icon="log-out"
-            bg={!isClockedIn ? T.surfaceHi : T.error}
-            disabled={!isClockedIn || loadingStatus || submitting !== null}
-            onPress={() => void handleAction("clock_out")}
-          />
-          <ActionButton
-            label={submitting === breakAction ? "..." : breakLabel}
-            icon="coffee"
-            bg={T.surfaceHi}
-            bordered
-            disabled={!isClockedIn || loadingStatus || submitting !== null}
-            onPress={() => void handleAction(breakAction)}
-            compact
-          />
-        </View>
-
-        <Pressable
-          onPress={() => navigation.replace("Idle")}
-          onPressIn={() => onPressHaptic("light")}
-          hitSlop={12}
-          style={({ pressed }) => [styles.notYou, pressed && styles.pressed]}
-        >
-          <Text style={styles.notYouText}>Not you?</Text>
-        </Pressable>
-      </View>
+      </KioskFrame>
     </ScreenBackground>
   );
 }
@@ -267,8 +287,15 @@ function ActionButton({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingHorizontal: 24 },
-  top: { paddingTop: 72, alignItems: "center" },
+  root: { flex: 1 },
+  body: { flex: 1, minHeight: 0 },
+  bodyLandscape: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 32,
+  },
+  top: { paddingTop: 8, alignItems: "center", minWidth: 240, flexShrink: 1 },
   verifiedBadge: {
     flexDirection: "row",
     gap: 8,
@@ -306,6 +333,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 16,
     paddingVertical: 24,
+    width: "100%",
+    minWidth: 240,
+  },
+  actionsLandscape: {
+    flex: 1,
+    maxWidth: 400,
+    paddingVertical: 8,
   },
   actionBtn: {
     minHeight: 72,
@@ -329,7 +363,12 @@ const styles = StyleSheet.create({
   },
   actionText: { ...T.btn, fontSize: 18, color: T.text },
   breakText: { ...T.btn, fontSize: 16, color: T.text },
-  notYou: { paddingBottom: 40, minHeight: 44, justifyContent: "center" },
+  notYou: {
+    width: "100%",
+    paddingBottom: 8,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   notYouText: { ...T.body, color: T.textMuted, textAlign: "center" },
   pressed: { opacity: 0.85 },
 });

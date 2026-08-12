@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import { onPressHaptic } from "@/lib/kioskUi";
 
 type NumPadProps = {
@@ -32,11 +33,15 @@ function NumKey({
   onPress,
   disabled,
   variant,
+  size,
+  iconSize,
 }: {
   label: string;
   onPress?: () => void;
   disabled: boolean;
   variant: "digit" | "ghost";
+  size: number;
+  iconSize: number;
 }) {
   const scale = useSharedValue(1);
   const bg = useSharedValue<string>(T.surfaceHi);
@@ -66,6 +71,11 @@ function NumKey({
         }
       }}
       style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: Math.min(T.radius.xl, size * 0.22),
+        },
         styles.key,
         variant === "ghost" && styles.keyGhost,
         disabled && styles.keyDisabled,
@@ -73,9 +83,11 @@ function NumKey({
       ]}
     >
       {variant === "ghost" ? (
-        <Ionicons name="backspace-outline" size={28} color={T.textMuted} />
+        <Ionicons name="backspace-outline" size={iconSize} color={T.textMuted} />
       ) : (
-        <Text style={styles.digit}>{label}</Text>
+        <Text style={[styles.digit, { fontSize: Math.round(size * 0.34) }]}>
+          {label}
+        </Text>
       )}
     </AnimatedPressable>
   );
@@ -87,27 +99,36 @@ export function NumPad({
   onFingerprint,
   disabled = false,
 }: NumPadProps) {
+  const { keySize, keyGap, keypadWidth } = useKioskLayout();
+  const iconSize = Math.round(keySize * 0.36);
+
   return (
-    <View style={styles.grid}>
+    <View style={[styles.grid, { width: keypadWidth, gap: keyGap }]}>
       {ROWS.map((row, rowIndex) => (
-        <View key={`row-${rowIndex}`} style={styles.keyRow}>
+        <View key={`row-${rowIndex}`} style={[styles.keyRow, { gap: keyGap }]}>
           {row.map((key) => {
             if (key === "fp") {
               return (
                 <Pressable
                   key="fp"
-                  disabled={disabled}
+                  disabled={disabled || !onFingerprint}
                   onPress={onFingerprint}
                   onPressIn={() => onPressHaptic("light")}
                   style={({ pressed }) => [
+                    {
+                      width: keySize,
+                      height: keySize,
+                      borderRadius: Math.min(T.radius.xl, keySize * 0.22),
+                    },
                     styles.key,
                     styles.keyGhost,
                     pressed && styles.pressed,
+                    !onFingerprint && styles.keyDisabled,
                   ]}
                 >
                   <Ionicons
                     name="finger-print"
-                    size={32}
+                    size={iconSize + 4}
                     color={T.textMuted}
                   />
                 </Pressable>
@@ -121,6 +142,8 @@ export function NumPad({
                   variant="ghost"
                   disabled={disabled}
                   onPress={onBackspace}
+                  size={keySize}
+                  iconSize={iconSize}
                 />
               );
             }
@@ -131,6 +154,8 @@ export function NumPad({
                 variant="digit"
                 disabled={disabled}
                 onPress={() => onDigit(key)}
+                size={keySize}
+                iconSize={iconSize}
               />
             );
           })}
@@ -141,16 +166,14 @@ export function NumPad({
 }
 
 const styles = StyleSheet.create({
-  grid: { gap: 12 },
-  keyRow: { flexDirection: "row", gap: 12 },
+  grid: { alignSelf: "center" },
+  keyRow: { flexDirection: "row" },
   key: {
-    flex: 1,
-    minHeight: 78,
-    borderRadius: T.radius.xl,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: T.border,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   keyGhost: { backgroundColor: "transparent", borderWidth: 0 },
   keyDisabled: { opacity: 0.45 },

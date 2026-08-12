@@ -21,6 +21,7 @@ import Animated, {
 import { NumPad } from "@/components/NumPad";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import axios from "axios";
 import {
   getEmployeeByPin,
@@ -225,10 +226,79 @@ export function PinScreen() {
     }, [loading, navigation])
   );
 
+  const layout = useKioskLayout();
+  const compact = layout.isCompact;
+  const landscape = layout.isLandscape;
+
+  const pinHeader = (
+    <View
+      style={[
+        styles.headerContent,
+        landscape && styles.headerContentLandscape,
+        compact && styles.headerContentCompact,
+      ]}
+    >
+      {config?.company_logo_url ? (
+        <Image
+          source={{ uri: config.company_logo_url }}
+          style={[styles.companyLogo, compact && styles.companyLogoCompact]}
+        />
+      ) : (
+        <View style={[styles.companyLogo, compact && styles.companyLogoCompact]}>
+          <Feather name="clock" size={compact ? 18 : 22} color={T.primaryDark} />
+        </View>
+      )}
+
+      <Text style={[styles.title, compact && styles.titleCompact]}>
+        Enter your PIN
+      </Text>
+      <Text style={styles.subtitle}>Clock in or out securely</Text>
+
+      <Animated.View
+        style={[
+          styles.pinDots,
+          compact && styles.pinDotsCompact,
+          shakeStyle,
+        ]}
+      >
+        {Array.from({ length: PIN_LENGTH }, (_, i) => (
+          <PinDot key={i} filled={i < pin.length} />
+        ))}
+      </Animated.View>
+
+      {loading ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={T.primary} size="small" />
+          <Text style={styles.loadingText}>Verifying…</Text>
+        </View>
+      ) : null}
+
+      {showPinError ? (
+        <View style={styles.errorBox}>
+          <Feather name="alert-circle" size={14} color={T.error} />
+          <Text style={styles.errorText}>
+            {isLockedOut
+              ? `Locked. Try again in ${lockoutRemaining}s.`
+              : error ?? "Incorrect PIN"}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+
   return (
     <ScreenBackground>
-      <View style={styles.root}>
-        <View style={styles.topSection}>
+      <View
+        style={[
+          styles.root,
+          {
+            paddingTop: layout.paddingTop,
+            paddingBottom: layout.paddingBottom,
+            paddingHorizontal: layout.paddingH,
+          },
+        ]}
+      >
+        <View style={styles.navRow}>
           <Pressable
             onPress={() => navigation.navigate("Idle")}
             disabled={loading}
@@ -241,53 +311,31 @@ export function PinScreen() {
           >
             <Feather name="chevron-left" size={20} color={T.textMuted} />
           </Pressable>
+        </View>
 
-          {config?.company_logo_url ? (
-            <Image
-              source={{ uri: config.company_logo_url }}
-              style={styles.companyLogo}
-            />
-          ) : (
-            <View style={styles.companyLogo}>
-              <Feather name="clock" size={22} color={T.primaryDark} />
+        {landscape ? (
+          <View style={styles.landscapeBody}>
+            <View style={styles.landscapeCopy}>{pinHeader}</View>
+            <View style={styles.landscapePad}>
+              <NumPad
+                onDigit={handleDigit}
+                onBackspace={handleBackspace}
+                disabled={!canEnterPin}
+              />
             </View>
-          )}
-
-          <Text style={styles.title}>Enter your PIN</Text>
-          <Text style={styles.subtitle}>Clock in or out securely</Text>
-
-          <View style={styles.pinDots}>
-            {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <PinDot key={i} filled={i < pin.length} />
-            ))}
           </View>
-
-          {loading ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={T.primary} size="small" />
-              <Text style={styles.loadingText}>Verifying…</Text>
+        ) : (
+          <>
+            <View style={styles.portraitCopy}>{pinHeader}</View>
+            <View style={styles.portraitPad}>
+              <NumPad
+                onDigit={handleDigit}
+                onBackspace={handleBackspace}
+                disabled={!canEnterPin}
+              />
             </View>
-          ) : null}
-
-          {showPinError ? (
-            <Animated.View style={[styles.errorBox, shakeStyle]}>
-              <Feather name="alert-circle" size={14} color={T.error} />
-              <Text style={styles.errorText}>
-                {isLockedOut
-                  ? `Locked. Try again in ${lockoutRemaining}s.`
-                  : error ?? "Incorrect PIN"}
-              </Text>
-            </Animated.View>
-          ) : null}
-        </View>
-
-        <View style={styles.numpadSection}>
-          <NumPad
-            onDigit={handleDigit}
-            onBackspace={handleBackspace}
-            disabled={!canEnterPin}
-          />
-        </View>
+          </>
+        )}
       </View>
     </ScreenBackground>
   );
@@ -295,22 +343,60 @@ export function PinScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  topSection: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 32,
+  navRow: {
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
+    marginBottom: 8,
   },
   backBtn: {
-    position: "absolute",
-    top: 56,
-    left: 24,
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: T.surfaceHi,
     alignItems: "center",
     justifyContent: "center",
+  },
+  landscapeBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 24,
+    minHeight: 0,
+  },
+  landscapeCopy: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: 420,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  landscapePad: {
+    flexShrink: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  portraitCopy: {
+    flex: 1,
+    minHeight: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  portraitPad: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  headerContent: {
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 440,
+  },
+  headerContentLandscape: {
+    maxWidth: 360,
+  },
+  headerContentCompact: {
+    maxWidth: 320,
   },
   companyLogo: {
     width: 48,
@@ -322,13 +408,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     overflow: "hidden",
   },
+  companyLogoCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
   title: { ...T.title, textAlign: "center" },
+  titleCompact: { fontSize: 22 },
   subtitle: { ...T.body, textAlign: "center", marginTop: 8 },
   pinDots: {
     flexDirection: "row",
     gap: 16,
     marginTop: 40,
     justifyContent: "center",
+  },
+  pinDotsCompact: {
+    marginTop: 16,
+    gap: 12,
   },
   pinDot: {
     width: 16,
@@ -362,11 +459,8 @@ const styles = StyleSheet.create({
     borderRadius: T.radius.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
+    maxWidth: "100%",
   },
-  errorText: { ...T.body, fontSize: 13, color: T.error },
-  numpadSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 48,
-  },
+  errorText: { ...T.body, fontSize: 13, color: T.error, flexShrink: 1 },
   pressed: { opacity: 0.85 },
 });

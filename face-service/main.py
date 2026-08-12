@@ -376,3 +376,18 @@ async def health():
         "det_size": DET_SIZE,
         "verify_threshold": VERIFY_THRESHOLD,
     }
+
+
+@app.post("/warmup")
+async def warmup():
+    """Explicitly load the InsightFace model (cold-start wake for kiosks)."""
+    started = time.time()
+    _ensure_model()
+    return {
+        "status": "ok",
+        "model_loaded": model is not None,
+        "model_name": MODEL_NAME,
+        "det_size": DET_SIZE,
+        "verify_threshold": VERIFY_THRESHOLD,
+        "load_ms": int((time.time() - started) * 1000),
+    }

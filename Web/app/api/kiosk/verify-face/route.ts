@@ -21,6 +21,17 @@ import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
 
 export const runtime = "nodejs";
 
+function collectUploadFile(formData: FormData): File | null {
+  const single = formData.get("file");
+  if (single instanceof File && single.size > 0) return single;
+
+  // Kiosk historically posts `files` (same as register-face multi-sample).
+  const fromFiles = formData
+    .getAll("files")
+    .filter((item): item is File => item instanceof File && item.size > 0);
+  return fromFiles[0] ?? null;
+}
+
 export async function POST(request: NextRequest) {
   const tooLarge = rejectOversizedBody(request);
   if (tooLarge) return tooLarge;
@@ -36,13 +47,13 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const employeeId = String(formData.get("employee_id") ?? "").trim();
-  const file = formData.get("file");
+  const file = collectUploadFile(formData);
 
   if (!employeeId) {
     return jsonError("employee_id is required.", 400);
   }
 
-  if (!(file instanceof File) || file.size === 0) {
+  if (!file) {
     return jsonError("file is required (multipart image upload).", 400);
   }
 

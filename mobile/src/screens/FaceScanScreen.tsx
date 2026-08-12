@@ -102,6 +102,17 @@ function classifyVerifyTransportError(err: unknown): {
           ) || "Face service is temporarily unavailable. Please try again.",
       };
     }
+
+    // Client/validation errors (e.g. missing file) are not a downed service.
+    if (status >= 400 && status < 500) {
+      return {
+        reason: "API_ERROR",
+        message: getKioskApiErrorMessage(
+          err,
+          "Could not verify face. Please try again."
+        ),
+      };
+    }
   }
 
   return {
@@ -246,7 +257,6 @@ export function FaceScanScreen() {
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
             "x-tablet-token": tabletToken ?? "",
           },
           timeout: FACE_API_TIMEOUT_MS,
@@ -275,7 +285,19 @@ export function FaceScanScreen() {
         classified.reason,
         axios.isAxiosError(err) ? err.message : classified.reason
       );
-      handleServiceFailed(classified.message);
+      const isTransportIssue =
+        classified.reason === "TIMEOUT" ||
+        (axios.isAxiosError(err) &&
+          (!err.response ||
+            err.response.status === 503 ||
+            (err.response.status ?? 0) >= 500));
+
+      if (isTransportIssue) {
+        handleServiceFailed(classified.message);
+      } else {
+        setScanState("failed_no_match");
+        handleMatchFailed(classified.message);
+      }
     }
   }, [
     apiPhase,
@@ -404,11 +426,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 16,
   },
-  managerTitle: { ...T.title, textAlign: "center" },
-  managerBody: { ...T.body, fontSize: 16, textAlign: "center" },
+  managerTitle: { ...T.title, textAlign: "center", maxWidth: 480, width: "100%" },
+  managerBody: {
+    ...T.body,
+    fontSize: 16,
+    textAlign: "center",
+    maxWidth: 480,
+    width: "100%",
+  },
   managerBtn: {
     marginTop: 24,
     width: "100%",
+    maxWidth: 480,
     minHeight: 56,
     borderRadius: T.radius.pill,
     backgroundColor: T.primary,
@@ -418,6 +447,7 @@ const styles = StyleSheet.create({
   managerBtnText: { ...T.btn, color: "#fff" },
   pinBtn: {
     width: "100%",
+    maxWidth: 480,
     minHeight: 56,
     borderRadius: T.radius.pill,
     backgroundColor: T.surfaceHi,

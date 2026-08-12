@@ -1,0 +1,20 @@
+# Keep EAS Android builds from uploading the whole monorepo / huge caches
+Web/
+face-service/
+supabase/
+.cursor/
+.git/
+
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/.expo/
+**/android/app/build/
+**/ios/Pods/
+
+**/*.sst
+**/*.log
+**/.env
+**/.env.local
+**/__pycache__/

@@ -115,7 +115,6 @@ export function FaceRegisterScreen() {
 
         await api.post("/api/kiosk/register-face", formData, {
           headers: {
-            "Content-Type": "multipart/form-data",
             "x-tablet-token": tabletToken ?? "",
           },
           timeout: FACE_API_TIMEOUT_MS,
@@ -311,6 +310,7 @@ const styles = StyleSheet.create({
   },
   confirmCard: {
     width: "100%",
+    maxWidth: 480,
     backgroundColor: T.surface,
     borderRadius: T.radius.lg,
     borderWidth: StyleSheet.hairlineWidth,

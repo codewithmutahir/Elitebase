@@ -4,6 +4,9 @@ import { getTabletToken } from "@/lib/storage";
 /** Face verify/register can wait on Render cold start + model load. */
 export const FACE_API_TIMEOUT_MS = 90_000;
 
+/** Warmup may load buffalo_sc into memory on a cold Render instance. */
+export const FACE_WARMUP_TIMEOUT_MS = 90_000;
+
 /** Fire-and-forget warmup of the Python face service via Next.js. */
 export async function warmupFaceService(): Promise<void> {
   try {
@@ -15,7 +18,7 @@ export async function warmupFaceService(): Promise<void> {
       {},
       {
         headers: { "x-tablet-token": tabletToken },
-        timeout: 30_000,
+        timeout: FACE_WARMUP_TIMEOUT_MS,
       }
     );
   } catch {

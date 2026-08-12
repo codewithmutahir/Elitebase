@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   StyleSheet,
@@ -21,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import { hapticMedium, onPressHaptic } from "@/lib/kioskUi";
 import type { RootStackParamList, TabletConfig } from "@/types";
 import { getTabletConfig } from "@/lib/storage";
@@ -30,7 +30,6 @@ import { warmupFaceService } from "@/lib/faceWarmup";
 type IdleNavigation = NativeStackNavigationProp<RootStackParamList, "Idle">;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 function timeGreeting() {
   const hour = new Date().getHours();
@@ -131,10 +130,24 @@ export function IdleScreen() {
   }));
 
   const companyName = config?.company_name ?? "Elitebase";
+  const layout = useKioskLayout();
+  const compact = layout.isCompact;
+  const landscape = layout.isLandscape;
+  const blobSize = compact ? 180 : layout.isTablet ? 320 : 280;
+  const fpSize = compact ? 88 : 120;
+  const fpIcon = compact ? 44 : 60;
 
   return (
     <ScreenBackground>
-      <View style={styles.top}>
+      <View
+        style={[
+          styles.top,
+          {
+            paddingTop: layout.paddingTop,
+            paddingHorizontal: layout.paddingH,
+          },
+        ]}
+      >
         <View style={styles.brandRow}>
           {config?.company_logo_url ? (
             <Image
@@ -156,18 +169,48 @@ export function IdleScreen() {
         </View>
       </View>
 
-      <View style={styles.center}>
-        <Animated.View style={[styles.blob, blobStyle]} />
-        <Animated.View style={[styles.fpWrap, fpStyle]}>
-          <Ionicons
-            name="finger-print-outline"
-            size={60}
-            color={T.primary}
+      <View
+        style={[
+          styles.center,
+          landscape && styles.centerLandscape,
+          { paddingHorizontal: layout.paddingH },
+        ]}
+      >
+        <View style={styles.heroCol}>
+          <Animated.View
+            style={[
+              styles.blob,
+              {
+                width: blobSize,
+                height: blobSize,
+                borderRadius: blobSize / 2,
+              },
+              blobStyle,
+            ]}
           />
-        </Animated.View>
+          <Animated.View
+            style={[
+              styles.fpWrap,
+              {
+                width: fpSize,
+                height: fpSize,
+                borderRadius: fpSize / 2,
+              },
+              fpStyle,
+            ]}
+          >
+            <Ionicons
+              name="finger-print-outline"
+              size={fpIcon}
+              color={T.primary}
+            />
+          </Animated.View>
 
-        <Text style={styles.greeting}>{greeting}</Text>
-        <Text style={styles.subtitle}>Tap below to clock in or out</Text>
+          <Text style={[styles.greeting, compact && styles.greetingCompact]}>
+            {greeting}
+          </Text>
+          <Text style={styles.subtitle}>Tap below to clock in or out</Text>
+        </View>
 
         <AnimatedPressable
           onPress={() => navigation.navigate("Pin")}
@@ -178,7 +221,17 @@ export function IdleScreen() {
           onPressOut={() => {
             btnScale.value = withSpring(1, T.spring);
           }}
-          style={[styles.cta, btnStyle]}
+          style={[
+            styles.cta,
+            {
+              maxWidth: layout.contentMaxWidth,
+              width: landscape
+                ? Math.min(320, layout.contentMaxWidth)
+                : "100%",
+              marginTop: landscape ? 0 : compact ? 24 : 48,
+            },
+            btnStyle,
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Enter PIN"
         >
@@ -187,18 +240,24 @@ export function IdleScreen() {
         </AnimatedPressable>
       </View>
 
-      <Text style={styles.footer}>Powered by Elitebase</Text>
+      <Text
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(layout.paddingBottom, 24) },
+        ]}
+      >
+        Powered by Elitebase
+      </Text>
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   top: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
   },
   brandRow: {
     flexDirection: "row",
@@ -217,20 +276,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   brandName: { ...T.h2, fontSize: 16, flexShrink: 1 },
-  clockCol: { alignItems: "flex-end" },
+  clockCol: { alignItems: "flex-end", flexShrink: 0 },
   clockTime: { ...T.h2, fontSize: 22, color: T.text },
   clockDate: { ...T.body, fontSize: 12, marginTop: 2 },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 0,
+  },
+  centerLandscape: {
+    flexDirection: "row",
+    gap: 32,
     paddingHorizontal: 24,
+  },
+  heroCol: {
+    alignItems: "center",
+    justifyContent: "center",
+    maxWidth: 480,
+    width: "100%",
+    flexShrink: 1,
   },
   blob: {
     position: "absolute",
-    width: 280,
-    height: 280,
-    borderRadius: 140,
     backgroundColor: T.primaryGlow,
     opacity: 0.4,
     shadowColor: T.primary,
@@ -239,9 +307,6 @@ const styles = StyleSheet.create({
     shadowRadius: 60,
   },
   fpWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     backgroundColor: T.primaryGlow,
     borderWidth: 1,
     borderColor: T.primaryBorder,
@@ -254,6 +319,7 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   greeting: { ...T.hero, textAlign: "center", marginTop: 32 },
+  greetingCompact: { fontSize: 28, marginTop: 16 },
   subtitle: {
     ...T.body,
     fontSize: 16,
@@ -262,8 +328,6 @@ const styles = StyleSheet.create({
     color: T.textMuted,
   },
   cta: {
-    marginTop: 48,
-    width: SCREEN_WIDTH - 48,
     minHeight: 64,
     borderRadius: T.radius.pill,
     backgroundColor: T.primary,
@@ -271,6 +335,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
+    alignSelf: "center",
     shadowColor: T.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
@@ -279,7 +344,6 @@ const styles = StyleSheet.create({
   },
   ctaText: { ...T.btn, fontSize: 18, color: "#ffffff" },
   footer: {
-    paddingBottom: 40,
     ...T.body,
     fontSize: 11,
     color: "rgba(255,255,255,0.2)",

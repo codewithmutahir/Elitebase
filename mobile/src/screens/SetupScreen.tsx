@@ -14,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import { hapticMedium, onPressHaptic } from "@/lib/kioskUi";
 import {
   getRegisterTabletErrorMessage,
@@ -34,6 +35,7 @@ export function SetupScreen() {
 
   const trimmedCode = setupCode.trim();
   const canSubmit = trimmedCode.length > 0 && !loading;
+  const layout = useKioskLayout();
 
   async function handleConnect() {
     if (!canSubmit) return;
@@ -59,10 +61,18 @@ export function SetupScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingHorizontal: layout.paddingH,
+              paddingTop: layout.paddingTop + 24,
+              paddingBottom: layout.paddingBottom + 24,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           bounces={false}
         >
+          <View style={[styles.inner, { maxWidth: layout.contentMaxWidth }]}>
           <View style={styles.brandZone}>
             <View style={styles.logoCircle}>
               <Text style={styles.logoLetter}>E</Text>
@@ -116,6 +126,7 @@ export function SetupScreen() {
               )}
             </Pressable>
           </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenBackground>
@@ -126,9 +137,11 @@ const styles = StyleSheet.create({
   keyboard: { flex: 1 },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 72,
-    paddingBottom: 48,
+    alignItems: "center",
+    gap: 32,
+  },
+  inner: {
+    width: "100%",
     gap: 32,
   },
   brandZone: {

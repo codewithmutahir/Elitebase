@@ -30,9 +30,6 @@ export function getApiBaseUrl(): string {
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 30000,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 api.interceptors.request.use(async (config) => {
@@ -40,6 +37,29 @@ api.interceptors.request.use(async (config) => {
   if (tabletToken) {
     config.headers["x-tablet-token"] = tabletToken;
   }
+
+  const isFormData =
+    typeof FormData !== "undefined" && config.data instanceof FormData;
+
+  if (isFormData) {
+    // RN multipart needs the runtime-generated boundary. Never force
+    // application/json or bare multipart/form-data here.
+    if (typeof config.headers?.delete === "function") {
+      config.headers.delete("Content-Type");
+      config.headers.delete("content-type");
+    } else if (config.headers) {
+      delete (config.headers as Record<string, unknown>)["Content-Type"];
+      delete (config.headers as Record<string, unknown>)["content-type"];
+    }
+  } else if (
+    config.data != null &&
+    typeof config.data === "object" &&
+    !config.headers?.["Content-Type"] &&
+    !config.headers?.["content-type"]
+  ) {
+    config.headers["Content-Type"] = "application/json";
+  }
+
   return config;
 });
 

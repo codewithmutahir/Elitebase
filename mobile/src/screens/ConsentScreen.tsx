@@ -12,6 +12,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { ScreenBackground } from "@/components/ScreenBackground";
 import { T } from "@/constants/tokens";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getTabletConfig } from "@/lib/storage";
 import { hapticMedium, onPressHaptic } from "@/lib/kioskUi";
@@ -38,6 +39,7 @@ export function ConsentScreen() {
   const [companyName, setCompanyName] = useState("Your employer");
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
+  const layout = useKioskLayout();
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
@@ -48,9 +50,17 @@ export function ConsentScreen() {
   return (
     <ScreenBackground>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingHorizontal: layout.paddingH,
+            paddingTop: layout.paddingTop + 24,
+            paddingBottom: layout.paddingBottom + 24,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={[styles.inner, { maxWidth: layout.contentMaxWidth }]}>
         <View style={styles.top}>
           <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
             <Text style={styles.avatarText}>{initials}</Text>
@@ -114,6 +124,7 @@ export function ConsentScreen() {
             <Text style={styles.agreeText}>I Agree & Continue</Text>
           </Pressable>
         </View>
+        </View>
       </ScrollView>
     </ScreenBackground>
   );
@@ -122,9 +133,10 @@ export function ConsentScreen() {
 const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 72,
-    paddingBottom: 48,
+    alignItems: "center",
+  },
+  inner: {
+    width: "100%",
   },
   top: { alignItems: "center" },
   avatar: {

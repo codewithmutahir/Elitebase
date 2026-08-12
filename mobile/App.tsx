@@ -15,6 +15,7 @@ import {
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { T } from "@/constants/tokens";
 import { useKioskImmersiveMode } from "@/hooks/useKioskImmersiveMode";
 import { loadSounds, unloadSounds } from "@/lib/sounds";
@@ -152,7 +153,11 @@ function KioskAppTree() {
 }
 
 export default function App() {
-  return <KioskAppTree />;
+  return (
+    <SafeAreaProvider>
+      <KioskAppTree />
+    </SafeAreaProvider>
+  );
 }
 
 const styles = StyleSheet.create({

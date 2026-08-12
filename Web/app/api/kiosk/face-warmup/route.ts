@@ -10,8 +10,8 @@ import { getPythonFaceServiceUrl } from "@/lib/kiosk/python-face-service";
 export const runtime = "nodejs";
 
 /**
- * Lightweight ping to wake the Render face service (cold start).
- * Safe to call on kiosk launch; does not load a face or change state.
+ * Wake the Render face service and load InsightFace into memory.
+ * Safe to call on kiosk launch / Idle focus.
  */
 export async function POST(request: NextRequest) {
   const tablet = await requireKioskTablet(request);
@@ -26,19 +26,29 @@ export async function POST(request: NextRequest) {
 
   const headers: Record<string, string> = {};
   const apiKey = process.env.INTERNAL_API_KEY?.trim();
-  // /health is public, but send key if present for consistency.
   if (apiKey) headers["X-Internal-Key"] = apiKey;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 25000);
+  // Model download/load on cold start can take a while on free tier.
+  const timer = setTimeout(() => controller.abort(), 90_000);
 
   try {
-    const response = await fetch(`${faceServiceUrl}/health`, {
-      method: "GET",
+    // Prefer /warmup (loads model). Fall back to /health if older deploy.
+    let response = await fetch(`${faceServiceUrl}/warmup`, {
+      method: "POST",
       headers,
       signal: controller.signal,
       cache: "no-store",
     });
+
+    if (response.status === 404 || response.status === 405) {
+      response = await fetch(`${faceServiceUrl}/health`, {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+        cache: "no-store",
+      });
+    }
 
     if (!response.ok) {
       return jsonOk({
@@ -52,6 +62,7 @@ export async function POST(request: NextRequest) {
       status?: string;
       model_loaded?: boolean;
       model_name?: string;
+      load_ms?: number;
     };
 
     return jsonOk({
@@ -59,6 +70,7 @@ export async function POST(request: NextRequest) {
       status: body.status ?? "ok",
       model_loaded: body.model_loaded ?? null,
       model_name: body.model_name ?? null,
+      load_ms: body.load_ms ?? null,
     });
   } catch {
     return jsonOk({
