@@ -221,14 +221,46 @@ async def extract_embedding(
 async def verify_face(
     file: UploadFile = File(...),
     stored_embedding: str = Form(...),
+    employee_id: str = Form(""),
 ):
     contents = await _read_and_validate_upload(file)
     img = _decode_upload(contents)
+    emp_id = (employee_id or "").strip() or None
+
+    def _log_attempt(
+        *,
+        similarity: float | None,
+        verified: bool,
+        failure_reason: str | None,
+        service_reason: str | None,
+    ) -> None:
+        print(
+            "[face-verify-attempt] "
+            + json.dumps(
+                {
+                    "employee_id": emp_id,
+                    "similarity_score": similarity,
+                    "threshold_used": VERIFY_THRESHOLD,
+                    "verified": verified,
+                    "failure_reason": failure_reason,
+                    "service_reason": service_reason,
+                    "model_name": MODEL_NAME,
+                    "det_size": DET_SIZE,
+                }
+            ),
+            flush=True,
+        )
 
     _ensure_model()
     faces = model.get(img)
 
     if len(faces) == 0:
+        _log_attempt(
+            similarity=0.0,
+            verified=False,
+            failure_reason="LOCAL_LOW_CONFIDENCE",
+            service_reason="no_face",
+        )
         return {
             "verified": False,
             "reason": "no_face",
@@ -238,6 +270,12 @@ async def verify_face(
         }
 
     if len(faces) > 1:
+        _log_attempt(
+            similarity=0.0,
+            verified=False,
+            failure_reason="LOCAL_LOW_CONFIDENCE",
+            service_reason="multiple_faces",
+        )
         return {
             "verified": False,
             "reason": "multiple_faces",
@@ -248,6 +286,12 @@ async def verify_face(
 
     live_face = faces[0]
     if live_face.det_score < 0.5:
+        _log_attempt(
+            similarity=float(live_face.det_score),
+            verified=False,
+            failure_reason="LOCAL_LOW_CONFIDENCE",
+            service_reason="face_not_clear",
+        )
         return {
             "verified": False,
             "reason": "face_not_clear",
@@ -261,11 +305,23 @@ async def verify_face(
     try:
         stored = np.array(json.loads(stored_embedding), dtype=np.float32)
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        _log_attempt(
+            similarity=None,
+            verified=False,
+            failure_reason="API_ERROR",
+            service_reason="invalid_stored_embedding_json",
+        )
         raise HTTPException(
             status_code=400, detail=f"Invalid stored_embedding JSON: {exc}"
         ) from exc
 
     if stored.shape != live_embedding.shape:
+        _log_attempt(
+            similarity=None,
+            verified=False,
+            failure_reason="API_ERROR",
+            service_reason="embedding_size_mismatch",
+        )
         raise HTTPException(
             status_code=400,
             detail=f"Embedding size mismatch: expected {live_embedding.shape}, got {stored.shape}",
@@ -274,6 +330,12 @@ async def verify_face(
     norm_live = np.linalg.norm(live_embedding)
     norm_stored = np.linalg.norm(stored)
     if norm_live == 0 or norm_stored == 0:
+        _log_attempt(
+            similarity=0.0,
+            verified=False,
+            failure_reason="API_ERROR",
+            service_reason="invalid_embedding",
+        )
         return {
             "verified": False,
             "reason": "invalid_embedding",
@@ -287,12 +349,13 @@ async def verify_face(
     )
     verified = bool(similarity >= VERIFY_THRESHOLD)
     level = _confidence_level(similarity)
+    failure_reason = None if verified else "API_NO_MATCH"
 
-    print(
-        f"[verify] similarity={similarity:.4f} "
-        f"threshold={VERIFY_THRESHOLD} "
-        f"level={level} "
-        f"result={'PASS' if verified else 'FAIL'}"
+    _log_attempt(
+        similarity=similarity,
+        verified=verified,
+        failure_reason=failure_reason,
+        service_reason=None if verified else "below_threshold",
     )
 
     return {

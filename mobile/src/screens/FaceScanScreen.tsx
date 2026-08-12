@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import axios from "axios";
 import { CameraView } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
 import { FaceCaptureView } from "@/components/FaceCaptureView";
@@ -38,7 +39,39 @@ type VerifyFaceResponse = {
   reason?: string | null;
 };
 
+type ClientFailureReason =
+  | "NO_FACE_DETECTED"
+  | "LOCAL_LOW_CONFIDENCE"
+  | "TIMEOUT"
+  | "API_ERROR";
+
 const MAX_ATTEMPTS = 3;
+
+async function logClientFaceFailure(
+  employeeId: string,
+  failureReason: ClientFailureReason,
+  detail?: string
+) {
+  try {
+    const tabletToken = await getTabletToken();
+    await api.post(
+      "/api/kiosk/face-verify-log",
+      {
+        employee_id: employeeId,
+        failure_reason: failureReason,
+        detail: detail ?? null,
+      },
+      {
+        headers: {
+          "x-tablet-token": tabletToken ?? "",
+        },
+        timeout: 8000,
+      }
+    );
+  } catch {
+    // Instrumentation must never block the kiosk UX.
+  }
+}
 
 export function FaceScanScreen() {
   const route = useRoute<FaceScanRoute>();
@@ -103,6 +136,11 @@ export function FaceScanScreen() {
 
     if (isExpoGo() || !cameraRef.current) {
       setScanState("failed_no_face");
+      void logClientFaceFailure(
+        employee.id,
+        "NO_FACE_DETECTED",
+        "expo_go_or_missing_camera"
+      );
       handleCaptureFailed();
       return;
     }
@@ -115,6 +153,11 @@ export function FaceScanScreen() {
 
     if (!photo?.uri) {
       setScanState("failed_no_face");
+      void logClientFaceFailure(
+        employee.id,
+        "NO_FACE_DETECTED",
+        "empty_photo"
+      );
       handleCaptureFailed();
       return;
     }
@@ -127,6 +170,11 @@ export function FaceScanScreen() {
 
     if (!detection.success) {
       setScanState(faceDetectionReasonToScanState(detection.reason));
+      const clientReason: ClientFailureReason =
+        detection.reason === "too_small"
+          ? "LOCAL_LOW_CONFIDENCE"
+          : "NO_FACE_DETECTED";
+      void logClientFaceFailure(employee.id, clientReason, detection.reason);
       handleCaptureFailed();
       return;
     }
@@ -163,10 +211,27 @@ export function FaceScanScreen() {
         return;
       }
 
+      // API_NO_MATCH is already recorded server-side; no client duplicate.
       setScanState("failed_no_match");
       handleCaptureFailed();
     } catch (err) {
       setScanState("failed_no_match");
+      if (axios.isAxiosError(err) && !err.response) {
+        const isTimeout =
+          err.code === "ECONNABORTED" ||
+          /timeout/i.test(String(err.message ?? ""));
+        void logClientFaceFailure(
+          employee.id,
+          isTimeout ? "TIMEOUT" : "API_ERROR",
+          err.message
+        );
+      } else if (axios.isAxiosError(err) && (err.response?.status ?? 0) >= 500) {
+        void logClientFaceFailure(
+          employee.id,
+          "API_ERROR",
+          `http_${err.response?.status}`
+        );
+      }
       handleCaptureFailed(getKioskApiErrorMessage(err, ""));
     }
   }, [

@@ -117,11 +117,15 @@ export async function extractEmbeddingFromImage(
 
 export async function verifyFaceWithService(
   file: File,
-  storedEmbedding: number[]
+  storedEmbedding: number[],
+  options?: { employeeId?: string }
 ): Promise<VerifyFaceServiceResult> {
   const form = new FormData();
   form.append("file", file, file.name || "face.jpg");
   form.append("stored_embedding", JSON.stringify(storedEmbedding));
+  if (options?.employeeId) {
+    form.append("employee_id", options.employeeId);
+  }
 
   const response = await faceServiceFetch("/verify-face", form);
 
@@ -131,15 +135,17 @@ export async function verifyFaceWithService(
 
   const result = (await response.json()) as VerifyFaceServiceResult;
 
-  if (process.env.NODE_ENV !== "production") {
-    console.info("[kiosk/verify-face] python service result", {
-      similarity: result.confidence,
-      threshold: result.threshold,
-      confidence_level: result.confidence_level,
+  console.info(
+    "[kiosk/verify-face] python service result",
+    JSON.stringify({
+      employee_id: options?.employeeId ?? null,
+      similarity_score: result.confidence,
+      threshold_used: result.threshold,
       verified: result.verified,
-      reason: result.reason ?? null,
-    });
-  }
+      service_reason: result.reason ?? null,
+      confidence_level: result.confidence_level,
+    })
+  );
 
   return result;
 }

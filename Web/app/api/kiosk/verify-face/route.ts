@@ -8,6 +8,11 @@ import {
 } from "@/lib/kiosk/api";
 import { parseStoredDescriptor } from "@/lib/kiosk/face";
 import {
+  classifyServiceFailureReason,
+  isPreBuffaloScEnrollment,
+} from "@/lib/kiosk/face-verify-instrumentation";
+import { recordFaceVerifyAttempt } from "@/lib/kiosk/record-face-verify-attempt";
+import {
   FaceServiceUnavailableError,
   getPythonFaceServiceUrl,
   verifyFaceWithService,
@@ -50,20 +55,50 @@ export async function POST(request: NextRequest) {
     return jsonError("Face not registered for this employee.", 400);
   }
 
+  const preSwitch = isPreBuffaloScEnrollment(employee.face_registered_at);
   const storedEmbedding = parseStoredDescriptor(employee.face_descriptor);
   if (!storedEmbedding) {
+    await recordFaceVerifyAttempt({
+      company_id: tablet.company_id,
+      employee_id: employeeId,
+      tablet_id: tablet.id,
+      verified: false,
+      similarity_score: null,
+      threshold_used: null,
+      failure_reason: "API_ERROR",
+      service_reason: "invalid_stored_embedding",
+      source: "api",
+      pre_switch_enrollment: preSwitch,
+    });
     return jsonError("Stored face embedding is invalid.", 500);
   }
 
   let result;
   try {
-    result = await verifyFaceWithService(file, storedEmbedding);
+    result = await verifyFaceWithService(file, storedEmbedding, {
+      employeeId,
+    });
   } catch (err) {
-    if (err instanceof FaceServiceUnavailableError) {
-      return jsonError(err.message, 503);
-    }
+    const isUnavailable = err instanceof FaceServiceUnavailableError;
     const message =
       err instanceof Error ? err.message : "Could not verify face.";
+
+    await recordFaceVerifyAttempt({
+      company_id: tablet.company_id,
+      employee_id: employeeId,
+      tablet_id: tablet.id,
+      verified: false,
+      similarity_score: null,
+      threshold_used: null,
+      failure_reason: "API_ERROR",
+      service_reason: isUnavailable ? "service_unavailable" : message,
+      source: "api",
+      pre_switch_enrollment: preSwitch,
+    });
+
+    if (isUnavailable) {
+      return jsonError(err.message, 503);
+    }
     return jsonError(message, 400);
   }
 
@@ -71,17 +106,23 @@ export async function POST(request: NextRequest) {
   const threshold = Number(result.threshold);
   const verified = Boolean(result.verified);
   const confidenceLevel = result.confidence_level ?? "low";
+  const serviceReason = result.reason ?? null;
+  const failureReason = verified
+    ? null
+    : classifyServiceFailureReason(serviceReason);
 
-  if (process.env.NODE_ENV !== "production") {
-    console.info("[kiosk/verify-face] match result", {
-      employeeId,
-      similarity: confidence,
-      threshold,
-      confidenceLevel,
-      verified,
-      reason: result.reason ?? null,
-    });
-  }
+  await recordFaceVerifyAttempt({
+    company_id: tablet.company_id,
+    employee_id: employeeId,
+    tablet_id: tablet.id,
+    verified,
+    similarity_score: Number.isFinite(confidence) ? confidence : null,
+    threshold_used: Number.isFinite(threshold) ? threshold : null,
+    failure_reason: failureReason,
+    service_reason: serviceReason,
+    source: "api",
+    pre_switch_enrollment: preSwitch,
+  });
 
   return jsonOk({
     employee_id: employeeId,
@@ -90,6 +131,6 @@ export async function POST(request: NextRequest) {
     match_score: Number(confidence.toFixed(4)),
     confidence_level: confidenceLevel,
     threshold,
-    reason: result.reason ?? null,
+    reason: serviceReason,
   });
 }

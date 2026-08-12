@@ -22,7 +22,7 @@ function emailLayout(title: string, body: string) {
   return `
 <!DOCTYPE html>
 <html>
-  <body style="margin:0;padding:0;background:#F8FAFC;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
+  <body style="margin:0;padding:0;backgr1ound:#F8FAFC;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
     <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
       <tr>
         <td align="center">
