@@ -70,7 +70,7 @@ function statusMessage(
     case "idle":
       return captureHint?.trim()
         ? captureHint.trim()
-        : "Hold still — captures when your face looks clear";
+        : "Fill the oval, then tap capture";
     case "capturing":
     case "detecting":
       return "Checking face quality…";

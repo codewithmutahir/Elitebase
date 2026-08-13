@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getKioskApiErrorMessage } from "@/lib/kiosk";
 import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
-import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
+import { FACE_API_TIMEOUT_MS, warmupFaceService } from "@/lib/faceWarmup";
 import {
   buildFaceUploadFormData,
   faceDetectionReasonToScanState,
@@ -145,17 +145,14 @@ export function FaceScanScreen() {
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
   const showUsePin = !showManager && !showServiceIssue;
-  const autoEnabled =
-    scanState === "idle" &&
-    apiPhase === "none" &&
-    !showManager &&
-    !showServiceIssue &&
-    !isExpoGo();
+  /** Soft auto-capture disabled — still-frame probing blinks preview / races uploads. */
+  const autoEnabled = false;
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
       if (config?.company_name) setCompanyName(config.company_name);
     });
+    void warmupFaceService();
   }, []);
 
   useEffect(() => {
@@ -475,7 +472,7 @@ export function FaceScanScreen() {
         errorMessage={errorMessage}
         cameraRef={cameraRef}
         scanState={scanState}
-        captureHint="Hold still in the oval — captures automatically when ready"
+        captureHint="Fill the oval, then tap the capture button"
         onBack={handleBack}
         onUsePin={
           showUsePin ? () => navigation.replace("Pin") : undefined

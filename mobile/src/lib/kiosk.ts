@@ -108,7 +108,12 @@ export function getPinLookupErrorMessage(error: unknown): string {
 export function getRegisterFaceErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response) {
-      return "Connection error. Check network and try again.";
+      const isTimeout =
+        error.code === "ECONNABORTED" ||
+        /timeout/i.test(String(error.message ?? ""));
+      return isTimeout
+        ? "Face service timed out. Wait a moment and try again."
+        : "Connection error. Check network and try again.";
     }
     const message = error.response.data;
     if (

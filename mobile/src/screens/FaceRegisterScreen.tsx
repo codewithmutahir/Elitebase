@@ -16,7 +16,7 @@ import {
   detectAndCropFace,
   faceQualityMessage,
 } from "@/lib/faceDetection";
-import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
+import { FACE_API_TIMEOUT_MS, warmupFaceService } from "@/lib/faceWarmup";
 import { getRegisterFaceErrorMessage } from "@/lib/kiosk";
 import {
   buildFaceUploadFormDataFromUris,
@@ -73,17 +73,24 @@ export function FaceRegisterScreen() {
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
-  const autoEnabled =
-    phase === "camera" &&
-    scanState === "idle" &&
-    apiPhase === "none" &&
-    !isExpoGo();
+  /**
+   * Soft auto-capture is OFF for now: continuous takePictureAsync blinks the
+   * preview and races manual capture / uploads (seen as connection errors).
+   * Quality gates still run on the shutter button path.
+   */
+  const autoEnabled = false;
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
       if (config?.company_name) setCompanyName(config.company_name);
     });
   }, []);
+
+  useEffect(() => {
+    if (phase === "camera") {
+      void warmupFaceService();
+    }
+  }, [phase]);
 
   useEffect(() => {
     if (apiPhase !== "failed") return;
@@ -153,14 +160,20 @@ export function FaceRegisterScreen() {
     [employee, handleCaptureFailed, navigation]
   );
 
+  const sampleUrisRef = useRef<string[]>([]);
+  sampleUrisRef.current = sampleUris;
+
   const acceptPreparedFace = useCallback(
     async (croppedUri: string) => {
       if (acceptingRef.current) return;
-      if (scanState !== "idle" || apiPhase !== "none") return;
+      if (apiPhase !== "none") return;
       acceptingRef.current = true;
+      // Freeze auto/manual re-entry while we bookkeep samples / upload.
+      setScanState("processing");
 
       try {
-        const nextUris = [...sampleUris, croppedUri];
+        const nextUris = [...sampleUrisRef.current, croppedUri];
+        sampleUrisRef.current = nextUris;
         setSampleUris(nextUris);
         void hapticMedium();
 
@@ -176,7 +189,7 @@ export function FaceRegisterScreen() {
         acceptingRef.current = false;
       }
     },
-    [apiPhase, sampleUris, scanState, submitSamples]
+    [apiPhase, submitSamples]
   );
 
   useSoftFaceAutoCapture({
@@ -326,7 +339,7 @@ export function FaceRegisterScreen() {
         errorMessage={errorMessage}
         cameraRef={cameraRef}
         scanState={scanState}
-        captureHint={`Photo ${sampleIndex + 1} of ${SAMPLE_COUNT} — ${samplePrompt} · auto when ready`}
+        captureHint={`Photo ${sampleIndex + 1} of ${SAMPLE_COUNT} — ${samplePrompt} · tap capture`}
         onBack={handleBack}
         onCapturePress={handleCapture}
       />

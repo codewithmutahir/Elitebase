@@ -20,16 +20,18 @@ type SoftAutoCaptureOptions = {
 };
 
 /**
- * Soft auto-capture: periodically probe with takePictureAsync + ML Kit quality
- * gates. When `stableNeeded` consecutive probes pass, fire onAccepted.
- * Does not call InsightFace — screens own the upload step.
+ * Soft auto-capture via still-frame probes (expo-camera has no live face stream).
+ *
+ * Important: after a successful accept, probing STOPS until `enabled` flips
+ * false→true again. Continuously calling takePictureAsync makes the preview
+ * blink and races with manual capture / uploads.
  */
 export function useSoftFaceAutoCapture({
   enabled,
   cameraRef,
   requireFrontal = true,
   stableNeeded = 2,
-  intervalMs = 950,
+  intervalMs = 2200,
   onAccepted,
   onCoaching,
 }: SoftAutoCaptureOptions) {
@@ -49,14 +51,23 @@ export function useSoftFaceAutoCapture({
   useEffect(() => {
     if (!enabled) {
       streakRef.current = 0;
+      busyRef.current = false;
       return;
     }
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let accepted = false;
+
+    const schedule = (delay = intervalMs) => {
+      if (cancelled || accepted) return;
+      timer = setTimeout(() => {
+        void probe();
+      }, delay);
+    };
 
     const probe = async () => {
-      if (cancelled || busyRef.current) {
+      if (cancelled || accepted || busyRef.current) {
         schedule();
         return;
       }
@@ -75,7 +86,7 @@ export function useSoftFaceAutoCapture({
           shutterSound: false,
         });
 
-        if (cancelled || !photo?.uri) {
+        if (cancelled || accepted || !photo?.uri) {
           streakRef.current = 0;
           return;
         }
@@ -87,7 +98,7 @@ export function useSoftFaceAutoCapture({
           { requireFrontal }
         );
 
-        if (cancelled) return;
+        if (cancelled || accepted) return;
 
         if (!detection.success) {
           streakRef.current = 0;
@@ -98,6 +109,7 @@ export function useSoftFaceAutoCapture({
         streakRef.current += 1;
         if (streakRef.current >= stableNeeded) {
           streakRef.current = 0;
+          accepted = true;
           onAcceptedRef.current(detection);
           return;
         }
@@ -105,27 +117,17 @@ export function useSoftFaceAutoCapture({
         streakRef.current = 0;
       } finally {
         busyRef.current = false;
-        if (!cancelled) schedule();
+        // Do not keep probing after a committed capture — parent re-enables.
+        if (!cancelled && !accepted) schedule();
       }
     };
 
-    const schedule = () => {
-      timer = setTimeout(() => {
-        void probe();
-      }, intervalMs);
-    };
-
-    schedule();
+    // First probe after a short settle so the camera preview can attach.
+    schedule(1200);
 
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [
-    cameraRef,
-    enabled,
-    intervalMs,
-    requireFrontal,
-    stableNeeded,
-  ]);
+  }, [cameraRef, enabled, intervalMs, requireFrontal, stableNeeded]);
 }
