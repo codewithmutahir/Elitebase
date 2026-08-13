@@ -12,7 +12,10 @@ import type { KioskScanState } from "@/components/kiosk/types";
 import type { ApiPhase } from "@/components/face-id/types";
 import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
-import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
+import {
+  detectAndCropFace,
+  faceQualityMessage,
+} from "@/lib/faceDetection";
 import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
 import { getRegisterFaceErrorMessage } from "@/lib/kiosk";
 import {
@@ -25,6 +28,7 @@ import {
   hapticSuccess,
   onPressHaptic,
 } from "@/lib/kioskUi";
+import { useSoftFaceAutoCapture } from "@/hooks/useSoftFaceAutoCapture";
 import { isExpoGo } from "@/lib/runtime";
 import { getTabletConfig, getTabletToken } from "@/lib/storage";
 import type { KioskEmployee, RootStackParamList } from "@/types";
@@ -40,8 +44,8 @@ type Phase = "confirm" | "camera";
 const SAMPLE_COUNT = 3;
 const SAMPLE_PROMPTS = [
   "Look straight at the camera",
-  "Turn slightly left",
-  "Turn slightly right",
+  "Hold still — slight natural tilt is OK",
+  "One more frontal shot — eyes on camera",
 ] as const;
 
 export function FaceRegisterScreen() {
@@ -50,10 +54,10 @@ export function FaceRegisterScreen() {
   const { employee } = route.params;
 
   const needsReenrollment = Boolean(employee.needs_reenrollment);
-  // Forced re-scan or prior registration — show confirm first.
   const isReRegister = needsReenrollment || employee.face_registered;
 
   const cameraRef = useRef<CameraView>(null);
+  const acceptingRef = useRef(false);
   const [phase, setPhase] = useState<Phase>(isReRegister ? "confirm" : "camera");
   const [companyName, setCompanyName] = useState("Your employer");
   const [apiPhase, setApiPhase] = useState<ApiPhase>("none");
@@ -69,6 +73,11 @@ export function FaceRegisterScreen() {
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
+  const autoEnabled =
+    phase === "camera" &&
+    scanState === "idle" &&
+    apiPhase === "none" &&
+    !isExpoGo();
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
@@ -144,6 +153,44 @@ export function FaceRegisterScreen() {
     [employee, handleCaptureFailed, navigation]
   );
 
+  const acceptPreparedFace = useCallback(
+    async (croppedUri: string) => {
+      if (acceptingRef.current) return;
+      if (scanState !== "idle" || apiPhase !== "none") return;
+      acceptingRef.current = true;
+
+      try {
+        const nextUris = [...sampleUris, croppedUri];
+        setSampleUris(nextUris);
+        void hapticMedium();
+
+        if (nextUris.length < SAMPLE_COUNT) {
+          setScanState("idle");
+          setErrorMessage(null);
+          setCaptureKey((k) => k + 1);
+          return;
+        }
+
+        await submitSamples(nextUris);
+      } finally {
+        acceptingRef.current = false;
+      }
+    },
+    [apiPhase, sampleUris, scanState, submitSamples]
+  );
+
+  useSoftFaceAutoCapture({
+    enabled: autoEnabled,
+    cameraRef,
+    requireFrontal: true,
+    onAccepted: (result) => {
+      void acceptPreparedFace(result.croppedUri);
+    },
+    onCoaching: (reason) => {
+      setErrorMessage(faceQualityMessage(reason));
+    },
+  });
+
   const handleCapture = useCallback(async () => {
     if (scanState !== "idle" || apiPhase !== "none") return;
 
@@ -161,6 +208,7 @@ export function FaceRegisterScreen() {
       base64: false,
       exif: false,
       skipProcessing: false,
+      shutterSound: false,
     });
 
     if (!photo?.uri) {
@@ -172,7 +220,8 @@ export function FaceRegisterScreen() {
     const detection = await detectAndCropFace(
       photo.uri,
       photo.width ?? 1,
-      photo.height ?? 1
+      photo.height ?? 1,
+      { requireFrontal: true }
     );
 
     if (!detection.success) {
@@ -181,25 +230,9 @@ export function FaceRegisterScreen() {
       return;
     }
 
-    // Upload InsightFace-ready crop (padded ~640px), not the full selfie.
-    const nextUris = [...sampleUris, detection.croppedUri];
-    setSampleUris(nextUris);
-    void hapticMedium();
-
-    if (nextUris.length < SAMPLE_COUNT) {
-      setScanState("idle");
-      setCaptureKey((k) => k + 1);
-      return;
-    }
-
-    await submitSamples(nextUris);
-  }, [
-    apiPhase,
-    handleCaptureFailed,
-    sampleUris,
-    scanState,
-    submitSamples,
-  ]);
+    setScanState("idle");
+    await acceptPreparedFace(detection.croppedUri);
+  }, [acceptPreparedFace, apiPhase, handleCaptureFailed, scanState]);
 
   if (phase === "confirm") {
     return (
@@ -220,7 +253,7 @@ export function FaceRegisterScreen() {
             </Text>
             <Text style={styles.confirmBody}>
               {needsReenrollment
-                ? `${employee.full_name}, we upgraded face recognition. Capture three short photos (center, left, right) so clock-in works again.`
+                ? `${employee.full_name}, we upgraded face recognition. Capture three clear frontal photos so clock-in works again.`
                 : `${employee.full_name}, we already have a face on file for you. Do you want to capture a new one and replace it?`}
             </Text>
 
@@ -293,7 +326,7 @@ export function FaceRegisterScreen() {
         errorMessage={errorMessage}
         cameraRef={cameraRef}
         scanState={scanState}
-        captureHint={`Photo ${sampleIndex + 1} of ${SAMPLE_COUNT} — ${samplePrompt}`}
+        captureHint={`Photo ${sampleIndex + 1} of ${SAMPLE_COUNT} — ${samplePrompt} · auto when ready`}
         onBack={handleBack}
         onCapturePress={handleCapture}
       />

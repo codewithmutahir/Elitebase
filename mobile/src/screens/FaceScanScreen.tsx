@@ -22,6 +22,7 @@ import {
   verifyServiceReasonToUi,
 } from "@/lib/kioskFaceCapture";
 import { hapticError, hapticSuccess, onPressHaptic } from "@/lib/kioskUi";
+import { useSoftFaceAutoCapture } from "@/hooks/useSoftFaceAutoCapture";
 import { isExpoGo } from "@/lib/runtime";
 import { getTabletConfig, getTabletToken } from "@/lib/storage";
 import type { RootStackParamList } from "@/types";
@@ -131,6 +132,7 @@ export function FaceScanScreen() {
   const { employee } = route.params;
 
   const cameraRef = useRef<CameraView>(null);
+  const verifyingRef = useRef(false);
   const [companyName, setCompanyName] = useState("");
   const [apiPhase, setApiPhase] = useState<ApiPhase>("none");
   const [scanState, setScanState] = useState<KioskScanState>("idle");
@@ -142,7 +144,13 @@ export function FaceScanScreen() {
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
-  const showUsePin = attempts >= 1 && !showManager && !showServiceIssue;
+  const showUsePin = !showManager && !showServiceIssue;
+  const autoEnabled =
+    scanState === "idle" &&
+    apiPhase === "none" &&
+    !showManager &&
+    !showServiceIssue &&
+    !isExpoGo();
 
   useEffect(() => {
     void getTabletConfig().then((config) => {
@@ -203,6 +211,102 @@ export function FaceScanScreen() {
     setCaptureKey((k) => k + 1);
   }, []);
 
+  const verifyPreparedFace = useCallback(
+    async (croppedUri: string) => {
+      if (verifyingRef.current) return;
+      if (scanState !== "idle" || apiPhase !== "none") return;
+      verifyingRef.current = true;
+
+      setScanState("processing");
+      setApiPhase("processing");
+
+      try {
+        const tabletToken = await getTabletToken();
+        const formData = buildFaceUploadFormData(croppedUri, employee.id);
+
+        const { data } = await api.post<VerifyFaceResponse>(
+          "/api/kiosk/verify-face",
+          formData,
+          {
+            headers: {
+              "x-tablet-token": tabletToken ?? "",
+            },
+            timeout: FACE_API_TIMEOUT_MS,
+          }
+        );
+
+        if (data.verified) {
+          setScanState("success");
+          setApiPhase("success");
+          void hapticSuccess();
+          setTimeout(() => {
+            navigation.replace("Action", {
+              employee,
+              matchScore: data.match_score ?? data.confidence,
+            });
+          }, 1200);
+          return;
+        }
+
+        const ui = verifyServiceReasonToUi(data.reason);
+        setScanState(ui.scanState);
+        if (ui.burnsMatchAttempt) {
+          handleMatchFailed(ui.message);
+        } else {
+          void logClientFaceFailure(
+            employee.id,
+            "LOCAL_LOW_CONFIDENCE",
+            data.reason ?? "quality"
+          );
+          handleQualityFailed(ui.message);
+        }
+      } catch (err) {
+        const classified = classifyVerifyTransportError(err);
+        void logClientFaceFailure(
+          employee.id,
+          classified.reason,
+          axios.isAxiosError(err) ? err.message : classified.reason
+        );
+        const isTransportIssue =
+          classified.reason === "TIMEOUT" ||
+          (axios.isAxiosError(err) &&
+            (!err.response ||
+              err.response.status === 503 ||
+              (err.response.status ?? 0) >= 500));
+
+        if (isTransportIssue) {
+          handleServiceFailed(classified.message);
+        } else {
+          setScanState("failed_no_match");
+          handleMatchFailed(classified.message);
+        }
+      } finally {
+        verifyingRef.current = false;
+      }
+    },
+    [
+      apiPhase,
+      employee,
+      handleMatchFailed,
+      handleQualityFailed,
+      handleServiceFailed,
+      navigation,
+      scanState,
+    ]
+  );
+
+  useSoftFaceAutoCapture({
+    enabled: autoEnabled,
+    cameraRef,
+    requireFrontal: true,
+    onAccepted: (result) => {
+      void verifyPreparedFace(result.croppedUri);
+    },
+    onCoaching: (reason) => {
+      setErrorMessage(faceQualityMessage(reason));
+    },
+  });
+
   const handleCapture = useCallback(async () => {
     if (scanState !== "idle" || apiPhase !== "none") return;
 
@@ -226,6 +330,7 @@ export function FaceScanScreen() {
       base64: false,
       exif: false,
       skipProcessing: false,
+      shutterSound: false,
     });
 
     if (!photo?.uri) {
@@ -242,13 +347,18 @@ export function FaceScanScreen() {
     const detection = await detectAndCropFace(
       photo.uri,
       photo.width ?? 1,
-      photo.height ?? 1
+      photo.height ?? 1,
+      { requireFrontal: true }
     );
 
     if (!detection.success) {
       setScanState(faceDetectionReasonToScanState(detection.reason));
       const clientReason: ClientFailureReason =
-        detection.reason === "too_small"
+        detection.reason === "too_small" ||
+        detection.reason === "too_dark" ||
+        detection.reason === "too_bright" ||
+        detection.reason === "too_blurry" ||
+        detection.reason === "face_turned"
           ? "LOCAL_LOW_CONFIDENCE"
           : "NO_FACE_DETECTED";
       void logClientFaceFailure(employee.id, clientReason, detection.reason);
@@ -256,81 +366,14 @@ export function FaceScanScreen() {
       return;
     }
 
-    setScanState("processing");
-    setApiPhase("processing");
-
-    try {
-      const tabletToken = await getTabletToken();
-      const formData = buildFaceUploadFormData(
-        detection.croppedUri,
-        employee.id
-      );
-
-      const { data } = await api.post<VerifyFaceResponse>(
-        "/api/kiosk/verify-face",
-        formData,
-        {
-          headers: {
-            "x-tablet-token": tabletToken ?? "",
-          },
-          timeout: FACE_API_TIMEOUT_MS,
-        }
-      );
-
-      if (data.verified) {
-        setScanState("success");
-        setApiPhase("success");
-        void hapticSuccess();
-        setTimeout(() => {
-          navigation.replace("Action", {
-            employee,
-            matchScore: data.match_score ?? data.confidence,
-          });
-        }, 1200);
-        return;
-      }
-
-      const ui = verifyServiceReasonToUi(data.reason);
-      setScanState(ui.scanState);
-      if (ui.burnsMatchAttempt) {
-        handleMatchFailed(ui.message);
-      } else {
-        void logClientFaceFailure(
-          employee.id,
-          "LOCAL_LOW_CONFIDENCE",
-          data.reason ?? "quality"
-        );
-        handleQualityFailed(ui.message);
-      }
-    } catch (err) {
-      const classified = classifyVerifyTransportError(err);
-      void logClientFaceFailure(
-        employee.id,
-        classified.reason,
-        axios.isAxiosError(err) ? err.message : classified.reason
-      );
-      const isTransportIssue =
-        classified.reason === "TIMEOUT" ||
-        (axios.isAxiosError(err) &&
-          (!err.response ||
-            err.response.status === 503 ||
-            (err.response.status ?? 0) >= 500));
-
-      if (isTransportIssue) {
-        handleServiceFailed(classified.message);
-      } else {
-        setScanState("failed_no_match");
-        handleMatchFailed(classified.message);
-      }
-    }
+    setScanState("idle");
+    await verifyPreparedFace(detection.croppedUri);
   }, [
     apiPhase,
-    employee,
-    handleMatchFailed,
+    employee.id,
     handleQualityFailed,
-    handleServiceFailed,
-    navigation,
     scanState,
+    verifyPreparedFace,
   ]);
 
   if (showServiceIssue) {
@@ -432,6 +475,7 @@ export function FaceScanScreen() {
         errorMessage={errorMessage}
         cameraRef={cameraRef}
         scanState={scanState}
+        captureHint="Hold still in the oval — captures automatically when ready"
         onBack={handleBack}
         onUsePin={
           showUsePin ? () => navigation.replace("Pin") : undefined

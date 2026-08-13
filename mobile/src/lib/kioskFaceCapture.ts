@@ -2,9 +2,21 @@ import type { FaceDetectionFailureReason } from "@/lib/faceDetection";
 
 export function faceDetectionReasonToScanState(
   reason: FaceDetectionFailureReason
-): "failed_no_face" | "failed_multiple" | "failed_too_small" {
+):
+  | "failed_no_face"
+  | "failed_multiple"
+  | "failed_too_small"
+  | "failed_no_match" {
   if (reason === "multiple_faces") return "failed_multiple";
-  if (reason === "too_small") return "failed_too_small";
+  if (
+    reason === "too_small" ||
+    reason === "too_dark" ||
+    reason === "too_bright" ||
+    reason === "too_blurry" ||
+    reason === "face_turned"
+  ) {
+    return "failed_too_small";
+  }
   return "failed_no_face";
 }
 

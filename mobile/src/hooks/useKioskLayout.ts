@@ -60,11 +60,15 @@ export function getKioskLayout(
   );
   const keypadWidth = keySize * 3 + KEY_GAP * 2;
 
-  // ~4:5 oval sized from the short side so portrait kiosks stay consistent.
+  // Production-style face guide: dominate the short side so users fill the frame.
+  // Caps keep tablets from looking oversized; compact/landscape still usable.
   const faceOvalW = Math.round(
     Math.min(
-      isTablet ? 300 : 260,
-      Math.max(180, shortest * (isCompact ? 0.42 : 0.52))
+      isTablet ? 420 : 340,
+      Math.max(
+        isCompact ? 200 : 220,
+        shortest * (isCompact ? 0.58 : isLandscape ? 0.55 : 0.72)
+      )
     )
   );
   const faceOvalH = Math.round(faceOvalW * 1.25);

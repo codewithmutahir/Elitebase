@@ -70,24 +70,24 @@ function statusMessage(
     case "idle":
       return captureHint?.trim()
         ? captureHint.trim()
-        : "Hold still, then tap capture";
+        : "Hold still — captures when your face looks clear";
     case "capturing":
     case "detecting":
-      return "Detecting face…";
+      return "Checking face quality…";
     case "processing":
       return "Analyzing…";
     case "success":
       return mode === "register" ? "Face registered!" : "Verified!";
     case "failed_no_face":
-      return "No face — center in the oval";
+      return "Face not found — step into the oval";
     case "failed_too_small":
-      return "Move closer — fill the oval";
+      return "Too far — move closer until your face fills the oval";
     case "failed_multiple":
       return "Only one face in frame";
     case "failed_no_match":
-      return "Not recognized — try again";
+      return "Face did not match — try again";
     case "failed_service":
-      return "Service issue — try again";
+      return "Service issue — try again or use PIN";
     default:
       return "";
   }
@@ -254,7 +254,7 @@ export function KioskFaceScanner({
         {displayState === "idle" && apiPhase === "none" ? (
           <View style={styles.instructionPill}>
             <Text style={styles.instructionText}>
-              Fill the oval · face the light · hold still
+              Fill the oval · eyes visible · face the light
             </Text>
           </View>
         ) : null}
@@ -333,8 +333,8 @@ export function KioskFaceScanner({
 
         <View style={styles.statusPill}>
           <Text style={styles.statusText}>
-            {isFailed && errorMessage
-              ? errorMessage
+            {errorMessage?.trim()
+              ? errorMessage.trim()
               : statusMessage(displayState, mode, captureHint)}
           </Text>
         </View>
@@ -364,8 +364,8 @@ export function KioskFaceScanner({
             </Text>
             <Text style={styles.empHint}>
               {mode === "register"
-                ? "Good light · face fills oval"
-                : "Good light · hold still"}
+                ? "Fill the oval · good light"
+                : "Fill the oval · hold still"}
             </Text>
           </View>
         </View>
@@ -447,8 +447,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 20,
-    paddingTop: 40,
+    gap: 16,
+    paddingTop: 28,
+    paddingBottom: 8,
   },
   instructionPill: {
     backgroundColor: "rgba(21,93,252,0.15)",
@@ -540,7 +541,13 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   captureDisabled: { opacity: 0.35 },
-  usePin: { ...T.body, fontSize: 13, color: T.textMuted },
+  usePin: {
+    ...T.body,
+    fontSize: 14,
+    color: "#93C5FD",
+    fontFamily: "Inter_600SemiBold",
+    textDecorationLine: "underline",
+  },
   usePinSpacer: { height: 20 },
   pressed: { opacity: 0.88 },
 });
