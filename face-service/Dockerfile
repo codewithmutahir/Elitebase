@@ -4,7 +4,7 @@ WORKDIR /app
 
 ARG INSIGHTFACE_MODEL=buffalo_sc
 ENV INSIGHTFACE_MODEL=${INSIGHTFACE_MODEL}
-ENV INSIGHTFACE_DET_SIZE=320
+ENV INSIGHTFACE_DET_SIZE=480
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
@@ -23,9 +23,10 @@ RUN python -c "\
 import os; \
 from insightface.app import FaceAnalysis; \
 name = os.environ.get('INSIGHTFACE_MODEL', 'buffalo_sc'); \
+det = int(os.environ.get('INSIGHTFACE_DET_SIZE', '480')); \
 m = FaceAnalysis(name=name, providers=['CPUExecutionProvider']); \
-m.prepare(ctx_id=0, det_size=(320, 320)); \
-print(f'{name} model cached in image')"
+m.prepare(ctx_id=0, det_size=(det, det)); \
+print(f'{name} model cached in image (det_size={det})')"
 
 COPY main.py start.sh ./
 RUN chmod +x start.sh

@@ -28,6 +28,7 @@ import {
 } from "@/lib/kioskUi";
 import type { ApiPhase } from "@/components/face-id/types";
 import { useCameraFacing } from "@/hooks/useCameraFacing";
+import { useKioskLayout } from "@/hooks/useKioskLayout";
 
 export type { KioskScanState } from "@/components/kiosk/types";
 
@@ -54,8 +55,6 @@ export type KioskFaceScannerProps = {
   onCapturePress: () => void | Promise<void>;
 };
 
-const OVAL_W = 240;
-const OVAL_H = 300;
 const BRACKET = 36;
 
 function CornerBracket({ style }: { style: object }) {
@@ -70,24 +69,25 @@ function statusMessage(
   switch (state) {
     case "idle":
       return captureHint?.trim()
-        ? `📷 ${captureHint.trim()}`
-        : "📷 Tap to capture";
+        ? captureHint.trim()
+        : "Hold still, then tap capture";
     case "capturing":
     case "detecting":
-      return "⏳ Detecting face...";
+      return "Detecting face…";
     case "processing":
-      return "🔍 Analyzing...";
+      return "Analyzing…";
     case "success":
-      return mode === "register" ? "✅ Face registered!" : "✅ Verified!";
+      return mode === "register" ? "Face registered!" : "Verified!";
     case "failed_no_face":
+      return "No face — center in the oval";
     case "failed_too_small":
-      return "⚠️ No face — move closer";
+      return "Move closer — fill the oval";
     case "failed_multiple":
-      return "⚠️ One face only";
+      return "Only one face in frame";
     case "failed_no_match":
-      return "❌ Not recognized";
+      return "Not recognized — try again";
     case "failed_service":
-      return "⚠️ Service issue — try again";
+      return "Service issue — try again";
     default:
       return "";
   }
@@ -110,6 +110,9 @@ export function KioskFaceScanner({
   onCapturePress,
 }: KioskFaceScannerProps) {
   const { facing, toggleFacing } = useCameraFacing();
+  const layout = useKioskLayout();
+  const ovalW = layout.faceOvalW;
+  const ovalH = layout.faceOvalH;
   const [permission, requestPermission] = useCameraPermissions();
   const frameShake = useSharedValue(0);
   const checkScale = useSharedValue(0);
@@ -205,7 +208,13 @@ export function KioskFaceScanner({
         pointerEvents="none"
       />
 
-      <View style={styles.topBar} pointerEvents="box-none">
+      <View
+        style={[
+          styles.topBar,
+          { top: Math.max(layout.paddingTop, 16) },
+        ]}
+        pointerEvents="box-none"
+      >
         <Pressable
           onPress={onBack}
           onPressIn={() => onPressHaptic("light")}
@@ -244,17 +253,19 @@ export function KioskFaceScanner({
       >
         {displayState === "idle" && apiPhase === "none" ? (
           <View style={styles.instructionPill}>
-            <Text style={styles.instructionText}>Position face in frame</Text>
+            <Text style={styles.instructionText}>
+              Fill the oval · face the light · hold still
+            </Text>
           </View>
         ) : null}
 
-        <View style={styles.ovalWrap}>
-          <Svg width={OVAL_W} height={OVAL_H}>
+        <View style={[styles.ovalWrap, { width: ovalW, height: ovalH }]}>
+          <Svg width={ovalW} height={ovalH}>
             <Ellipse
-              cx={OVAL_W / 2}
-              cy={OVAL_H / 2}
-              rx={OVAL_W / 2 - 5}
-              ry={OVAL_H / 2 - 5}
+              cx={ovalW / 2}
+              cy={ovalH / 2}
+              rx={ovalW / 2 - 5}
+              ry={ovalH / 2 - 5}
               stroke={strokeColor}
               strokeWidth={strokeWidth}
               strokeDasharray={
@@ -323,7 +334,7 @@ export function KioskFaceScanner({
         <View style={styles.statusPill}>
           <Text style={styles.statusText}>
             {isFailed && errorMessage
-              ? `⚠️ ${errorMessage}`
+              ? errorMessage
               : statusMessage(displayState, mode, captureHint)}
           </Text>
         </View>
@@ -335,18 +346,27 @@ export function KioskFaceScanner({
         pointerEvents="box-none"
       />
 
-      <View style={styles.bottomBar}>
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: Math.max(layout.paddingBottom, 24) },
+        ]}
+      >
         <View style={styles.employeeRow}>
           <View style={[styles.avatar, { backgroundColor: avatarBg }]}>
             <Text style={styles.avatarText}>
               {initials || employeeInitials(employeeName)}
             </Text>
           </View>
-          <View>
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.empName} numberOfLines={1}>
               {employeeName}
             </Text>
-            <Text style={styles.empHint}>Tap below to capture</Text>
+            <Text style={styles.empHint}>
+              {mode === "register"
+                ? "Good light · face fills oval"
+                : "Good light · hold still"}
+            </Text>
           </View>
         </View>
 
@@ -398,7 +418,6 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: "absolute",
-    top: 56,
     left: 20,
     right: 20,
     flexDirection: "row",
@@ -441,8 +460,6 @@ const styles = StyleSheet.create({
   },
   instructionText: { ...T.btn, fontSize: 13, color: T.text },
   ovalWrap: {
-    width: OVAL_W,
-    height: OVAL_H,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -477,15 +494,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 48,
     alignItems: "center",
     gap: 16,
     zIndex: 10,
+    paddingHorizontal: 24,
   },
   employeeRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    maxWidth: 420,
+    width: "100%",
+    paddingHorizontal: 8,
   },
   avatar: {
     width: 40,

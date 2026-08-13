@@ -26,7 +26,7 @@ app.add_middleware(
 # buffalo_l (~326MB) cannot run on Render free tier (512MB).
 # Use buffalo_sc (~16MB) or buffalo_s (~159MB). Set buffalo_l on Oracle Cloud / 2GB+ RAM.
 MODEL_NAME = os.environ.get("INSIGHTFACE_MODEL", "buffalo_sc").strip() or "buffalo_sc"
-DET_SIZE = int(os.environ.get("INSIGHTFACE_DET_SIZE", "320"))
+DET_SIZE = int(os.environ.get("INSIGHTFACE_DET_SIZE", "480"))
 model = None
 _model_lock = threading.Lock()
 
@@ -149,7 +149,7 @@ def _get_single_face(img: np.ndarray):
 
     face = faces[0]
 
-    if face.det_score < 0.5:
+    if face.det_score < 0.4:
         raise HTTPException(status_code=400, detail="Face not clear enough")
 
     return face
@@ -285,7 +285,7 @@ async def verify_face(
         }
 
     live_face = faces[0]
-    if live_face.det_score < 0.5:
+    if live_face.det_score < 0.4:
         _log_attempt(
             similarity=float(live_face.det_score),
             verified=False,
@@ -363,6 +363,7 @@ async def verify_face(
         "confidence": similarity,
         "confidence_level": level,
         "threshold": VERIFY_THRESHOLD,
+        **({} if verified else {"reason": "below_threshold"}),
     }
 
 

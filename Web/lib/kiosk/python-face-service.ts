@@ -51,16 +51,27 @@ async function faceServiceFetch(
     headers["X-Internal-Key"] = apiKey;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 85_000);
+
   try {
     return await fetch(`${getPythonFaceServiceUrl()}${path}`, {
       method: "POST",
       headers,
       body,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (err) {
+    const aborted =
+      (err instanceof Error && err.name === "AbortError") ||
+      (typeof DOMException !== "undefined" && err instanceof DOMException);
     throw new FaceServiceUnavailableError(
-      "Face recognition service is unavailable. Please try again or contact your manager."
+      aborted
+        ? "Face recognition timed out. Please try again."
+        : "Face recognition service is unavailable. Please try again or contact your manager."
     );
+  } finally {
+    clearTimeout(timer);
   }
 }
 

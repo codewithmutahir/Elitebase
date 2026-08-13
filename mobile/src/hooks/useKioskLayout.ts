@@ -15,6 +15,9 @@ export type KioskLayout = {
   paddingH: number;
   paddingTop: number;
   paddingBottom: number;
+  /** Face guide oval width (4:5 aspect). */
+  faceOvalW: number;
+  faceOvalH: number;
 };
 
 const KEY_GAP = 12;
@@ -57,6 +60,15 @@ export function getKioskLayout(
   );
   const keypadWidth = keySize * 3 + KEY_GAP * 2;
 
+  // ~4:5 oval sized from the short side so portrait kiosks stay consistent.
+  const faceOvalW = Math.round(
+    Math.min(
+      isTablet ? 300 : 260,
+      Math.max(180, shortest * (isCompact ? 0.42 : 0.52))
+    )
+  );
+  const faceOvalH = Math.round(faceOvalW * 1.25);
+
   return {
     width,
     height,
@@ -70,6 +82,8 @@ export function getKioskLayout(
     paddingH,
     paddingTop,
     paddingBottom,
+    faceOvalW,
+    faceOvalH,
   };
 }
 

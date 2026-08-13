@@ -14,11 +14,12 @@ import type { ApiPhase } from "@/components/face-id/types";
 import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getKioskApiErrorMessage } from "@/lib/kiosk";
-import { detectAndCropFace } from "@/lib/faceDetection";
+import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
 import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
 import {
   buildFaceUploadFormData,
   faceDetectionReasonToScanState,
+  verifyServiceReasonToUi,
 } from "@/lib/kioskFaceCapture";
 import { hapticError, hapticSuccess, onPressHaptic } from "@/lib/kioskUi";
 import { isExpoGo } from "@/lib/runtime";
@@ -168,6 +169,15 @@ export function FaceScanScreen() {
     navigation.replace("Idle");
   }, [navigation]);
 
+  /** Framing / lighting coaching — does NOT burn match attempts. */
+  const handleQualityFailed = useCallback((message?: string | null) => {
+    setShowServiceIssue(false);
+    void hapticError();
+    if (message) setErrorMessage(message);
+    setApiPhase("failed");
+    setCaptureKey((k) => k + 1);
+  }, []);
+
   /** Match / detection failures count toward the manager screen. */
   const handleMatchFailed = useCallback((message?: string | null) => {
     setShowServiceIssue(false);
@@ -207,14 +217,15 @@ export function FaceScanScreen() {
         "NO_FACE_DETECTED",
         "expo_go_or_missing_camera"
       );
-      handleMatchFailed();
+      handleQualityFailed(faceQualityMessage("no_face"));
       return;
     }
 
     const photo = await cameraRef.current.takePictureAsync({
-      quality: 0.85,
+      quality: 0.92,
       base64: false,
       exif: false,
+      skipProcessing: false,
     });
 
     if (!photo?.uri) {
@@ -224,7 +235,7 @@ export function FaceScanScreen() {
         "NO_FACE_DETECTED",
         "empty_photo"
       );
-      handleMatchFailed();
+      handleQualityFailed(faceQualityMessage("no_face"));
       return;
     }
 
@@ -241,7 +252,7 @@ export function FaceScanScreen() {
           ? "LOCAL_LOW_CONFIDENCE"
           : "NO_FACE_DETECTED";
       void logClientFaceFailure(employee.id, clientReason, detection.reason);
-      handleMatchFailed();
+      handleQualityFailed(faceQualityMessage(detection.reason));
       return;
     }
 
@@ -250,7 +261,10 @@ export function FaceScanScreen() {
 
     try {
       const tabletToken = await getTabletToken();
-      const formData = buildFaceUploadFormData(photo.uri, employee.id);
+      const formData = buildFaceUploadFormData(
+        detection.croppedUri,
+        employee.id
+      );
 
       const { data } = await api.post<VerifyFaceResponse>(
         "/api/kiosk/verify-face",
@@ -276,8 +290,18 @@ export function FaceScanScreen() {
         return;
       }
 
-      setScanState("failed_no_match");
-      handleMatchFailed("Face not recognized. Try again.");
+      const ui = verifyServiceReasonToUi(data.reason);
+      setScanState(ui.scanState);
+      if (ui.burnsMatchAttempt) {
+        handleMatchFailed(ui.message);
+      } else {
+        void logClientFaceFailure(
+          employee.id,
+          "LOCAL_LOW_CONFIDENCE",
+          data.reason ?? "quality"
+        );
+        handleQualityFailed(ui.message);
+      }
     } catch (err) {
       const classified = classifyVerifyTransportError(err);
       void logClientFaceFailure(
@@ -303,6 +327,7 @@ export function FaceScanScreen() {
     apiPhase,
     employee,
     handleMatchFailed,
+    handleQualityFailed,
     handleServiceFailed,
     navigation,
     scanState,

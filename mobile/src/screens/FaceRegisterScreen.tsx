@@ -12,7 +12,7 @@ import type { KioskScanState } from "@/components/kiosk/types";
 import type { ApiPhase } from "@/components/face-id/types";
 import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
-import { detectAndCropFace } from "@/lib/faceDetection";
+import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
 import { FACE_API_TIMEOUT_MS } from "@/lib/faceWarmup";
 import { getRegisterFaceErrorMessage } from "@/lib/kiosk";
 import {
@@ -157,14 +157,15 @@ export function FaceRegisterScreen() {
     }
 
     const photo = await cameraRef.current.takePictureAsync({
-      quality: 0.85,
+      quality: 0.92,
       base64: false,
       exif: false,
+      skipProcessing: false,
     });
 
     if (!photo?.uri) {
       setScanState("failed_no_face");
-      handleCaptureFailed();
+      handleCaptureFailed(faceQualityMessage("no_face"));
       return;
     }
 
@@ -176,12 +177,12 @@ export function FaceRegisterScreen() {
 
     if (!detection.success) {
       setScanState(faceDetectionReasonToScanState(detection.reason));
-      handleCaptureFailed();
+      handleCaptureFailed(faceQualityMessage(detection.reason));
       return;
     }
 
-    // Keep full-frame photo for InsightFace (same as verify).
-    const nextUris = [...sampleUris, photo.uri];
+    // Upload InsightFace-ready crop (padded ~640px), not the full selfie.
+    const nextUris = [...sampleUris, detection.croppedUri];
     setSampleUris(nextUris);
     void hapticMedium();
 

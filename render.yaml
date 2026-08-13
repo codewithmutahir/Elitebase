@@ -23,6 +23,6 @@ services:
       - key: INSIGHTFACE_MODEL
         value: "buffalo_sc"
       - key: INSIGHTFACE_DET_SIZE
-        value: "320"
+        value: "480"
       - key: FACE_VERIFY_THRESHOLD
         value: "0.45"
