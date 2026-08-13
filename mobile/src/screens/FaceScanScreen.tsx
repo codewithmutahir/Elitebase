@@ -3,7 +3,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import axios from "axios";
 import { CameraView } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
 import { FaceCaptureView } from "@/components/FaceCaptureView";
@@ -15,16 +14,19 @@ import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getKioskApiErrorMessage } from "@/lib/kiosk";
 import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
-import { FACE_API_TIMEOUT_MS, warmupFaceService } from "@/lib/faceWarmup";
 import {
-  buildFaceUploadFormData,
+  FACE_API_TIMEOUT_MS,
+  verifyFaceMultipart,
+  warmupFaceService,
+} from "@/lib/faceWarmup";
+import {
   faceDetectionReasonToScanState,
   verifyServiceReasonToUi,
 } from "@/lib/kioskFaceCapture";
 import { hapticError, hapticSuccess, onPressHaptic } from "@/lib/kioskUi";
 import { useSoftFaceAutoCapture } from "@/hooks/useSoftFaceAutoCapture";
 import { isExpoGo } from "@/lib/runtime";
-import { getTabletConfig, getTabletToken } from "@/lib/storage";
+import { getTabletConfig } from "@/lib/storage";
 import type { RootStackParamList } from "@/types";
 
 type FaceScanRoute = RouteProp<RootStackParamList, "FaceScan">;
@@ -32,15 +34,6 @@ type FaceScanNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "FaceScan"
 >;
-
-type VerifyFaceResponse = {
-  employee_id: string;
-  verified: boolean;
-  confidence: number;
-  match_score: number;
-  threshold: number;
-  reason?: string | null;
-};
 
 type ClientFailureReason =
   | "NO_FACE_DETECTED"
@@ -56,7 +49,6 @@ async function logClientFaceFailure(
   detail?: string
 ) {
   try {
-    const tabletToken = await getTabletToken();
     await api.post(
       "/api/kiosk/face-verify-log",
       {
@@ -65,9 +57,6 @@ async function logClientFaceFailure(
         detail: detail ?? null,
       },
       {
-        headers: {
-          "x-tablet-token": tabletToken ?? "",
-        },
         timeout: 8000,
       }
     );
@@ -76,53 +65,54 @@ async function logClientFaceFailure(
   }
 }
 
-function classifyVerifyTransportError(err: unknown): {
+function classifyVerifyError(err: unknown): {
   reason: ClientFailureReason;
   message: string;
+  isTransportIssue: boolean;
 } {
-  if (axios.isAxiosError(err) && !err.response) {
-    const isTimeout =
-      err.code === "ECONNABORTED" ||
-      /timeout/i.test(String(err.message ?? ""));
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const isTimeout = /timed out/i.test(message);
+  const isNetwork =
+    /could not reach|connection error|network request failed|missing EXPO_PUBLIC/i.test(
+      message
+    );
+
+  if (isTimeout) {
     return {
-      reason: isTimeout ? "TIMEOUT" : "API_ERROR",
-      message: isTimeout
-        ? "Face service timed out. Please try again in a moment."
-        : "Could not reach face service. Check network and try again.",
+      reason: "TIMEOUT",
+      message:
+        message ||
+        "Face service timed out. Please try again in a moment.",
+      isTransportIssue: true,
     };
   }
 
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status ?? 0;
-    if (status === 503 || status >= 500) {
-      return {
-        reason: "API_ERROR",
-        message:
-          getKioskApiErrorMessage(
-            err,
-            "Face service is temporarily unavailable. Please try again."
-          ) || "Face service is temporarily unavailable. Please try again.",
-      };
-    }
+  if (isNetwork) {
+    return {
+      reason: "API_ERROR",
+      message:
+        message ||
+        "Could not reach face service. Check network and try again.",
+      isTransportIssue: true,
+    };
+  }
 
-    // Client/validation errors (e.g. missing file) are not a downed service.
-    if (status >= 400 && status < 500) {
-      return {
-        reason: "API_ERROR",
-        message: getKioskApiErrorMessage(
-          err,
-          "Could not verify face. Please try again."
-        ),
-      };
-    }
+  if (/HTTP 503|temporarily unavailable/i.test(message)) {
+    return {
+      reason: "API_ERROR",
+      message:
+        message ||
+        "Face service is temporarily unavailable. Please try again.",
+      isTransportIssue: true,
+    };
   }
 
   return {
     reason: "API_ERROR",
-    message: getKioskApiErrorMessage(
-      err,
-      "Face service error. Please try again."
-    ),
+    message:
+      message ||
+      getKioskApiErrorMessage(err, "Could not verify face. Please try again."),
+    isTransportIssue: false,
   };
 }
 
@@ -216,21 +206,22 @@ export function FaceScanScreen() {
 
       setScanState("processing");
       setApiPhase("processing");
+      setErrorMessage("Waking face service…");
 
       try {
-        const tabletToken = await getTabletToken();
-        const formData = buildFaceUploadFormData(croppedUri, employee.id);
+        const warm = await warmupFaceService();
+        if (!warm.warmed) {
+          console.warn("[FaceScan] warmup incomplete", warm);
+        }
 
-        const { data } = await api.post<VerifyFaceResponse>(
-          "/api/kiosk/verify-face",
-          formData,
-          {
-            headers: {
-              "x-tablet-token": tabletToken ?? "",
-            },
-            timeout: FACE_API_TIMEOUT_MS,
-          }
-        );
+        setErrorMessage("Verifying…");
+        const data = await verifyFaceMultipart({
+          uri: croppedUri,
+          employeeId: employee.id,
+          timeoutMs: FACE_API_TIMEOUT_MS,
+        });
+
+        setErrorMessage(null);
 
         if (data.verified) {
           setScanState("success");
@@ -258,20 +249,14 @@ export function FaceScanScreen() {
           handleQualityFailed(ui.message);
         }
       } catch (err) {
-        const classified = classifyVerifyTransportError(err);
+        const classified = classifyVerifyError(err);
         void logClientFaceFailure(
           employee.id,
           classified.reason,
-          axios.isAxiosError(err) ? err.message : classified.reason
+          classified.message
         );
-        const isTransportIssue =
-          classified.reason === "TIMEOUT" ||
-          (axios.isAxiosError(err) &&
-            (!err.response ||
-              err.response.status === 503 ||
-              (err.response.status ?? 0) >= 500));
 
-        if (isTransportIssue) {
+        if (classified.isTransportIssue) {
           handleServiceFailed(classified.message);
         } else {
           setScanState("failed_no_match");

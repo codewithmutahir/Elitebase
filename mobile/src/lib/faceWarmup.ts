@@ -134,3 +134,108 @@ export async function registerFaceMultipart(options: {
     clearTimeout(timer);
   }
 }
+
+type VerifyFaceApiResponse = {
+  error?: string;
+  verified?: boolean;
+  confidence?: number;
+  match_score?: number;
+  threshold?: number;
+  reason?: string | null;
+  employee_id?: string;
+};
+
+/**
+ * Verify face via fetch (same RN multipart path as register).
+ */
+export async function verifyFaceMultipart(options: {
+  uri: string;
+  employeeId: string;
+  timeoutMs?: number;
+}): Promise<{
+  verified: boolean;
+  confidence: number;
+  match_score: number;
+  threshold: number;
+  reason?: string | null;
+  employee_id?: string;
+}> {
+  const base = getApiBaseUrl();
+  if (!base) {
+    throw new Error(
+      "App is missing EXPO_PUBLIC_API_URL. Rebuild the production APK."
+    );
+  }
+
+  const tabletToken = await getTabletToken();
+  if (!tabletToken) {
+    throw new Error("Tablet session missing. Reconnect this tablet.");
+  }
+
+  const formData = new FormData();
+  const part: RnFilePart = {
+    uri: options.uri,
+    type: "image/jpeg",
+    name: "face_verify.jpg",
+  };
+  formData.append("file", part as unknown as Blob);
+  formData.append("files", part as unknown as Blob);
+  formData.append("employee_id", options.employeeId);
+
+  const timeoutMs = options.timeoutMs ?? FACE_API_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${base}/api/kiosk/verify-face`, {
+      method: "POST",
+      headers: {
+        "x-tablet-token": tabletToken,
+      },
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    let json: VerifyFaceApiResponse | null = null;
+    try {
+      json = text ? (JSON.parse(text) as VerifyFaceApiResponse) : null;
+    } catch {
+      json = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        json?.error || `Could not verify face (HTTP ${response.status}).`
+      );
+    }
+
+    return {
+      verified: Boolean(json?.verified),
+      confidence: Number(json?.confidence ?? 0),
+      match_score: Number(json?.match_score ?? json?.confidence ?? 0),
+      threshold: Number(json?.threshold ?? 0),
+      reason: json?.reason ?? null,
+      employee_id: json?.employee_id,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(
+        `Face service timed out after ${Math.round(timeoutMs / 1000)}s. Try again.`
+      );
+    }
+    if (err instanceof Error && err.message) {
+      if (/network request failed/i.test(err.message)) {
+        throw new Error(
+          `Could not reach face service at ${base}. Check network and try again.`
+        );
+      }
+      throw err;
+    }
+    throw new Error(
+      `Could not reach face service at ${base}. Check network and try again.`
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}

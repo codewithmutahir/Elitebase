@@ -50,6 +50,16 @@ export async function POST(request: NextRequest) {
   const employeeId = String(formData.get("employee_id") ?? "").trim();
   const file = collectUploadFile(formData);
 
+  console.info(
+    "[kiosk/verify-face] start",
+    JSON.stringify({
+      employee_id: employeeId || null,
+      has_file: Boolean(file),
+      bytes: file?.size ?? 0,
+      tablet_id: tablet.id,
+    })
+  );
+
   if (!employeeId) {
     return jsonError("employee_id is required.", 400);
   }
