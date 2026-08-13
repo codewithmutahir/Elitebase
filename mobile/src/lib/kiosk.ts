@@ -107,13 +107,15 @@ export function getPinLookupErrorMessage(error: unknown): string {
 
 export function getRegisterFaceErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
+    const base = getApiBaseUrl() || "(no EXPO_PUBLIC_API_URL)";
     if (!error.response) {
       const isTimeout =
         error.code === "ECONNABORTED" ||
         /timeout/i.test(String(error.message ?? ""));
+      const code = error.code ? ` [${error.code}]` : "";
       return isTimeout
-        ? "Face service timed out. Wait a moment and try again."
-        : "Connection error. Check network and try again.";
+        ? `Face service timed out${code}. Wait and try again.`
+        : `Connection error${code}. Cannot reach ${base}. Check network.`;
     }
     const message = error.response.data;
     if (
@@ -124,7 +126,7 @@ export function getRegisterFaceErrorMessage(error: unknown): string {
     ) {
       return (message as { error: string }).error;
     }
-    return "Could not register face. Please try again.";
+    return `Could not register face (HTTP ${error.response.status}).`;
   }
   return "Could not register face. Please try again.";
 }

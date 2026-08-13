@@ -17,6 +17,8 @@ import { formatDescriptorForStorage } from "@/lib/kiosk/face";
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
 
 export const runtime = "nodejs";
+/** Cold Render + multi-image extract can exceed default hobby limits. */
+export const maxDuration = 60;
 
 function collectUploadFiles(formData: FormData): File[] {
   const fromFiles = formData
@@ -64,6 +66,17 @@ export async function POST(request: NextRequest) {
   if (!employee || !employee.is_active) {
     return jsonError("Employee not found.", 404);
   }
+
+  const totalBytes = uploadFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+  console.info(
+    "[kiosk/register-face] start",
+    JSON.stringify({
+      employee_id: employeeId,
+      files: uploadFiles.length,
+      total_bytes: totalBytes,
+      tablet_id: tablet.id,
+    })
+  );
 
   let extraction;
   try {

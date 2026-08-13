@@ -10,16 +10,14 @@ import { ScreenBackground } from "@/components/ScreenBackground";
 import { T } from "@/constants/tokens";
 import type { KioskScanState } from "@/components/kiosk/types";
 import type { ApiPhase } from "@/components/face-id/types";
-import { api } from "@/lib/api";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import {
   detectAndCropFace,
   faceQualityMessage,
 } from "@/lib/faceDetection";
-import { FACE_API_TIMEOUT_MS, warmupFaceService } from "@/lib/faceWarmup";
+import { FACE_API_TIMEOUT_MS, registerFaceMultipart, warmupFaceService } from "@/lib/faceWarmup";
 import { getRegisterFaceErrorMessage } from "@/lib/kiosk";
 import {
-  buildFaceUploadFormDataFromUris,
   faceDetectionReasonToScanState,
 } from "@/lib/kioskFaceCapture";
 import {
@@ -30,7 +28,7 @@ import {
 } from "@/lib/kioskUi";
 import { useSoftFaceAutoCapture } from "@/hooks/useSoftFaceAutoCapture";
 import { isExpoGo } from "@/lib/runtime";
-import { getTabletConfig, getTabletToken } from "@/lib/storage";
+import { getTabletConfig } from "@/lib/storage";
 import type { KioskEmployee, RootStackParamList } from "@/types";
 
 type FaceRegisterRoute = RouteProp<RootStackParamList, "FaceRegister">;
@@ -122,20 +120,24 @@ export function FaceRegisterScreen() {
     async (uris: string[]) => {
       setScanState("processing");
       setApiPhase("processing");
+      setErrorMessage("Waking face service…");
 
       try {
-        const tabletToken = await getTabletToken();
-        const formData = buildFaceUploadFormDataFromUris(uris, employee.id, {
-          includeConsent: true,
+        // Block until warmup attempt finishes so cold Render is less likely
+        // to kill the first real extract request.
+        const warm = await warmupFaceService();
+        if (!warm.warmed) {
+          console.warn("[FaceRegister] warmup incomplete", warm);
+        }
+
+        setErrorMessage("Uploading face photos…");
+        await registerFaceMultipart({
+          uris,
+          employeeId: employee.id,
+          timeoutMs: FACE_API_TIMEOUT_MS,
         });
 
-        await api.post("/api/kiosk/register-face", formData, {
-          headers: {
-            "x-tablet-token": tabletToken ?? "",
-          },
-          timeout: FACE_API_TIMEOUT_MS,
-        });
-
+        setErrorMessage(null);
         setScanState("success");
         setApiPhase("success");
         void hapticSuccess();
@@ -153,8 +155,13 @@ export function FaceRegisterScreen() {
         }, 1200);
       } catch (err) {
         setSampleUris([]);
+        sampleUrisRef.current = [];
         setScanState("failed_no_face");
-        handleCaptureFailed(getRegisterFaceErrorMessage(err));
+        handleCaptureFailed(
+          err instanceof Error
+            ? err.message
+            : getRegisterFaceErrorMessage(err)
+        );
       }
     },
     [employee, handleCaptureFailed, navigation]

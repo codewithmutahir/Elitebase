@@ -8,6 +8,7 @@ import {
 import { getPythonFaceServiceUrl } from "@/lib/kiosk/python-face-service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * Wake the Render face service and load InsightFace into memory.

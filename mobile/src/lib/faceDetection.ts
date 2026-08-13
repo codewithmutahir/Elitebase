@@ -134,14 +134,14 @@ async function resizeToUploadShortSide(
   );
   if (!resize) {
     const passthrough = await ImageManipulator.manipulateAsync(uri, [], {
-      compress: 0.92,
+      compress: 0.82,
       format: ImageManipulator.SaveFormat.JPEG,
     });
     return passthrough.uri;
   }
 
   const processed = await ImageManipulator.manipulateAsync(uri, [resize], {
-    compress: 0.92,
+    compress: 0.82,
     format: ImageManipulator.SaveFormat.JPEG,
   });
   return processed.uri;
@@ -238,7 +238,7 @@ export async function detectAndCropFace(
         normalized.uri,
         actions,
         {
-          compress: 0.92,
+          compress: 0.82,
           format: ImageManipulator.SaveFormat.JPEG,
         }
       );

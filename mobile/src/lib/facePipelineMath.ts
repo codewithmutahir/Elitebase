@@ -24,7 +24,7 @@ export const PREFERRED_MIN_FACE_RATIO = 0.12;
 /** Extra margin so InsightFace's detector/aligner has context. */
 export const CROP_PADDING_RATIO = 0.8;
 /** Short-side target for InsightFace-ready JPEG uploads. */
-export const FACE_UPLOAD_SHORT_SIDE = 720;
+export const FACE_UPLOAD_SHORT_SIDE = 512;
 
 /**
  * Face size relative to the image short side.

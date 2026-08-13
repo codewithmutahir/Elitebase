@@ -20,6 +20,7 @@ import {
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function collectUploadFile(formData: FormData): File | null {
   const single = formData.get("file");
