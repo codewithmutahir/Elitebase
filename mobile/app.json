@@ -13,9 +13,7 @@
     },
     "scheme": "elitebase-kiosk",
     "newArchEnabled": true,
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/68679bef-3776-45ec-9319-f71d923bee79",
       "checkAutomatically": "ON_LOAD",
