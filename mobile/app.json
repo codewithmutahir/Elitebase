@@ -13,6 +13,14 @@
     },
     "scheme": "elitebase-kiosk",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/68679bef-3776-45ec-9319-f71d923bee79",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "androidNavigationBar": {
       "visible": "immersive"
     },

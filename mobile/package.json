@@ -10,6 +10,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test:face-pipeline": "npx --yes tsx src/lib/facePipelineMath.test.ts && npx --yes tsx src/lib/faceImageQuality.test.ts",
+    "update:production": "eas update --channel production --environment production --non-interactive",
+    "update:preview": "eas update --channel preview --environment preview --non-interactive",
     "doctor": "npx expo-doctor"
   },
   "expo": {
@@ -45,6 +47,7 @@
     "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.19",
     "jpeg-js": "^0.4.4",
     "react": "19.1.0",
     "react-native": "0.81.5",

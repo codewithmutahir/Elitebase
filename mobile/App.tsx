@@ -21,6 +21,7 @@ import { useKioskImmersiveMode } from "@/hooks/useKioskImmersiveMode";
 import { loadSounds, unloadSounds } from "@/lib/sounds";
 import { getTabletToken } from "@/lib/storage";
 import { warmupFaceService } from "@/lib/faceWarmup";
+import { applyOtaUpdateIfAvailable } from "@/lib/ota";
 import {
   subscribeTabletSessionInvalidated,
   validateTabletSession,
@@ -58,6 +59,11 @@ function KioskAppTree() {
     return () => {
       void unloadSounds();
     };
+  }, []);
+
+  useEffect(() => {
+    // Apply OTA early so kiosks pick up JS fixes without a new APK.
+    void applyOtaUpdateIfAvailable();
   }, []);
 
   useEffect(() => {
