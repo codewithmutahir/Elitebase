@@ -242,9 +242,10 @@ export function PinScreen() {
         <Image
           source={{ uri: config.company_logo_url }}
           style={[styles.companyLogo, compact && styles.companyLogoCompact]}
+          resizeMode="contain"
         />
       ) : (
-        <View style={[styles.companyLogo, compact && styles.companyLogoCompact]}>
+        <View style={[styles.companyLogoFallback, compact && styles.companyLogoCompact]}>
           <Feather name="clock" size={compact ? 18 : 22} color={T.primaryDark} />
         </View>
       )}
@@ -399,19 +400,22 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   companyLogo: {
+    width: 56,
+    height: 56,
+    marginBottom: 24,
+  },
+  companyLogoFallback: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: T.primary,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
-    overflow: "hidden",
   },
   companyLogoCompact: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
     marginBottom: 12,
   },
   title: { ...T.title, textAlign: "center" },

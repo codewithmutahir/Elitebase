@@ -59,19 +59,21 @@ export function Header() {
 
       <div className="flex shrink-0 items-center gap-4">
         <div className="hidden items-center gap-2 sm:flex">
-          <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-50 text-xs font-bold text-blue-700">
-            {company.logo_url ? (
+          {company.logo_url ? (
+            <div className="relative size-8 shrink-0">
               <Image
                 src={company.logo_url}
-                alt=""
+                alt={`${company.name} logo`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 unoptimized
               />
-            ) : (
-              companyInitials(company.name)
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+              {companyInitials(company.name)}
+            </div>
+          )}
           <span className="max-w-[140px] truncate text-sm font-medium text-slate-900">
             {company.name}
           </span>

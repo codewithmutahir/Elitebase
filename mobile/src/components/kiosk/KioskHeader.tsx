@@ -12,7 +12,11 @@ export function KioskHeader({ companyName, logoUrl, initials }: KioskHeaderProps
     <View style={styles.row}>
       <View style={styles.brand}>
         {logoUrl ? (
-          <Image source={{ uri: logoUrl }} style={styles.logo} />
+          <Image
+            source={{ uri: logoUrl }}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         ) : (
           <View style={styles.logoFallback}>
             <Text style={styles.logoText}>{initials}</Text>
@@ -44,20 +48,19 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   logo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
   },
   logoFallback: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#2563EB",
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
   },
   logoText: {
-    color: "#FFFFFF",
+    color: "#475569",
     fontSize: 12,
     fontFamily: "Inter_700Bold",
   },

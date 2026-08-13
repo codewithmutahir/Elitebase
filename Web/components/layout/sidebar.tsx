@@ -512,19 +512,21 @@ export function Sidebar() {
           isWide ? "gap-3" : "justify-center"
         )}
       >
-        <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xs font-bold text-white">
-          {company.logo_url ? (
+        {company.logo_url ? (
+          <div className="relative size-10 shrink-0">
             <Image
               src={company.logo_url}
-              alt=""
+              alt={`${company.name} logo`}
               fill
-              className="object-cover"
+              className="object-contain"
               unoptimized
             />
-          ) : (
-            companyAbbr
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+            {companyAbbr}
+          </div>
+        )}
         <AnimatePresence initial={false}>
           {isWide ? (
             <motion.div

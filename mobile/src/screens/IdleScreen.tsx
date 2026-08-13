@@ -152,10 +152,11 @@ export function IdleScreen() {
           {config?.company_logo_url ? (
             <Image
               source={{ uri: config.company_logo_url }}
-              style={styles.logoCircle}
+              style={styles.logo}
+              resizeMode="contain"
             />
           ) : (
-            <View style={styles.logoCircle}>
+            <View style={styles.logoFallback}>
               <Feather name="clock" size={18} color={T.primaryDark} />
             </View>
           )}
@@ -266,14 +267,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  logoCircle: {
+  logo: {
+    width: 44,
+    height: 44,
+  },
+  logoFallback: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: T.primary,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
   },
   brandName: { ...T.h2, fontSize: 16, flexShrink: 1 },
   clockCol: { alignItems: "flex-end", flexShrink: 0 },
