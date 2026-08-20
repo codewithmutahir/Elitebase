@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/face-keepalive",
-      "schedule": "*/12 * * * *"
+      "schedule": "0 14 * * *"
     }
   ]
 }
