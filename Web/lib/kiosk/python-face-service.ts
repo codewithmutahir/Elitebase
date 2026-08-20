@@ -92,6 +92,19 @@ async function readFaceServiceError(response: Response): Promise<string> {
   return `Face service request failed (${response.status}).`;
 }
 
+function throwIfFaceServiceCapacityError(response: Response, detail: string): void {
+  // Render free cold-start / sleep → 503; overload or our own limiter → 429.
+  // These are transport/capacity — not "wrong face".
+  if (response.status === 503 || response.status === 429 || response.status === 502) {
+    throw new FaceServiceUnavailableError(
+      response.status === 429
+        ? "Face service is busy. Please wait a moment and try again."
+        : "Face recognition service is temporarily unavailable. Please try again."
+    );
+  }
+  throw new Error(detail || `Face service request failed (${response.status}).`);
+}
+
 function appendFilesToForm(form: FormData, files: File[]) {
   for (const file of files) {
     form.append("files", file, file.name || "face.jpg");
@@ -112,7 +125,10 @@ export async function extractEmbeddingFromImage(
   const response = await faceServiceFetch("/extract-embedding", form);
 
   if (!response.ok) {
-    throw new Error(await readFaceServiceError(response));
+    throwIfFaceServiceCapacityError(
+      response,
+      await readFaceServiceError(response)
+    );
   }
 
   const data = (await response.json()) as ExtractEmbeddingResult;
@@ -144,7 +160,10 @@ export async function verifyFaceWithService(
   const response = await faceServiceFetch("/verify-face", form);
 
   if (!response.ok) {
-    throw new Error(await readFaceServiceError(response));
+    throwIfFaceServiceCapacityError(
+      response,
+      await readFaceServiceError(response)
+    );
   }
 
   const result = (await response.json()) as VerifyFaceServiceResult;

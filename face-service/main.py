@@ -33,10 +33,14 @@ _model_lock = threading.Lock()
 VERIFY_THRESHOLD = float(os.environ.get("FACE_VERIFY_THRESHOLD", "0.45"))
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "").strip()
-GLOBAL_RATE_LIMIT = 100
-GLOBAL_RATE_WINDOW_SECONDS = 60
+# High enough for a shared kiosk night-shift queue; abuse still capped.
+GLOBAL_RATE_LIMIT = int(os.environ.get("FACE_GLOBAL_RATE_LIMIT", "400"))
+GLOBAL_RATE_WINDOW_SECONDS = int(os.environ.get("FACE_GLOBAL_RATE_WINDOW", "60"))
 
 _rate_limit_buckets: dict[str, list[float]] = defaultdict(list)
+# Free-tier RAM cannot safely run many InsightFace inferences in parallel.
+_inference_lock = threading.Lock()
+_INFERENCE_WAIT_SECONDS = float(os.environ.get("FACE_INFERENCE_WAIT_SECONDS", "90"))
 
 
 def _confidence_level(similarity: float) -> str:
@@ -73,7 +77,10 @@ def _check_global_rate_limit() -> None:
 
 @app.middleware("http")
 async def verify_api_key(request: Request, call_next):
-    if request.url.path == "/health" :
+    path = request.url.path
+    skip_rate_limit = path in ("/health", "/warmup")
+
+    if path == "/health":
         return await call_next(request)
 
     if INTERNAL_API_KEY:
@@ -81,12 +88,29 @@ async def verify_api_key(request: Request, call_next):
         if key != INTERNAL_API_KEY:
             return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
-    try:
-        _check_global_rate_limit()
-    except HTTPException as exc:
-        return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
+    # Keep warmup out of the rate bucket so keep-alive / pre-warm do not
+    # starve real verify traffic at shift start.
+    if not skip_rate_limit:
+        try:
+            _check_global_rate_limit()
+        except HTTPException as exc:
+            return JSONResponse({"error": exc.detail}, status_code=exc.status_code)
 
     return await call_next(request)
+
+
+def _run_inference(fn):
+    """Serialize heavy InsightFace work so concurrent kiosk hits queue instead of OOMing."""
+    acquired = _inference_lock.acquire(timeout=_INFERENCE_WAIT_SECONDS)
+    if not acquired:
+        raise HTTPException(
+            status_code=503,
+            detail="Face service is busy. Please try again in a moment.",
+        )
+    try:
+        return fn()
+    finally:
+        _inference_lock.release()
 
 
 def _ensure_model() -> None:
@@ -138,8 +162,11 @@ def _decode_upload(contents: bytes) -> np.ndarray:
 
 
 def _get_single_face(img: np.ndarray):
-    _ensure_model()
-    faces = model.get(img)
+    def _detect():
+        _ensure_model()
+        return model.get(img)
+
+    faces = _run_inference(_detect)
 
     if len(faces) == 0:
         raise HTTPException(status_code=400, detail="No face detected")
@@ -251,8 +278,11 @@ async def verify_face(
             flush=True,
         )
 
-    _ensure_model()
-    faces = model.get(img)
+    def _detect():
+        _ensure_model()
+        return model.get(img)
+
+    faces = _run_inference(_detect)
 
     if len(faces) == 0:
         _log_attempt(
@@ -383,7 +413,11 @@ async def health():
 async def warmup():
     """Explicitly load the InsightFace model (cold-start wake for kiosks)."""
     started = time.time()
-    _ensure_model()
+
+    def _load():
+        _ensure_model()
+
+    _run_inference(_load)
     return {
         "status": "ok",
         "model_loaded": model is not None,

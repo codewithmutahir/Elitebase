@@ -76,6 +76,10 @@ function classifyVerifyError(err: unknown): {
     /could not reach|connection error|network request failed|missing EXPO_PUBLIC/i.test(
       message
     );
+  const isCapacity =
+    /\b(429|502|503)\b|too many requests|rate limit|temporarily unavailable|service is busy|service unavailable|face service request failed/i.test(
+      message
+    );
 
   if (isTimeout) {
     return {
@@ -87,17 +91,7 @@ function classifyVerifyError(err: unknown): {
     };
   }
 
-  if (isNetwork) {
-    return {
-      reason: "API_ERROR",
-      message:
-        message ||
-        "Could not reach face service. Check network and try again.",
-      isTransportIssue: true,
-    };
-  }
-
-  if (/HTTP 503|temporarily unavailable/i.test(message)) {
+  if (isNetwork || isCapacity) {
     return {
       reason: "API_ERROR",
       message:
@@ -114,6 +108,10 @@ function classifyVerifyError(err: unknown): {
       getKioskApiErrorMessage(err, "Could not verify face. Please try again."),
     isTransportIssue: false,
   };
+}
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function FaceScanScreen() {
@@ -208,18 +206,48 @@ export function FaceScanScreen() {
       setApiPhase("processing");
       setErrorMessage("Waking face service…");
 
+      const maxTransportRetries = 3;
+
       try {
-        const warm = await warmupFaceService();
-        if (!warm.warmed) {
-          console.warn("[FaceScan] warmup incomplete", warm);
+        let data: Awaited<ReturnType<typeof verifyFaceMultipart>> | null = null;
+        let lastTransportError: unknown = null;
+
+        for (let attempt = 0; attempt <= maxTransportRetries; attempt++) {
+          if (attempt > 0) {
+            setErrorMessage(
+              `Face service busy — retrying (${attempt}/${maxTransportRetries})…`
+            );
+            await warmupFaceService();
+            await sleep(1500 * attempt);
+          } else {
+            const warm = await warmupFaceService();
+            if (!warm.warmed) {
+              console.warn("[FaceScan] warmup incomplete", warm);
+            }
+          }
+
+          setErrorMessage(attempt === 0 ? "Verifying…" : "Verifying again…");
+          try {
+            data = await verifyFaceMultipart({
+              uri: croppedUri,
+              employeeId: employee.id,
+              timeoutMs: FACE_API_TIMEOUT_MS,
+            });
+            lastTransportError = null;
+            break;
+          } catch (err) {
+            const classified = classifyVerifyError(err);
+            if (!classified.isTransportIssue || attempt === maxTransportRetries) {
+              throw err;
+            }
+            lastTransportError = err;
+            console.warn("[FaceScan] transport retry", classified.message);
+          }
         }
 
-        setErrorMessage("Verifying…");
-        const data = await verifyFaceMultipart({
-          uri: croppedUri,
-          employeeId: employee.id,
-          timeoutMs: FACE_API_TIMEOUT_MS,
-        });
+        if (!data) {
+          throw lastTransportError ?? new Error("Could not verify face.");
+        }
 
         setErrorMessage(null);
 

@@ -2,16 +2,21 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { NextRequest } from "next/server";
 
+/**
+ * Limits are per tablet token (one shared kiosk device).
+ * Night shift (~9pm) queues many employees on the same tablet — keep verify /
+ * warmup high enough that rate-limit is not the clock-in bottleneck.
+ */
 const KIOSK_ROUTE_LIMITS: Record<string, { requests: number; window: "1 m" }> = {
-  "get-employee": { requests: 10, window: "1 m" },
-  "verify-face": { requests: 5, window: "1 m" },
-  "register-face": { requests: 3, window: "1 m" },
-  "clock-action": { requests: 20, window: "1 m" },
-  "employee-status": { requests: 20, window: "1 m" },
-  "validate-tablet": { requests: 10, window: "1 m" },
-  "register-tablet": { requests: 5, window: "1 m" },
-  "face-verify-log": { requests: 30, window: "1 m" },
-  "face-warmup": { requests: 10, window: "1 m" },
+  "get-employee": { requests: 60, window: "1 m" },
+  "verify-face": { requests: 120, window: "1 m" },
+  "register-face": { requests: 20, window: "1 m" },
+  "clock-action": { requests: 60, window: "1 m" },
+  "employee-status": { requests: 60, window: "1 m" },
+  "validate-tablet": { requests: 30, window: "1 m" },
+  "register-tablet": { requests: 10, window: "1 m" },
+  "face-verify-log": { requests: 120, window: "1 m" },
+  "face-warmup": { requests: 60, window: "1 m" },
 };
 
 const limiterCache = new Map<string, Ratelimit>();
