@@ -2,6 +2,7 @@
 
 import { Users } from "lucide-react";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
+import { RosterRowActions } from "@/components/team/roster-row-actions";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -34,7 +35,7 @@ type StatusFilter = "all" | "active" | "terminated";
 
 function faceBadge(employee: EmployeeListItem) {
   if (employee.status === "terminated") {
-    return <StatusBadge tone="error">Terminated</StatusBadge>;
+    return <StatusBadge tone="error">Deactivated</StatusBadge>;
   }
   if (employee.needs_reenrollment) {
     return <StatusBadge tone="warning">Re-scan needed</StatusBadge>;
@@ -222,7 +223,7 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                         <DataTableCell>{employee.position ?? "—"}</DataTableCell>
                         <DataTableCell>
                           {terminated ? (
-                            <StatusBadge tone="error">Terminated</StatusBadge>
+                            <StatusBadge tone="error">Deactivated</StatusBadge>
                           ) : (
                             <StatusBadge tone="success">Active</StatusBadge>
                           )}
@@ -236,12 +237,7 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                         </DataTableCell>
                         <DataTableCell>{faceBadge(employee)}</DataTableCell>
                         <DataTableCell className="text-right">
-                          <Link
-                            href={`/employees/${employee.id}`}
-                            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-                          >
-                            View
-                          </Link>
+                          <RosterRowActions employee={employee} />
                         </DataTableCell>
                       </DataTableRow>
                     );

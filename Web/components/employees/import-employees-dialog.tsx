@@ -179,7 +179,7 @@ export function ImportEmployeesDialog({
                   <tr>
                     <th className="px-3 py-2 font-semibold">Name</th>
                     <th className="px-3 py-2 font-semibold">Position</th>
-                    <th className="px-3 py-2 font-semibold">Rate/hr</th>
+                    <th className="px-3 py-2 font-semibold">Compensation</th>
                     <th className="px-3 py-2 font-semibold">Status</th>
                   </tr>
                 </thead>
@@ -196,9 +196,11 @@ export function ImportEmployeesDialog({
                         {employee.position ?? "—"}
                       </td>
                       <td className="px-3 py-2 text-slate-600">
-                        {employee.hourlyRate != null
-                          ? employee.hourlyRate.toFixed(2)
-                          : "—"}
+                        {employee.monthlySalary != null
+                          ? `$${employee.monthlySalary.toFixed(2)}/mo`
+                          : employee.hourlyRate != null
+                            ? `$${employee.hourlyRate.toFixed(2)}/hr`
+                            : "—"}
                       </td>
                       <td className="px-3 py-2">
                         {employee.alreadyExists ? (

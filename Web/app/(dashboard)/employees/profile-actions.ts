@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCompanySession } from "@/lib/employees/session";
-import type { EmploymentType } from "@/lib/employees/profile-queries";
+import type { EmploymentType, PayType } from "@/lib/employees/profile-queries";
+import {
+  normalizeWorkingDays,
+  syncWorkingDaysToAvailability,
+} from "@/lib/employees/working-days";
 
 function revalidateEmployee(employeeId: string) {
   revalidatePath("/employees");
@@ -16,17 +20,29 @@ export async function updateEmployeeJobDetails(
     employment_type: EmploymentType;
     hourly_rate: number;
     hire_date: string | null;
+    pay_type: PayType;
+    salary_amount: number | null;
+    working_days: number[];
   }
 ) {
   const { company } = await requireCompanySession();
   const admin = createClient();
+  const workingDays = normalizeWorkingDays(data.working_days);
+
+  if (data.pay_type === "salary" && (!data.salary_amount || data.salary_amount <= 0)) {
+    return { error: "Monthly salary is required for salaried employees." };
+  }
 
   const { error } = await admin
     .from("employees")
     .update({
       employment_type: data.employment_type,
-      hourly_rate: data.hourly_rate,
+      hourly_rate: data.pay_type === "hourly" ? data.hourly_rate : 0,
       hire_date: data.hire_date || null,
+      pay_type: data.pay_type,
+      salary_amount: data.pay_type === "salary" ? data.salary_amount : null,
+      salary_period: "monthly",
+      working_days: workingDays,
     })
     .eq("id", employeeId)
     .eq("company_id", company.id);
@@ -36,7 +52,15 @@ export async function updateEmployeeJobDetails(
     return { error: "Could not save job details." };
   }
 
+  try {
+    await syncWorkingDaysToAvailability(company.id, employeeId, workingDays);
+  } catch {
+    return { error: "Could not sync working days to availability." };
+  }
+
   revalidateEmployee(employeeId);
+  revalidatePath("/schedule/schedule");
+  revalidatePath("/schedule/availability");
   return { ok: true };
 }
 
@@ -107,6 +131,84 @@ export async function terminateEmployee(
   }
 
   revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function reactivateEmployee(employeeId: string) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { error } = await admin
+    .from("employees")
+    .update({
+      status: "active",
+      termination_reason: null,
+      terminated_at: null,
+    })
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("reactivateEmployee:", error.message);
+    return { error: "Could not reactivate employee." };
+  }
+
+  revalidateEmployee(employeeId);
+  return { ok: true };
+}
+
+export async function getEmployeeAttendanceCount(employeeId: string) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { count, error } = await admin
+    .from("attendance")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("getEmployeeAttendanceCount:", error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export async function deleteEmployeePermanently(
+  employeeId: string,
+  confirmName: string
+) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { data: employee, error: fetchError } = await admin
+    .from("employees")
+    .select("id, full_name")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (fetchError || !employee) {
+    return { error: "Employee not found." };
+  }
+
+  if (confirmName.trim() !== employee.full_name.trim()) {
+    return { error: "Confirmation name does not match." };
+  }
+
+  const { error } = await admin
+    .from("employees")
+    .delete()
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (error) {
+    console.error("deleteEmployeePermanently:", error.message);
+    return { error: "Could not delete employee." };
+  }
+
+  revalidatePath("/employees");
   return { ok: true };
 }
 

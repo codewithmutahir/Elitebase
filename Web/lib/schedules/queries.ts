@@ -19,10 +19,17 @@ export type ScheduleShift = {
   role_id: string | null;
 };
 
+import type { PayType } from "@/lib/employees/profile-queries";
+import { DEFAULT_WORKING_DAYS } from "@/lib/employees/working-days";
+
 export type ScheduleEmployeeRow = {
   id: string;
   full_name: string;
   department: string | null;
+  hourly_rate: number;
+  pay_type: PayType;
+  salary_amount: number | null;
+  working_days: number[];
 };
 
 type DepartmentJoin = { name: string } | { name: string }[] | null;
@@ -37,7 +44,9 @@ export async function listScheduleEmployees(companyId: string) {
   const admin = createClient();
   const { data, error } = await admin
     .from("employees")
-    .select("id, full_name, departments ( name )")
+    .select(
+      "id, full_name, departments ( name ), hourly_rate, pay_type, salary_amount, working_days"
+    )
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("full_name", { ascending: true });
@@ -51,6 +60,13 @@ export async function listScheduleEmployees(companyId: string) {
     id: row.id,
     full_name: row.full_name,
     department: departmentName(row.departments as DepartmentJoin),
+    hourly_rate: Number(row.hourly_rate ?? 0),
+    pay_type: (row.pay_type ?? "hourly") as PayType,
+    salary_amount:
+      row.salary_amount != null ? Number(row.salary_amount) : null,
+    working_days: Array.isArray(row.working_days)
+      ? (row.working_days as number[])
+      : [...DEFAULT_WORKING_DAYS],
   })) satisfies ScheduleEmployeeRow[];
 }
 

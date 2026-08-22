@@ -20,6 +20,8 @@ type NewEmployeeInput = {
   position?: string | null;
   hireDate?: string | null;
   hourlyRate?: number | null;
+  payType?: "hourly" | "salary";
+  salaryAmount?: number | null;
 };
 
 function normalizeEmployeeName(name: string) {
@@ -34,6 +36,7 @@ async function createEmployeeWithPin(
   | { error: string }
 > {
   const role = input.role?.trim() || "employee";
+  const payType = input.payType ?? (input.salaryAmount ? "salary" : "hourly");
   const plainPin = generateEmployeePin();
   const pinHash = await hashEmployeePin(plainPin);
   const admin = createClient();
@@ -48,7 +51,11 @@ async function createEmployeeWithPin(
       department_id: input.departmentId ?? null,
       position: input.position ?? null,
       hire_date: input.hireDate ?? null,
-      hourly_rate: input.hourlyRate ?? 0,
+      hourly_rate: payType === "hourly" ? (input.hourlyRate ?? 0) : 0,
+      pay_type: payType,
+      salary_amount:
+        payType === "salary" ? (input.salaryAmount ?? input.hourlyRate ?? 0) : null,
+      salary_period: "monthly",
       status: "active",
       employment_type: role === "manager" ? "manager" : "employee",
     })
@@ -263,6 +270,8 @@ export async function importEmployeesFromCsv(
       fullName: employee.fullName,
       position: employee.position,
       hourlyRate: employee.hourlyRate,
+      payType: employee.monthlySalary ? "salary" : "hourly",
+      salaryAmount: employee.monthlySalary,
     });
 
     if ("error" in result) {
@@ -401,17 +410,11 @@ export async function deactivateEmployee(employeeId: string) {
 
 /** @deprecated Terminated employees use terminate flow */
 export async function reactivateEmployee(employeeId: string) {
-  const { company } = await requireCompanySession();
-  const admin = createClient();
-
-  const { error } = await admin
-    .from("employees")
-    .update({ status: "active" })
-    .eq("id", employeeId)
-    .eq("company_id", company.id);
-
-  if (error) {
-    console.error("reactivateEmployee failed:", error.message);
+  const { reactivateEmployee: reactivate } = await import(
+    "@/app/(dashboard)/employees/profile-actions"
+  );
+  const result = await reactivate(employeeId);
+  if (result.error) {
     redirect(`/employees/${employeeId}?error=reactivate_failed`);
   }
 

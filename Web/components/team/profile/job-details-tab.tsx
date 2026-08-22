@@ -11,8 +11,17 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   formatDateShort,
   formatHourlyRate,
+  formatMonthlySalary,
 } from "@/lib/employees/format";
-import type { EmployeeProfile } from "@/lib/employees/profile-queries";
+import type { EmployeeProfile, PayType } from "@/lib/employees/profile-queries";
+import {
+  ALL_ISO_DAYS,
+  ISO_DAY_LABELS,
+  WORKING_DAY_PRESETS,
+  formatWorkingDaysLabel,
+  normalizeWorkingDays,
+  type WorkingDayPreset,
+} from "@/lib/employees/working-days";
 import { cn } from "@/lib/utils";
 
 type JobDetailsTabProps = {
@@ -30,8 +39,39 @@ export function JobDetailsTab({
   const [locationOpen, setLocationOpen] = useState(true);
   const [pending, startTransition] = useTransition();
   const [employmentType, setEmploymentType] = useState(employee.employment_type);
+  const [payType, setPayType] = useState<PayType>(employee.pay_type);
   const [hourlyRate, setHourlyRate] = useState(String(employee.hourly_rate));
+  const [salaryAmount, setSalaryAmount] = useState(
+    employee.salary_amount != null ? String(employee.salary_amount) : ""
+  );
+  const [workingDays, setWorkingDays] = useState<number[]>(employee.working_days);
   const [hireDate, setHireDate] = useState(employee.hire_date ?? "");
+
+  function applyPreset(preset: WorkingDayPreset) {
+    setWorkingDays([...WORKING_DAY_PRESETS[preset]]);
+  }
+
+  function toggleWorkingDay(isoDay: number) {
+    setWorkingDays((current) => {
+      const normalized = normalizeWorkingDays(current);
+      if (normalized.includes(isoDay)) {
+        const next = normalized.filter((day) => day !== isoDay);
+        return next.length > 0 ? next : normalized;
+      }
+      return normalizeWorkingDays([...normalized, isoDay]);
+    });
+  }
+
+  function resetEditState() {
+    setEmploymentType(employee.employment_type);
+    setPayType(employee.pay_type);
+    setHourlyRate(String(employee.hourly_rate));
+    setSalaryAmount(
+      employee.salary_amount != null ? String(employee.salary_amount) : ""
+    );
+    setWorkingDays(employee.working_days);
+    setHireDate(employee.hire_date ?? "");
+  }
 
   function save() {
     startTransition(async () => {
@@ -39,6 +79,10 @@ export function JobDetailsTab({
         employment_type: employmentType,
         hourly_rate: Number(hourlyRate) || 0,
         hire_date: hireDate || null,
+        pay_type: payType,
+        salary_amount:
+          payType === "salary" ? Number(salaryAmount) || 0 : null,
+        working_days: workingDays,
       });
       if (result.error) {
         toast.error(result.error);
@@ -48,6 +92,10 @@ export function JobDetailsTab({
         employment_type: employmentType,
         hourly_rate: Number(hourlyRate) || 0,
         hire_date: hireDate || null,
+        pay_type: payType,
+        salary_amount:
+          payType === "salary" ? Number(salaryAmount) || 0 : null,
+        working_days: normalizeWorkingDays(workingDays),
       });
       setEditing(false);
       toast.success("Job details saved");
@@ -56,6 +104,11 @@ export function JobDetailsTab({
 
   const roleLabel =
     employee.position || employee.department || employee.employment_type;
+
+  const compensationLabel =
+    employee.pay_type === "salary" && employee.salary_amount
+      ? formatMonthlySalary(employee.salary_amount)
+      : `${formatHourlyRate(employee.hourly_rate)}/hr`;
 
   return (
     <div className="space-y-6">
@@ -84,13 +137,13 @@ export function JobDetailsTab({
             {employee.status === "active" ? (
               <StatusBadge tone="success">Active</StatusBadge>
             ) : (
-              <StatusBadge tone="error">Terminated</StatusBadge>
+              <StatusBadge tone="error">Deactivated</StatusBadge>
             )}
           </div>
 
           {editing ? (
             <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-500">
                     Access
@@ -111,21 +164,16 @@ export function JobDetailsTab({
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-500">
-                    Hourly rate
+                    Pay type
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={hourlyRate}
-                      onChange={(e) => setHourlyRate(e.target.value)}
-                      className="flex h-10 w-full rounded-lg border border-input bg-white pl-7 pr-3 text-sm"
-                    />
-                  </div>
+                  <select
+                    value={payType}
+                    onChange={(e) => setPayType(e.target.value as PayType)}
+                    className="flex h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+                  >
+                    <option value="hourly">Hourly</option>
+                    <option value="salary">Fixed salary (monthly)</option>
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-500">
@@ -138,12 +186,94 @@ export function JobDetailsTab({
                     className="flex h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
                   />
                 </div>
+                {payType === "hourly" ? (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500">
+                      Hourly rate
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={hourlyRate}
+                        onChange={(e) => setHourlyRate(e.target.value)}
+                        className="flex h-10 w-full rounded-lg border border-input bg-white pl-7 pr-3 text-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500">
+                      Monthly salary
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={salaryAmount}
+                        onChange={(e) => setSalaryAmount(e.target.value)}
+                        className="flex h-10 w-full rounded-lg border border-input bg-white pl-7 pr-3 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
+
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-semibold text-slate-500">
+                    Working days
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.keys(WORKING_DAY_PRESETS) as WorkingDayPreset[]).map(
+                      (preset) => (
+                        <Button
+                          key={preset}
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => applyPreset(preset)}
+                        >
+                          {preset.replace("-", " ")}
+                        </Button>
+                      )
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {ALL_ISO_DAYS.map((isoDay) => (
+                    <label
+                      key={isoDay}
+                      className="inline-flex items-center gap-2 text-sm text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={normalizeWorkingDays(workingDays).includes(isoDay)}
+                        onChange={() => toggleWorkingDay(isoDay)}
+                        className="rounded"
+                      />
+                      {ISO_DAY_LABELS[isoDay]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setEditing(false)}
+                  onClick={() => {
+                    resetEditState();
+                    setEditing(false);
+                  }}
                 >
                   Cancel
                 </Button>
@@ -188,9 +318,17 @@ export function JobDetailsTab({
                 </dt>
                 <dd className="mt-1 flex flex-wrap items-center gap-2 text-slate-900">
                   <span>
-                    {roleLabel} · {formatHourlyRate(employee.hourly_rate)}/hr
+                    {roleLabel} · {compensationLabel}
                   </span>
                   <StatusBadge tone="info">Primary role</StatusBadge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase text-slate-500">
+                  Working days
+                </dt>
+                <dd className="mt-1 text-slate-900">
+                  {formatWorkingDaysLabel(employee.working_days)}
                 </dd>
               </div>
             </dl>
@@ -281,8 +419,7 @@ export function JobDetailsTab({
                 <li className="relative">
                   <span className="absolute -left-[21px] top-1.5 size-2.5 rounded-full bg-slate-300" />
                   <p className="font-medium text-slate-900">
-                    Started as {roleLabel} ({formatHourlyRate(employee.hourly_rate)}
-                    /hr)
+                    Started as {roleLabel} ({compensationLabel})
                   </p>
                   <p className="text-sm text-slate-500">
                     {formatDateShort(employee.hire_date)}

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { toPgTime } from "@/lib/schedules/format";
 import { toDateParam } from "@/lib/availability/week";
 import { parseWeekParam } from "@/lib/availability/week";
+import { assertEmployeeWorkingDay } from "@/lib/employees/working-days";
 import { requireCompanySession } from "@/lib/employees/session";
 
 const SCHEDULE_PATH = "/schedule/schedule";
@@ -51,6 +52,15 @@ export async function createScheduleShift(input: CreateShiftInput) {
       .eq("company_id", company.id)
       .maybeSingle();
     if (!employee) return { error: "Employee not found." };
+
+    const workingDayCheck = await assertEmployeeWorkingDay(
+      company.id,
+      input.employeeId,
+      input.shiftDate
+    );
+    if (workingDayCheck.error) {
+      return { error: workingDayCheck.error };
+    }
   }
 
   const { data, error } = await admin

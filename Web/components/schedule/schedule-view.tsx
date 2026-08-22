@@ -17,8 +17,11 @@ import {
   formatWages,
 } from "@/lib/schedules/format";
 import {
-  dayTotals,
-  employeeWeekTotals,
+  dayEarnings,
+  earningsLabel,
+  employeeWeekEarnings,
+} from "@/lib/schedules/wages";
+import {
   groupShifts,
   type ScheduleEmployeeRow,
   type ScheduleShift,
@@ -34,6 +37,7 @@ import {
   toDateParam,
   weekDateStrings,
 } from "@/lib/availability/week";
+import { isWorkingDayOnDate } from "@/lib/employees/working-days";
 import { fadeIn, staggerContainer } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
@@ -57,11 +61,23 @@ function ScheduleCell({
   shifts,
   onAdd,
   onUpdated,
+  isOffDay = false,
 }: {
   shifts: ScheduleShift[];
   onAdd: () => void;
   onUpdated: () => void;
+  isOffDay?: boolean;
 }) {
+  if (isOffDay) {
+    return (
+      <td className="min-w-[110px] border-l border-slate-100 bg-slate-50/80 align-top p-0">
+        <div className="flex min-h-[72px] items-center justify-center p-2">
+          <span className="text-xs font-medium text-slate-400">Off</span>
+        </div>
+      </td>
+    );
+  }
+
   return (
     <td className="min-w-[110px] border-l border-slate-100 align-top p-0">
       <div className="group relative min-h-[72px] p-1">
@@ -105,6 +121,11 @@ export function ScheduleView({
   const { openByDate, byEmployeeDate } = useMemo(
     () => groupShifts(shifts),
     [shifts]
+  );
+
+  const employeesById = useMemo(
+    () => new Map(employees.map((employee) => [employee.id, employee])),
+    [employees]
   );
 
   const draftCount = useMemo(
@@ -254,7 +275,13 @@ export function ScheduleView({
               </motion.tr>
 
               {employees.map((employee) => {
-                const totals = employeeWeekTotals(shifts, employee.id);
+                const totals = employeeWeekEarnings(
+                  employee,
+                  shifts,
+                  employee.id,
+                  weekMonday
+                );
+                const payLabel = earningsLabel(employee.pay_type);
                 return (
                   <motion.tr
                     key={employee.id}
@@ -273,27 +300,34 @@ export function ScheduleView({
                             {employee.full_name}
                           </p>
                           <p className="text-xs text-slate-500">
-                            {formatHours(totals.hours)} hrs /{" "}
+                            {formatHours(totals.hours)} hrs / {payLabel}:{" "}
                             {formatWages(totals.wages)}
                           </p>
                         </div>
                       </div>
                     </td>
-                    {weekDates.map((dateStr) => (
-                      <ScheduleCell
-                        key={`${employee.id}-${dateStr}`}
-                        shifts={byEmployeeDate[employee.id]?.[dateStr] ?? []}
-                        onAdd={() =>
-                          openAddSheet({
-                            employeeId: employee.id,
-                            isOpenShift: false,
-                            shiftDate: dateStr,
-                            employeeName: employee.full_name,
-                          })
-                        }
-                        onUpdated={refresh}
-                      />
-                    ))}
+                    {weekDates.map((dateStr) => {
+                      const isOffDay = !isWorkingDayOnDate(
+                        employee.working_days,
+                        dateStr
+                      );
+                      return (
+                        <ScheduleCell
+                          key={`${employee.id}-${dateStr}`}
+                          shifts={byEmployeeDate[employee.id]?.[dateStr] ?? []}
+                          isOffDay={isOffDay}
+                          onAdd={() =>
+                            openAddSheet({
+                              employeeId: employee.id,
+                              isOpenShift: false,
+                              shiftDate: dateStr,
+                              employeeName: employee.full_name,
+                            })
+                          }
+                          onUpdated={refresh}
+                        />
+                      );
+                    })}
                   </motion.tr>
                 );
               })}
@@ -305,7 +339,12 @@ export function ScheduleView({
                   Totals
                 </td>
                 {weekDates.map((dateStr) => {
-                  const totals = dayTotals(shifts, dateStr);
+                  const totals = dayEarnings(
+                    employeesById,
+                    shifts,
+                    dateStr,
+                    weekMonday
+                  );
                   return (
                     <td
                       key={`total-${dateStr}`}

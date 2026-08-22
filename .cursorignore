@@ -1,0 +1,24 @@
+﻿# Heavy / generated — keep Cursor index + agents lighter
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+dist/
+**/dist/
+build/
+**/build/
+.expo/
+**/.expo/
+coverage/
+**/coverage/
+.turbo/
+**/.turbo/
+android/build/
+ios/build/
+*.apk
+*.aab
+face-service/**/__pycache__/
+face-service/**/.venv/
+face-service/**/venv/
+**/*.pyc
+.git/

@@ -26,21 +26,69 @@ function employeeName(
   return employees.full_name ?? "Unknown";
 }
 
+export async function validateEmployeeForCompany(
+  companyId: string,
+  employeeId: string
+): Promise<boolean> {
+  const admin = createClient();
+  const { data, error } = await admin
+    .from("employees")
+    .select("id")
+    .eq("id", employeeId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("validateEmployeeForCompany failed:", error.message);
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+export async function listAttendanceMonths(
+  companyId: string,
+  timezone: string,
+  limit = 24
+): Promise<string[]> {
+  const admin = createClient();
+  const { data, error } = await admin.rpc("get_attendance_months", {
+    p_company_id: companyId,
+    p_timezone: timezone,
+    p_limit: limit,
+  });
+
+  if (error) {
+    console.error("listAttendanceMonths failed:", error.message);
+    return [];
+  }
+
+  return (data ?? [])
+    .map((row: { month: string }) => row.month)
+    .filter((month: string) => /^\d{4}-\d{2}$/.test(month));
+}
+
 export async function fetchAttendanceEvents(
   companyId: string,
   from: string,
-  to: string
+  to: string,
+  employeeId?: string
 ): Promise<AttendanceEvent[]> {
   const { startIso, endIso } = queryWindowIso(from, to);
   const admin = createClient();
 
-  const { data, error } = await admin
+  let query = admin
     .from("attendance")
     .select("id, employee_id, type, timestamp, employees ( full_name )")
     .eq("company_id", companyId)
     .gte("timestamp", startIso)
-    .lte("timestamp", endIso)
-    .order("timestamp", { ascending: true });
+    .lte("timestamp", endIso);
+
+  if (employeeId) {
+    query = query.eq("employee_id", employeeId);
+  }
+
+  const { data, error } = await query.order("timestamp", { ascending: true });
 
   if (error) {
     console.error("fetchAttendanceEvents failed:", error.message);
@@ -93,10 +141,34 @@ export async function getAllTimesheetRows(
   companyId: string,
   timezone: string,
   from: string,
-  to: string
+  to: string,
+  employeeId?: string
 ) {
-  const events = await fetchAttendanceEvents(companyId, from, to);
+  const events = await fetchAttendanceEvents(companyId, from, to, employeeId);
   return buildTimesheetRows(events, timezone, from, to);
+}
+
+export type TimesheetEmployeeOption = {
+  id: string;
+  full_name: string;
+};
+
+export async function listTimesheetEmployeeOptions(
+  companyId: string
+): Promise<TimesheetEmployeeOption[]> {
+  const admin = createClient();
+  const { data, error } = await admin
+    .from("employees")
+    .select("id, full_name")
+    .eq("company_id", companyId)
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    console.error("listTimesheetEmployeeOptions failed:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as TimesheetEmployeeOption[];
 }
 
 export { DEFAULT_PAGE_SIZE };

@@ -51,6 +51,31 @@ export function getDefaultWeekRange(
   return { from, to };
 }
 
+const MONTH_PATTERN = /^\d{4}-\d{2}$/;
+
+/** First and last calendar day of YYYY-MM (company-local date keys). */
+export function getMonthRange(month: string): { from: string; to: string } | null {
+  if (!MONTH_PATTERN.test(month)) return null;
+  const [year, monthNum] = month.split("-").map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(monthNum) || monthNum < 1 || monthNum > 12) {
+    return null;
+  }
+  const from = formatDateKey(year, monthNum, 1);
+  const lastDay = new Date(Date.UTC(year, monthNum, 0)).getUTCDate();
+  const to = formatDateKey(year, monthNum, lastDay);
+  return { from, to };
+}
+
+export function parseExportRange(
+  timezone: string,
+  options: { month?: string | null; from?: string | null; to?: string | null }
+) {
+  const monthRange = options.month ? getMonthRange(options.month) : null;
+  if (monthRange) return { ...monthRange, month: options.month as string };
+  const range = parseDateRange(timezone, options.from ?? undefined, options.to ?? undefined);
+  return { ...range, month: null as string | null };
+}
+
 export function parseDateRange(
   timezone: string,
   fromInput?: string,

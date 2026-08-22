@@ -3,22 +3,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Mail, MessageSquare, Phone } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
-import { terminateEmployee } from "@/app/(dashboard)/employees/profile-actions";
+import { useCallback, useEffect, useState } from "react";
+import { EmployeeActionDialogs } from "@/components/team/employee-action-dialogs";
 import { DocumentsTab } from "@/components/team/profile/documents-tab";
 import { JobDetailsTab } from "@/components/team/profile/job-details-tab";
 import { PerformanceTab } from "@/components/team/profile/performance-tab";
 import { PersonalTab } from "@/components/team/profile/personal-tab";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { employeeInitials } from "@/lib/employees/format";
 import type { EmployeeProfile } from "@/lib/employees/profile-queries";
@@ -47,9 +38,9 @@ export function EmployeeProfileView({
   const router = useRouter();
   const [employee, setEmployee] = useState(initialEmployee);
   const [activeTab, setActiveTab] = useState<TabId>("job-details");
-  const [terminateOpen, setTerminateOpen] = useState(false);
-  const [terminateReason, setTerminateReason] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [action, setAction] = useState<"deactivate" | "reactivate" | "delete" | null>(
+    null
+  );
 
   useEffect(() => {
     setEmployee(initialEmployee);
@@ -78,20 +69,6 @@ export function EmployeeProfileView({
   }, []);
 
   const needsContact = !employee.phone && !employee.email;
-
-  function confirmTerminate() {
-    startTransition(async () => {
-      const result = await terminateEmployee(employee.id, terminateReason);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      patchEmployee({ status: "terminated", is_active: false });
-      setTerminateOpen(false);
-      toast.success("Employee terminated");
-      router.refresh();
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -158,19 +135,36 @@ export function EmployeeProfileView({
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           {employee.status === "active" ? (
             <Button
               type="button"
               variant="outline"
               className="border-red-200 text-red-600 hover:bg-red-50"
-              onClick={() => setTerminateOpen(true)}
+              onClick={() => setAction("deactivate")}
             >
-              Terminate
+              Deactivate
             </Button>
           ) : (
-            <StatusBadge tone="error">Terminated</StatusBadge>
+            <>
+              <StatusBadge tone="error">Deactivated</StatusBadge>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAction("reactivate")}
+              >
+                Reactivate
+              </Button>
+            </>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            className="border-red-200 text-red-600 hover:bg-red-50"
+            onClick={() => setAction("delete")}
+          >
+            Delete permanently
+          </Button>
           <Button type="button" variant="outline" disabled>
             <MessageSquare className="size-4" aria-hidden />
             Message
@@ -231,36 +225,16 @@ export function EmployeeProfileView({
         </motion.div>
       </AnimatePresence>
 
-      <Dialog open={terminateOpen} onOpenChange={setTerminateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Terminate {employee.full_name}?</DialogTitle>
-            <DialogDescription>
-              They will lose kiosk access and appear as terminated on the roster.
-              This action can be reversed by support later.
-            </DialogDescription>
-          </DialogHeader>
-          <textarea
-            value={terminateReason}
-            onChange={(e) => setTerminateReason(e.target.value)}
-            placeholder="Reason (optional)"
-            rows={3}
-            className="w-full rounded-lg border border-input px-3 py-2 text-sm"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTerminateOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={pending}
-              onClick={confirmTerminate}
-            >
-              {pending ? "Terminating…" : "Terminate employee"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EmployeeActionDialogs
+        employee={{
+          id: employee.id,
+          full_name: employee.full_name,
+          status: employee.status,
+        }}
+        action={action}
+        onClose={() => setAction(null)}
+        redirectOnDelete
+      />
     </div>
   );
 }

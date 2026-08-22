@@ -4,6 +4,8 @@ import type { EmployeePerformanceStats } from "@/lib/employees/performance";
 
 export type EmployeeStatus = "active" | "terminated";
 export type EmploymentType = "employee" | "manager" | "contractor";
+export type PayType = "hourly" | "salary";
+export type SalaryPeriod = "monthly";
 
 export type EmployeeDocument = {
   id: string;
@@ -44,6 +46,10 @@ export type EmployeeProfile = {
   position: string | null;
   hire_date: string | null;
   hourly_rate: number;
+  pay_type: PayType;
+  salary_amount: number | null;
+  salary_period: SalaryPeriod;
+  working_days: number[];
   date_of_birth: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
@@ -86,6 +92,7 @@ export async function getEmployeeProfile(
       `
       id, company_id, full_name, email, phone, role, employment_type, status,
       department_id, departments ( name ), position, hire_date, hourly_rate,
+      pay_type, salary_amount, salary_period, working_days,
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
       is_active, face_registered_at, face_consent, face_consent_at, needs_reenrollment, created_at,
@@ -140,6 +147,13 @@ export async function getEmployeeProfile(
     position: data.position,
     hire_date: data.hire_date,
     hourly_rate: Number(data.hourly_rate ?? 0),
+    pay_type: (data.pay_type ?? "hourly") as PayType,
+    salary_amount:
+      data.salary_amount != null ? Number(data.salary_amount) : null,
+    salary_period: (data.salary_period ?? "monthly") as SalaryPeriod,
+    working_days: Array.isArray(data.working_days)
+      ? (data.working_days as number[])
+      : [1, 2, 3, 4, 5],
     date_of_birth: data.date_of_birth,
     emergency_contact_name: data.emergency_contact_name,
     emergency_contact_phone: data.emergency_contact_phone,

@@ -1,6 +1,11 @@
+import { TimesheetsExportPanel } from "@/components/timesheets/timesheets-export-panel";
 import { TimesheetsView } from "@/components/timesheets/timesheets-view";
 import { companyTimezone } from "@/lib/dashboard/format";
-import { getTimesheetsPage } from "@/lib/timesheets/data";
+import {
+  getTimesheetsPage,
+  listAttendanceMonths,
+  listTimesheetEmployeeOptions,
+} from "@/lib/timesheets/data";
 import { parseDateRange } from "@/lib/timesheets/dates";
 import { requireTimesheetsSession } from "@/lib/timesheets/session";
 
@@ -27,15 +32,23 @@ export default async function TimesheetsPage({ searchParams }: TimesheetsPagePro
     page
   );
 
+  const [months, employees] = await Promise.all([
+    listAttendanceMonths(company.id, timezone),
+    listTimesheetEmployeeOptions(company.id),
+  ]);
+
   return (
-    <TimesheetsView
-      rows={result.rows}
-      timezone={company.timezone}
-      from={range.from}
-      to={range.to}
-      page={result.page}
-      totalPages={result.totalPages}
-      total={result.total}
-    />
+    <div className="space-y-6">
+      <TimesheetsExportPanel months={months} employees={employees} />
+      <TimesheetsView
+        rows={result.rows}
+        timezone={company.timezone}
+        from={range.from}
+        to={range.to}
+        page={result.page}
+        totalPages={result.totalPages}
+        total={result.total}
+      />
+    </div>
   );
 }

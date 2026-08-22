@@ -33,6 +33,13 @@ export function formatHourlyRate(rate: number): string {
   return `$${rate.toFixed(2)}`;
 }
 
+export function formatMonthlySalary(amount: number): string {
+  return `$${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}/mo`;
+}
+
 export function employeeInitials(name: string): string {
   return name
     .split(" ")
