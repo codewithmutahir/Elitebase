@@ -40,6 +40,4 @@ export function formatHours(hours: number): string {
   return hours.toFixed(2);
 }
 
-export function formatWages(amount: number): string {
-  return `$${amount.toFixed(2)}`;
-}
+export { formatWages } from "@/lib/money/format";

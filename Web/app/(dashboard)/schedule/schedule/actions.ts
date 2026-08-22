@@ -7,6 +7,10 @@ import { toDateParam } from "@/lib/availability/week";
 import { parseWeekParam } from "@/lib/availability/week";
 import { assertEmployeeWorkingDay } from "@/lib/employees/working-days";
 import { requireCompanySession } from "@/lib/employees/session";
+import {
+  isDateOnApprovedTimeOff,
+  listApprovedTimeOffForRange,
+} from "@/lib/time-off/queries";
 
 const SCHEDULE_PATH = "/schedule/schedule";
 
@@ -60,6 +64,23 @@ export async function createScheduleShift(input: CreateShiftInput) {
     );
     if (workingDayCheck.error) {
       return { error: workingDayCheck.error };
+    }
+
+    const approvedTimeOff = await listApprovedTimeOffForRange(
+      company.id,
+      input.shiftDate,
+      input.shiftDate
+    );
+    if (
+      isDateOnApprovedTimeOff(
+        input.shiftDate,
+        input.employeeId,
+        approvedTimeOff
+      )
+    ) {
+      return {
+        error: "This employee has approved time off on that date.",
+      };
     }
   }
 

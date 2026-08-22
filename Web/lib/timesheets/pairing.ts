@@ -20,8 +20,53 @@ export type TimesheetRow = {
   clockInEventId: string | null;
   clockOutEventId: string | null;
   totalHours: number | null;
+  breakHours: number | null;
+  breakCount: number;
   status: "open" | "complete" | "incomplete";
 };
+
+function computeBreakMs(events: AttendanceEvent[]) {
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  let breakMs = 0;
+  let breakCount = 0;
+  let breakStartMs: number | null = null;
+  let clockInMs: number | null = null;
+
+  for (const event of sorted) {
+    const t = new Date(event.timestamp).getTime();
+
+    switch (event.type) {
+      case "clock_in":
+        clockInMs = t;
+        breakStartMs = null;
+        break;
+      case "break_start":
+        if (clockInMs !== null) {
+          breakStartMs = t;
+        }
+        break;
+      case "break_end":
+        if (breakStartMs !== null) {
+          breakMs += t - breakStartMs;
+          breakCount += 1;
+          breakStartMs = null;
+          clockInMs = t;
+        }
+        break;
+      case "clock_out":
+        clockInMs = null;
+        breakStartMs = null;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return { breakMs, breakCount };
+}
 
 function computeWorkedMs(events: AttendanceEvent[]) {
   const sorted = [...events].sort(
@@ -110,8 +155,11 @@ export function buildTimesheetRows(
 
     const open = isEmployeeClockedIn(latestType);
     const workedMs = computeWorkedMs(dayEvents);
+    const { breakMs, breakCount } = computeBreakMs(dayEvents);
     const totalHours =
       workedMs > 0 ? Math.round((workedMs / 3_600_000) * 100) / 100 : null;
+    const breakHours =
+      breakMs > 0 ? Math.round((breakMs / 3_600_000) * 100) / 100 : null;
 
     let status: TimesheetRow["status"] = "incomplete";
     if (open) {
@@ -130,6 +178,8 @@ export function buildTimesheetRows(
       clockInEventId: clockInEvent?.id ?? null,
       clockOutEventId: open ? null : clockOutEvent?.id ?? null,
       totalHours: open ? null : totalHours,
+      breakHours: open ? null : breakHours,
+      breakCount,
       status,
     });
   }

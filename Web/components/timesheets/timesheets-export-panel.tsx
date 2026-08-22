@@ -27,6 +27,7 @@ export function TimesheetsExportPanel({
 }: TimesheetsExportPanelProps) {
   const [month, setMonth] = useState(months[0] ?? "");
   const [employeeId, setEmployeeId] = useState("all");
+  const [format, setFormat] = useState<"standard" | "quickbooks">("standard");
 
   const selectedEmployee = useMemo(
     () => employees.find((employee) => employee.id === employeeId),
@@ -42,15 +43,19 @@ export function TimesheetsExportPanel({
         params.set("employeeName", selectedEmployee.full_name);
       }
     }
+    if (format === "quickbooks") {
+      params.set("format", "quickbooks");
+    }
     return `/api/timesheets/export?${params.toString()}`;
-  }, [month, employeeId, selectedEmployee]);
+  }, [month, employeeId, selectedEmployee, format]);
 
   return (
     <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="mb-3">
         <h3 className="text-sm font-semibold text-slate-900">Export timesheets</h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          Download CSV for a month with attendance data — all employees or one person.
+          Download CSV for a month with attendance data. All employees exports are
+          grouped by person with subtotals; single-employee exports stay chronological.
         </p>
       </div>
       {months.length === 0 ? (
@@ -86,6 +91,20 @@ export function TimesheetsExportPanel({
                   {employee.full_name}
                 </option>
               ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="export-format">Format</Label>
+            <select
+              id="export-format"
+              value={format}
+              onChange={(e) =>
+                setFormat(e.target.value as "standard" | "quickbooks")
+              }
+              className="mt-1.5 block min-w-[180px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            >
+              <option value="standard">Standard CSV</option>
+              <option value="quickbooks">QuickBooks payroll</option>
             </select>
           </div>
           {exportHref ? (

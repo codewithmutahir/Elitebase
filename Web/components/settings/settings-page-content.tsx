@@ -2,14 +2,18 @@
 
 import Image from "next/image";
 import { updateCompanySettings } from "@/app/(dashboard)/settings/actions";
+import { CurrencySelect } from "@/components/settings/currency-select";
 import { SettingsSubmitButton } from "@/components/settings/settings-submit-button";
+import { TimezoneSelect } from "@/components/auth/timezone-select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_CURRENCY, resolveCurrency } from "@/lib/currencies";
 import { DEFAULT_TIMEZONE, US_TIMEZONES } from "@/lib/timezones";
 
 type SettingsPageContentProps = {
   companyName: string;
   timezone: string | null;
+  currency: string | null;
   logoUrl: string | null;
   saved: boolean;
   errorMessage: string | null;
@@ -18,11 +22,13 @@ type SettingsPageContentProps = {
 export function SettingsPageContent({
   companyName,
   timezone,
+  currency,
   logoUrl,
   saved,
   errorMessage,
 }: SettingsPageContentProps) {
   const selectedTimezone = timezone ?? DEFAULT_TIMEZONE;
+  const selectedCurrency = resolveCurrency(currency ?? DEFAULT_CURRENCY);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -98,24 +104,18 @@ export function SettingsPageContent({
 
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">Timezone</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Regional</h2>
+            <p className="text-sm text-slate-500">
+              Timezone and currency used across schedules, timesheets, and pay
+              displays.
+            </p>
           </CardHeader>
-          <CardContent>
-            <label className="mb-1.5 block text-sm font-semibold" htmlFor="timezone">
-              Company timezone
-            </label>
-            <select
-              id="timezone"
-              name="timezone"
+          <CardContent className="space-y-6">
+            <TimezoneSelect
+              options={[...US_TIMEZONES]}
               defaultValue={selectedTimezone}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              {US_TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
+            />
+            <CurrencySelect defaultValue={selectedCurrency} />
           </CardContent>
         </Card>
 

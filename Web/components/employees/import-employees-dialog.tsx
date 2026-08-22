@@ -17,7 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCompany } from "@/contexts/company-context";
+import { resolveCurrency } from "@/lib/currencies";
 import { employeeImportPinsToCsv } from "@/lib/employees/import-csv";
+import { formatHourlyRate, formatMonthlySalary } from "@/lib/money/format";
 
 type Step = "upload" | "preview" | "result";
 
@@ -28,6 +31,8 @@ export function ImportEmployeesDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { company } = useCompany();
+  const currency = resolveCurrency(company.currency);
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>("upload");
   const [csvText, setCsvText] = useState("");
@@ -197,9 +202,9 @@ export function ImportEmployeesDialog({
                       </td>
                       <td className="px-3 py-2 text-slate-600">
                         {employee.monthlySalary != null
-                          ? `$${employee.monthlySalary.toFixed(2)}/mo`
+                          ? formatMonthlySalary(employee.monthlySalary, currency)
                           : employee.hourlyRate != null
-                            ? `$${employee.hourlyRate.toFixed(2)}/hr`
+                            ? formatHourlyRate(employee.hourlyRate, currency)
                             : "—"}
                       </td>
                       <td className="px-3 py-2">

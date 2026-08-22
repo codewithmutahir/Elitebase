@@ -111,6 +111,7 @@ export function TimesheetsView({
               <DataTableHead>Date</DataTableHead>
               <DataTableHead>Clock in</DataTableHead>
               <DataTableHead>Clock out</DataTableHead>
+              <DataTableHead>Breaks</DataTableHead>
               <DataTableHead>Hours</DataTableHead>
               <DataTableHead>Status</DataTableHead>
               <DataTableHead className="w-28">Actions</DataTableHead>
@@ -119,7 +120,7 @@ export function TimesheetsView({
           <DataTableBody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={9}>
                   <DataTableEmpty>
                     No attendance records for this date range.
                   </DataTableEmpty>
@@ -153,6 +154,11 @@ export function TimesheetsView({
                       <DataTableCell>
                         {row.clockOut ? formatTime(row.clockOut, tz) : "—"}
                       </DataTableCell>
+                      <DataTableCell className="font-mono text-slate-600">
+                        {row.breakCount > 0
+                          ? `${row.breakCount} · ${row.breakHours?.toFixed(2) ?? "0"}h`
+                          : "—"}
+                      </DataTableCell>
                       <DataTableCell className="font-mono">
                         {row.totalHours != null
                           ? row.totalHours.toFixed(2)
@@ -165,9 +171,9 @@ export function TimesheetsView({
                     </DataTableRow>
                     {isOpen ? (
                       <tr className="bg-slate-50">
-                        <td colSpan={8} className="px-6 py-4">
+                        <td colSpan={9} className="px-6 py-4">
                           <div className="flex flex-wrap items-end justify-between gap-4">
-                            <div className="grid gap-2 text-sm sm:grid-cols-3">
+                            <div className="grid gap-2 text-sm sm:grid-cols-4">
                               <p>
                                 <span className="text-slate-500">
                                   Employee ID:
@@ -187,6 +193,12 @@ export function TimesheetsView({
                                   Recorded hours:
                                 </span>{" "}
                                 {row.totalHours ?? "In progress"}
+                              </p>
+                              <p>
+                                <span className="text-slate-500">Breaks:</span>{" "}
+                                {row.breakCount > 0
+                                  ? `${row.breakCount} (${row.breakHours?.toFixed(2) ?? "0"}h unpaid)`
+                                  : "None recorded"}
                               </p>
                             </div>
                             <EditTimesheetDialog

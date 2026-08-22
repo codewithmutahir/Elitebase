@@ -8,6 +8,14 @@ import { publishDraftShifts } from "@/app/(dashboard)/schedule/schedule/actions"
 import { AddShiftSheet, type AddShiftContext } from "@/components/schedule/add-shift-sheet";
 import { ShiftCard } from "@/components/schedule/shift-card";
 import { ShiftEditPopover } from "@/components/schedule/shift-edit-popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,7 +45,13 @@ import {
   toDateParam,
   weekDateStrings,
 } from "@/lib/availability/week";
+import {
+  formatOvertimeWarning,
+  getScheduleOvertimeWarnings,
+} from "@/lib/schedules/overtime";
 import { isWorkingDayOnDate } from "@/lib/employees/working-days";
+import { useCompany } from "@/contexts/company-context";
+import { resolveCurrency } from "@/lib/currencies";
 import { fadeIn, staggerContainer } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
@@ -109,9 +123,12 @@ export function ScheduleView({
 }: ScheduleViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { company } = useCompany();
+  const currency = resolveCurrency(company.currency);
   const [pending, startTransition] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [addContext, setAddContext] = useState<AddShiftContext | null>(null);
+  const [overtimeOpen, setOvertimeOpen] = useState(false);
 
   const weekMonday = useMemo(() => parseWeekParam(weekStart), [weekStart]);
   const weekDates = useMemo(() => weekDateStrings(weekMonday), [weekMonday]);
@@ -133,6 +150,13 @@ export function ScheduleView({
     [shifts]
   );
 
+  const overtimeWarnings = useMemo(() => {
+    const names = new Map(
+      employees.map((employee) => [employee.id, employee.full_name])
+    );
+    return getScheduleOvertimeWarnings(shifts, names, true);
+  }, [employees, shifts]);
+
   function goToWeek(monday: Date) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("week", formatWeekParam(monday));
@@ -149,6 +173,15 @@ export function ScheduleView({
   }
 
   function handlePublish() {
+    if (overtimeWarnings.length > 0) {
+      setOvertimeOpen(true);
+      return;
+    }
+    confirmPublish();
+  }
+
+  function confirmPublish() {
+    setOvertimeOpen(false);
     startTransition(async () => {
       const result = await publishDraftShifts(weekStart);
       if (!result.error) refresh();
@@ -301,7 +334,7 @@ export function ScheduleView({
                           </p>
                           <p className="text-xs text-slate-500">
                             {formatHours(totals.hours)} hrs / {payLabel}:{" "}
-                            {formatWages(totals.wages)}
+                            {formatWages(totals.wages, currency)}
                           </p>
                         </div>
                       </div>
@@ -351,7 +384,7 @@ export function ScheduleView({
                       className="border-l border-slate-100 px-2 py-2 text-center text-xs text-slate-600"
                     >
                       <div className="leading-snug">
-                        Wages: {formatWages(totals.wages)}
+                        Wages: {formatWages(totals.wages, currency)}
                       </div>
                       <div className="leading-snug">
                         Hours: {formatHours(totals.hours)}
@@ -376,6 +409,37 @@ export function ScheduleView({
         departments={departments}
         onSaved={refresh}
       />
+
+      <Dialog open={overtimeOpen} onOpenChange={setOvertimeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Overtime warnings</DialogTitle>
+            <DialogDescription>
+              These draft shifts exceed 8 hours/day or 40 hours/week. You can
+              still publish if this is intentional.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-48 space-y-2 overflow-y-auto text-sm text-slate-700">
+            {overtimeWarnings.map((warning) => (
+              <li key={`${warning.kind}-${warning.employeeId}-${warning.date ?? "week"}`}>
+                {formatOvertimeWarning(warning)}
+              </li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOvertimeOpen(false)}
+            >
+              Review schedule
+            </Button>
+            <Button type="button" disabled={pending} onClick={confirmPublish}>
+              {pending ? "Publishing…" : "Publish anyway"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,7 +14,7 @@ export default async function SettingsPage({
   const admin = createClient();
   const { data: fullCompany } = await admin
     .from("companies")
-    .select("name, timezone, logo_url")
+    .select("name, timezone, currency, logo_url")
     .eq("id", company.id)
     .single();
 
@@ -27,6 +27,7 @@ export default async function SettingsPage({
       <SettingsPageContent
         companyName={fullCompany?.name ?? company.name}
         timezone={fullCompany?.timezone ?? company.timezone}
+        currency={fullCompany?.currency ?? company.currency}
         logoUrl={fullCompany?.logo_url ?? company.logo_url}
         saved={params.saved === "1"}
         errorMessage={settingsErrorMessage(params.error)}

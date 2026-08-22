@@ -29,16 +29,10 @@ export function formatRelativeTime(iso: string): string {
   return formatDateLong(iso.slice(0, 10));
 }
 
-export function formatHourlyRate(rate: number): string {
-  return `$${rate.toFixed(2)}`;
-}
-
-export function formatMonthlySalary(amount: number): string {
-  return `$${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}/mo`;
-}
+export {
+  formatHourlyRate,
+  formatMonthlySalary,
+} from "@/lib/money/format";
 
 export function employeeInitials(name: string): string {
   return name

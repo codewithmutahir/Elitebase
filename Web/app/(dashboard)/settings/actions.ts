@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { uploadCompanyLogo } from "@/lib/company/logo";
 import { requireCompanySession } from "@/lib/employees/session";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_CURRENCY, isValidCurrency, resolveCurrency } from "@/lib/currencies";
 import { DEFAULT_TIMEZONE, US_TIMEZONES } from "@/lib/timezones";
 
 export async function updateCompanySettings(formData: FormData) {
@@ -20,12 +21,18 @@ export async function updateCompanySettings(formData: FormData) {
     ? timezoneRaw
     : company.timezone ?? DEFAULT_TIMEZONE;
 
+  const currencyRaw = String(formData.get("currency") ?? "").trim().toUpperCase();
+  const currency = isValidCurrency(currencyRaw)
+    ? currencyRaw
+    : resolveCurrency(company.currency);
+
   const admin = createClient();
   const updates: {
     name: string;
     timezone: string;
+    currency: string;
     logo_url?: string;
-  } = { name, timezone };
+  } = { name, timezone, currency };
 
   const logo = formData.get("logo");
   if (logo instanceof File && logo.size > 0) {
@@ -48,5 +55,7 @@ export async function updateCompanySettings(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+  revalidatePath("/schedule/schedule");
+  revalidatePath("/employees");
   redirect("/settings?saved=1");
 }

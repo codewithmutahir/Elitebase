@@ -41,8 +41,12 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function formatStatusLine(
   isClockedIn: boolean,
+  onBreak: boolean,
   clockedInAt: string | null
 ): { text: string; color: string } {
+  if (onBreak) {
+    return { text: "On break", color: T.warning };
+  }
   if (isClockedIn && clockedInAt) {
     const time = formatClockTime(new Date(clockedInAt));
     return { text: `Clocked in at ${time}`, color: T.success };
@@ -76,7 +80,7 @@ export function ActionScreen() {
 
   const initials = employeeInitials(employee.full_name);
   const avatarBg = avatarColor(employee.full_name);
-  const statusLine = formatStatusLine(isClockedIn, clockedInAt);
+  const statusLine = formatStatusLine(isClockedIn, onBreak, clockedInAt);
 
   const badgeStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: badgeY.value }],
@@ -201,8 +205,8 @@ export function ActionScreen() {
       <ActionButton
         label={submitting === breakAction ? "..." : breakLabel}
         icon="coffee"
-        bg={T.surfaceHi}
-        bordered
+        bg={onBreak ? T.warning : T.surfaceHi}
+        bordered={!onBreak}
         disabled={!isClockedIn || loadingStatus || submitting !== null}
         onPress={() => void handleAction(breakAction)}
         compact

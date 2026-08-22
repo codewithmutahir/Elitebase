@@ -13,6 +13,8 @@ import {
   formatHourlyRate,
   formatMonthlySalary,
 } from "@/lib/employees/format";
+import { useCompany } from "@/contexts/company-context";
+import { resolveCurrency } from "@/lib/currencies";
 import type { EmployeeProfile, PayType } from "@/lib/employees/profile-queries";
 import {
   ALL_ISO_DAYS,
@@ -35,6 +37,8 @@ export function JobDetailsTab({
   companyName,
   onUpdated,
 }: JobDetailsTabProps) {
+  const { company } = useCompany();
+  const currency = resolveCurrency(company.currency);
   const [editing, setEditing] = useState(false);
   const [locationOpen, setLocationOpen] = useState(true);
   const [pending, startTransition] = useTransition();
@@ -107,8 +111,8 @@ export function JobDetailsTab({
 
   const compensationLabel =
     employee.pay_type === "salary" && employee.salary_amount
-      ? formatMonthlySalary(employee.salary_amount)
-      : `${formatHourlyRate(employee.hourly_rate)}/hr`;
+      ? formatMonthlySalary(employee.salary_amount, currency)
+      : formatHourlyRate(employee.hourly_rate, currency);
 
   return (
     <div className="space-y-6">

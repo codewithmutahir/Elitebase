@@ -8,7 +8,7 @@ import {
   validateEmployeeForCompany,
 } from "@/lib/timesheets/data";
 import { parseExportRange } from "@/lib/timesheets/dates";
-import { timesheetsToCsv } from "@/lib/timesheets/csv";
+import { timesheetsToCsv, type CsvExportFormat } from "@/lib/timesheets/csv";
 import { requireTimesheetsSession } from "@/lib/timesheets/session";
 
 function slugifyName(name: string) {
@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
   const to = request.nextUrl.searchParams.get("to");
   const employeeId = request.nextUrl.searchParams.get("employeeId") ?? undefined;
   const employeeName = request.nextUrl.searchParams.get("employeeName") ?? undefined;
+  const formatParam = request.nextUrl.searchParams.get("format");
+  const format: CsvExportFormat =
+    formatParam === "quickbooks" ? "quickbooks" : "standard";
 
   if (employeeId) {
     const valid = await validateEmployeeForCompany(company.id, employeeId);
@@ -47,16 +50,20 @@ export async function GET(request: NextRequest) {
     employeeId
   );
 
-  const csv = timesheetsToCsv(rows, (iso) => formatTime(iso, timezone));
+  const csv = timesheetsToCsv(rows, (iso) => formatTime(iso, timezone), {
+    format,
+    groupByEmployee: !employeeId,
+  });
 
   let filename: string;
+  const formatSuffix = format === "quickbooks" ? "-quickbooks" : "";
   if (range.month) {
     const suffix = employeeId
       ? slugifyName(employeeName ?? "employee") || "employee"
       : "all";
-    filename = `timesheets-${range.month}-${suffix}.csv`;
+    filename = `timesheets-${range.month}-${suffix}${formatSuffix}.csv`;
   } else {
-    filename = `timesheets-${range.from}-to-${range.to}.csv`;
+    filename = `timesheets-${range.from}-to-${range.to}${formatSuffix}.csv`;
   }
 
   return new NextResponse(csv, {
