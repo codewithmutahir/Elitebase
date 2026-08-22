@@ -4,6 +4,7 @@ import { ChevronDown, Pencil } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateEmployeeJobDetails } from "@/app/(dashboard)/employees/profile-actions";
+import { CurrencyAmountInput } from "@/components/ui/currency-amount-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
@@ -191,43 +192,21 @@ export function JobDetailsTab({
                   />
                 </div>
                 {payType === "hourly" ? (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">
-                      Hourly rate
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                        $
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={hourlyRate}
-                        onChange={(e) => setHourlyRate(e.target.value)}
-                        className="flex h-10 w-full rounded-lg border border-input bg-white pl-7 pr-3 text-sm"
-                      />
-                    </div>
-                  </div>
+                  <CurrencyAmountInput
+                    id="hourly-rate"
+                    label="Hourly rate"
+                    value={hourlyRate}
+                    onChange={setHourlyRate}
+                    currency={currency}
+                  />
                 ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">
-                      Monthly salary
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                        $
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={salaryAmount}
-                        onChange={(e) => setSalaryAmount(e.target.value)}
-                        className="flex h-10 w-full rounded-lg border border-input bg-white pl-7 pr-3 text-sm"
-                      />
-                    </div>
-                  </div>
+                  <CurrencyAmountInput
+                    id="monthly-salary"
+                    label="Monthly salary"
+                    value={salaryAmount}
+                    onChange={setSalaryAmount}
+                    currency={currency}
+                  />
                 )}
               </div>
 

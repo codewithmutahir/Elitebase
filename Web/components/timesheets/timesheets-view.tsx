@@ -4,11 +4,10 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
 import { EditTimesheetDialog } from "@/components/timesheets/edit-timesheet-dialog";
+import { TimesheetsFilters } from "@/components/timesheets/timesheets-filters";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   DataTable,
   DataTableBody,
@@ -19,16 +18,28 @@ import {
   DataTableRow,
 } from "@/components/ui/data-table";
 import { companyTimezone, formatTime } from "@/lib/dashboard/format";
+import type { TimesheetEmployeeOption } from "@/lib/timesheets/data";
+import {
+  formatTimesheetMonthLabel,
+  formatTimesheetRangeLabel,
+} from "@/lib/timesheets/labels";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
+import type { TimesheetsViewParams } from "@/lib/timesheets/view-params";
 
 type TimesheetsViewProps = {
   rows: TimesheetRow[];
   timezone: string | null | undefined;
+  months: string[];
+  employees: TimesheetEmployeeOption[];
+  selectedMonth: string | null;
+  selectedEmployeeId: string;
   from: string;
   to: string;
+  mode: TimesheetsViewParams["mode"];
   page: number;
   totalPages: number;
   total: number;
+  queryBase: string;
 };
 
 function rowStatusBadge(row: TimesheetRow) {
@@ -41,14 +52,32 @@ function rowStatusBadge(row: TimesheetRow) {
   return <StatusBadge tone="error">Missing</StatusBadge>;
 }
 
+function rangeSummary(
+  mode: TimesheetsViewParams["mode"],
+  month: string | null,
+  from: string,
+  to: string
+) {
+  if (mode === "month" && month && month !== "custom") {
+    return formatTimesheetMonthLabel(month);
+  }
+  return formatTimesheetRangeLabel(from, to);
+}
+
 export function TimesheetsView({
   rows,
   timezone,
+  months,
+  employees,
+  selectedMonth,
+  selectedEmployeeId,
   from,
   to,
+  mode,
   page,
   totalPages,
   total,
+  queryBase,
 }: TimesheetsViewProps) {
   const tz = companyTimezone(timezone);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -58,32 +87,43 @@ export function TimesheetsView({
     [rows]
   );
 
+  const totalBreakHours = useMemo(
+    () => rows.reduce((sum, row) => sum + (row.breakHours ?? 0), 0),
+    [rows]
+  );
+
+  const selectedEmployeeName = useMemo(
+    () =>
+      selectedEmployeeId === "all"
+        ? null
+        : employees.find((employee) => employee.id === selectedEmployeeId)
+            ?.full_name,
+    [employees, selectedEmployeeId]
+  );
+
+  function paginationHref(nextPage: number) {
+    const separator = queryBase.includes("?") ? "&" : "?";
+    return `/timesheets${queryBase || ""}${queryBase ? separator : "?"}page=${nextPage}`;
+  }
+
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-500">
-        {from} – {to} · Page {page} of {totalPages}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-slate-500">
+          {rangeSummary(mode, selectedMonth, from, to)}
+          {selectedEmployeeName ? ` · ${selectedEmployeeName}` : ""} · Page{" "}
+          {page} of {totalPages}
+        </p>
+      </div>
 
-      <form
-        method="get"
-        className="flex flex-wrap items-end gap-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
-      >
-        <div>
-          <Label htmlFor="from">From</Label>
-          <Input
-            id="from"
-            name="from"
-            type="date"
-            defaultValue={from}
-            className="mt-1.5"
-          />
-        </div>
-        <div>
-          <Label htmlFor="to">To</Label>
-          <Input id="to" name="to" type="date" defaultValue={to} className="mt-1.5" />
-        </div>
-        <Button type="submit">Apply</Button>
-      </form>
+      <TimesheetsFilters
+        months={months}
+        employees={employees}
+        selectedMonth={selectedMonth}
+        selectedEmployeeId={selectedEmployeeId}
+        from={from}
+        to={to}
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="p-4">
@@ -93,11 +133,15 @@ export function TimesheetsView({
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-500">Shifts on page</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{rows.length}</p>
+          <p className="text-sm text-slate-500">Break hours (this page)</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">
+            {totalBreakHours.toFixed(1)}
+          </p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-500">Total shifts in range</p>
+          <p className="text-sm text-slate-500">
+            {mode === "month" ? "Total shifts this month" : "Total shifts in range"}
+          </p>
           <p className="mt-1 text-2xl font-bold text-slate-900">{total}</p>
         </Card>
       </div>
@@ -122,7 +166,7 @@ export function TimesheetsView({
               <tr>
                 <td colSpan={9}>
                   <DataTableEmpty>
-                    No attendance records for this date range.
+                    No attendance records for the selected filters.
                   </DataTableEmpty>
                 </td>
               </tr>
@@ -220,16 +264,14 @@ export function TimesheetsView({
       {total > 0 ? (
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            {total} shift{total === 1 ? "" : "s"} in range
+            {total} shift{total === 1 ? "" : "s"} matching filters
           </p>
           <div className="flex gap-2">
             {page > 1 ? (
               <Button
                 variant="outline"
                 size="sm"
-                render={
-                  <Link href={`/timesheets?from=${from}&to=${to}&page=${page - 1}`} />
-                }
+                render={<Link href={paginationHref(page - 1)} />}
               >
                 Previous
               </Button>
@@ -238,9 +280,7 @@ export function TimesheetsView({
               <Button
                 variant="outline"
                 size="sm"
-                render={
-                  <Link href={`/timesheets?from=${from}&to=${to}&page=${page + 1}`} />
-                }
+                render={<Link href={paginationHref(page + 1)} />}
               >
                 Next
               </Button>

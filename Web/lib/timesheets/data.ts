@@ -118,9 +118,15 @@ export async function getTimesheetsPage(
   from: string,
   to: string,
   page: number,
-  pageSize = DEFAULT_PAGE_SIZE
+  pageSize = DEFAULT_PAGE_SIZE,
+  employeeId?: string
 ): Promise<TimesheetsResult> {
-  const events = await fetchAttendanceEvents(companyId, from, to);
+  const events = await fetchAttendanceEvents(
+    companyId,
+    from,
+    to,
+    employeeId
+  );
   const allRows = buildTimesheetRows(events, timezone, from, to);
   const total = allRows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

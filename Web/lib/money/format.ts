@@ -1,5 +1,21 @@
 import { DEFAULT_CURRENCY, resolveCurrency } from "@/lib/currencies";
 
+export function getCurrencySymbol(
+  currency: string | null | undefined = DEFAULT_CURRENCY
+): string {
+  const code = resolveCurrency(currency);
+  try {
+    const parts = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(0);
+    return parts.find((part) => part.type === "currency")?.value ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function formatMoney(
   amount: number,
   currency: string | null | undefined = DEFAULT_CURRENCY
