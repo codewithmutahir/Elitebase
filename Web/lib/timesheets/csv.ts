@@ -77,6 +77,7 @@ function standardRowLine(row: TimesheetRow, formatTime: (iso: string) => string)
   return [
     escapeCsv(row.employeeName),
     row.date,
+    row.clockOutDate ?? "",
     row.clockIn ? escapeCsv(formatTime(row.clockIn)) : "",
     row.clockOut ? escapeCsv(formatTime(row.clockOut)) : "",
     row.breakHours != null ? String(row.breakHours) : "",
@@ -189,7 +190,8 @@ export function timesheetsToCsv(
 
   const header = [
     "Employee",
-    "Date",
+    "Shift date",
+    "Clock out date",
     "Clock in",
     "Clock out",
     "Break hours",
@@ -214,6 +216,7 @@ export function timesheetsToCsv(
           "",
           "",
           "",
+          "",
         ].join(",")
       );
 
@@ -224,6 +227,7 @@ export function timesheetsToCsv(
       lines.push(
         [
           escapeCsv(employeeName),
+          "",
           "",
           "",
           "",

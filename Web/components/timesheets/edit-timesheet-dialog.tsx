@@ -92,8 +92,14 @@ export function EditTimesheetDialog({
         <DialogHeader>
           <DialogTitle>Edit timesheet</DialogTitle>
           <DialogDescription>
-            {row.employeeName} · {row.date}. Times use company timezone (
-            {tz}).
+            {row.employeeName} ·{" "}
+            {row.clockOutDate
+              ? `${row.date} → ${row.clockOutDate}`
+              : row.date}
+            . Times use company timezone ({tz}).
+            {row.clockOutDate
+              ? " Clock out is on the next calendar day."
+              : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -126,7 +132,8 @@ export function EditTimesheetDialog({
 
         <p className="text-xs text-slate-500">
           Leave a field empty to remove that punch. Add a missing time to
-          create it.
+          create it. For overnight shifts, clock out earlier than clock in
+          (e.g. 5:21 AM after 9:01 PM) is saved on the next day automatically.
         </p>
 
         <DialogFooter>

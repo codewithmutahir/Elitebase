@@ -191,7 +191,11 @@ export function TimesheetsView({
                       <DataTableCell className="font-semibold text-slate-900">
                         {row.employeeName}
                       </DataTableCell>
-                      <DataTableCell>{row.date}</DataTableCell>
+                      <DataTableCell>
+                        {row.clockOutDate
+                          ? `${row.date} → ${row.clockOutDate}`
+                          : row.date}
+                      </DataTableCell>
                       <DataTableCell>
                         {row.clockIn ? formatTime(row.clockIn, tz) : "—"}
                       </DataTableCell>

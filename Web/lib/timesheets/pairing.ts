@@ -1,6 +1,5 @@
 import { dateKeyInTimezone } from "@/lib/dashboard/format";
 import { isDateInRange } from "@/lib/timesheets/dates";
-import { isEmployeeClockedIn } from "@/lib/kiosk/attendance";
 
 export type AttendanceEvent = {
   id: string;
@@ -14,7 +13,10 @@ export type TimesheetRow = {
   id: string;
   employeeId: string;
   employeeName: string;
+  /** Shift start date (clock-in local date). */
   date: string;
+  /** Local date of clock-out when it falls on a different calendar day than `date`. */
+  clockOutDate: string | null;
   clockIn: string | null;
   clockOut: string | null;
   clockInEventId: string | null;
@@ -123,71 +125,152 @@ function lastEvent(events: AttendanceEvent[], type: string) {
   return null;
 }
 
+function shiftRowFromEvents(
+  shiftEvents: AttendanceEvent[],
+  timezone: string,
+  rowId: string
+): TimesheetRow | null {
+  if (shiftEvents.length === 0) return null;
+
+  const employeeId = shiftEvents[0].employee_id;
+  const employeeName = shiftEvents[0].employee_name ?? "Unknown";
+  const clockInEvent = firstEvent(shiftEvents, "clock_in");
+  const clockOutEvent = lastEvent(shiftEvents, "clock_out");
+
+  const date = clockInEvent
+    ? dateKeyInTimezone(new Date(clockInEvent.timestamp), timezone)
+    : clockOutEvent
+      ? dateKeyInTimezone(new Date(clockOutEvent.timestamp), timezone)
+      : "";
+
+  if (!date) return null;
+
+  const clockOutLocalDate = clockOutEvent
+    ? dateKeyInTimezone(new Date(clockOutEvent.timestamp), timezone)
+    : null;
+  const clockOutDate =
+    clockOutLocalDate && clockOutLocalDate !== date ? clockOutLocalDate : null;
+
+  const open = Boolean(clockInEvent) && !clockOutEvent;
+
+  const workedMs = computeWorkedMs(shiftEvents);
+  const { breakMs, breakCount } = computeBreakMs(shiftEvents);
+  const totalHours =
+    workedMs > 0 ? Math.round((workedMs / 3_600_000) * 100) / 100 : null;
+  const breakHours =
+    breakMs > 0 ? Math.round((breakMs / 3_600_000) * 100) / 100 : null;
+
+  let status: TimesheetRow["status"] = "incomplete";
+  if (open) {
+    status = "open";
+  } else if (clockInEvent && clockOutEvent) {
+    status = "complete";
+  }
+
+  return {
+    id: rowId,
+    employeeId,
+    employeeName,
+    date,
+    clockOutDate,
+    clockIn: clockInEvent?.timestamp ?? null,
+    clockOut: open ? null : clockOutEvent?.timestamp ?? null,
+    clockInEventId: clockInEvent?.id ?? null,
+    clockOutEventId: open ? null : clockOutEvent?.id ?? null,
+    totalHours: open ? null : totalHours,
+    breakHours: open ? null : breakHours,
+    breakCount,
+    status,
+  };
+}
+
+/** Pair punches into logical shifts (clock-in date = row date). */
+function buildEmployeeShiftRows(
+  events: AttendanceEvent[],
+  timezone: string
+): TimesheetRow[] {
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  const rows: TimesheetRow[] = [];
+  let buffer: AttendanceEvent[] = [];
+  let shiftIndex = 0;
+
+  function flushOpenShift() {
+    if (buffer.length === 0) return;
+    const clockInEvent = firstEvent(buffer, "clock_in");
+    const rowId = clockInEvent
+      ? `${clockInEvent.employee_id}:in:${clockInEvent.id}`
+      : `${buffer[0].employee_id}:shift:${shiftIndex}`;
+    const row = shiftRowFromEvents(buffer, timezone, rowId);
+    if (row) rows.push(row);
+    buffer = [];
+    shiftIndex += 1;
+  }
+
+  for (const event of sorted) {
+    switch (event.type) {
+      case "clock_in": {
+        if (buffer.some((item) => item.type === "clock_in")) {
+          flushOpenShift();
+        }
+        buffer.push(event);
+        break;
+      }
+      case "clock_out": {
+        if (buffer.some((item) => item.type === "clock_in")) {
+          buffer.push(event);
+          flushOpenShift();
+        } else {
+          const rowId = `${event.employee_id}:out:${event.id}`;
+          const row = shiftRowFromEvents([event], timezone, rowId);
+          if (row) rows.push(row);
+          shiftIndex += 1;
+        }
+        break;
+      }
+      case "break_start":
+      case "break_end":
+        if (buffer.some((item) => item.type === "clock_in")) {
+          buffer.push(event);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  flushOpenShift();
+  return rows;
+}
+
 export function buildTimesheetRows(
   events: AttendanceEvent[],
   timezone: string,
   from: string,
   to: string
 ): TimesheetRow[] {
-  const groups = new Map<string, AttendanceEvent[]>();
+  const byEmployee = new Map<string, AttendanceEvent[]>();
 
   for (const event of events) {
-    const date = dateKeyInTimezone(new Date(event.timestamp), timezone);
-    if (!isDateInRange(date, from, to)) continue;
-
-    const key = `${event.employee_id}:${date}`;
-    const bucket = groups.get(key) ?? [];
+    const bucket = byEmployee.get(event.employee_id) ?? [];
     bucket.push(event);
-    groups.set(key, bucket);
+    byEmployee.set(event.employee_id, bucket);
   }
 
   const rows: TimesheetRow[] = [];
 
-  for (const [key, dayEvents] of groups) {
-    const [employeeId, date] = key.split(":");
-    const employeeName = dayEvents[0]?.employee_name ?? "Unknown";
-    const clockInEvent = firstEvent(dayEvents, "clock_in");
-    const clockOutEvent = lastEvent(dayEvents, "clock_out");
-    const latestType = [...dayEvents].sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )[0]?.type;
-
-    const open = isEmployeeClockedIn(latestType);
-    const workedMs = computeWorkedMs(dayEvents);
-    const { breakMs, breakCount } = computeBreakMs(dayEvents);
-    const totalHours =
-      workedMs > 0 ? Math.round((workedMs / 3_600_000) * 100) / 100 : null;
-    const breakHours =
-      breakMs > 0 ? Math.round((breakMs / 3_600_000) * 100) / 100 : null;
-
-    let status: TimesheetRow["status"] = "incomplete";
-    if (open) {
-      status = "open";
-    } else if (clockInEvent && clockOutEvent) {
-      status = "complete";
-    }
-
-    rows.push({
-      id: key,
-      employeeId,
-      employeeName,
-      date,
-      clockIn: clockInEvent?.timestamp ?? null,
-      clockOut: open ? null : clockOutEvent?.timestamp ?? null,
-      clockInEventId: clockInEvent?.id ?? null,
-      clockOutEventId: open ? null : clockOutEvent?.id ?? null,
-      totalHours: open ? null : totalHours,
-      breakHours: open ? null : breakHours,
-      breakCount,
-      status,
-    });
+  for (const employeeEvents of byEmployee.values()) {
+    rows.push(...buildEmployeeShiftRows(employeeEvents, timezone));
   }
 
-  rows.sort((a, b) => {
+  const filtered = rows.filter((row) => isDateInRange(row.date, from, to));
+
+  filtered.sort((a, b) => {
     if (a.date !== b.date) return b.date.localeCompare(a.date);
     return a.employeeName.localeCompare(b.employeeName);
   });
 
-  return rows;
+  return filtered;
 }

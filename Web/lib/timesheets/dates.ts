@@ -21,7 +21,7 @@ function formatDateKey(year: number, month: number, day: number) {
   return `${year}-${m}-${d}`;
 }
 
-function addDaysToKey(key: string, days: number) {
+export function addDaysToDateKey(key: string, days: number) {
   const { year, month, day } = parseDateKey(key);
   const date = new Date(Date.UTC(year, month - 1, day + days));
   return formatDateKey(
@@ -46,8 +46,8 @@ export function getDefaultWeekRange(
 ): { from: string; to: string } {
   const todayKey = dateKeyInTimezone(reference, timezone);
   const mondayOffset = (weekdayIndex(reference, timezone) + 6) % 7;
-  const from = addDaysToKey(todayKey, -mondayOffset);
-  const to = addDaysToKey(from, 6);
+  const from = addDaysToDateKey(todayKey, -mondayOffset);
+  const to = addDaysToDateKey(from, 6);
   return { from, to };
 }
 

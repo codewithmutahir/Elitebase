@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCompanySession } from "@/lib/employees/session";
 import { companyTimezone } from "@/lib/dashboard/format";
-import { zonedLocalToUtcIso } from "@/lib/timesheets/dates";
+import { zonedLocalToUtcIso, addDaysToDateKey } from "@/lib/timesheets/dates";
 
 export type UpdateTimesheetShiftInput = {
   employeeId: string;
@@ -45,7 +45,23 @@ export async function updateTimesheetShift(
     return { ok: false, error: "Enter at least a clock-in or clock-out time." };
   }
 
-  if (clockInTime && clockOutTime && clockOutTime <= clockInTime) {
+  function clockOutDateKey(): string {
+    if (!clockOutTime) return date;
+    if (!clockInTime) return date;
+    if (clockOutTime <= clockInTime) {
+      return addDaysToDateKey(date, 1);
+    }
+    return date;
+  }
+
+  const outDate = clockOutDateKey();
+
+  if (
+    clockInTime &&
+    clockOutTime &&
+    outDate === date &&
+    clockOutTime <= clockInTime
+  ) {
     return { ok: false, error: "Clock out must be after clock in." };
   }
 
@@ -65,7 +81,8 @@ export async function updateTimesheetShift(
   async function upsertPunch(
     type: "clock_in" | "clock_out",
     timeHm: string | null,
-    eventId: string | null
+    eventId: string | null,
+    dateKey: string
   ): Promise<string | null> {
     if (!timeHm) {
       // Clear: delete existing punch if present
@@ -84,7 +101,7 @@ export async function updateTimesheetShift(
       return null;
     }
 
-    const iso = zonedLocalToUtcIso(date, timeHm, timezone);
+    const iso = zonedLocalToUtcIso(dateKey, timeHm, timezone);
     if (!iso) {
       return `Invalid ${type === "clock_in" ? "clock in" : "clock out"} time.`;
     }
@@ -134,14 +151,16 @@ export async function updateTimesheetShift(
   const inError = await upsertPunch(
     "clock_in",
     clockInTime,
-    input.clockInEventId
+    input.clockInEventId,
+    date
   );
   if (inError) return { ok: false, error: inError };
 
   const outError = await upsertPunch(
     "clock_out",
     clockOutTime,
-    input.clockOutEventId
+    input.clockOutEventId,
+    outDate
   );
   if (outError) return { ok: false, error: outError };
 
