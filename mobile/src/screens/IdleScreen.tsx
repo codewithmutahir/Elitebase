@@ -94,14 +94,27 @@ export function IdleScreen() {
 
       async function refreshIdleState() {
         try {
-          const valid = await validateTabletSession();
+          // Prefer local SecureStore first so a flaky validate never flashes Setup.
+          const tabletConfig = await getTabletConfig();
           if (!mounted) return;
-          if (!valid) {
+          if (!tabletConfig?.tablet_token) {
             navigation.replace("Setup");
             return;
           }
-          const tabletConfig = await getTabletConfig();
-          if (mounted) setConfig(tabletConfig);
+          setConfig(tabletConfig);
+
+          const valid = await validateTabletSession();
+          if (!mounted) return;
+          if (!valid) {
+            // Only navigate away after SecureStore was actually cleared.
+            const stillRegistered = await getTabletConfig();
+            if (!stillRegistered?.tablet_token) {
+              navigation.replace("Setup");
+            }
+            return;
+          }
+          const refreshed = await getTabletConfig();
+          if (mounted && refreshed) setConfig(refreshed);
           void warmupFaceService();
         } catch {
           const tabletConfig = await getTabletConfig();
@@ -150,17 +163,38 @@ export function IdleScreen() {
       >
         <View style={styles.brandRow}>
           {config?.company_logo_url ? (
-            <Image
-              source={{ uri: config.company_logo_url }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View
+              style={[
+                styles.logoBox,
+                layout.isTablet && styles.logoBoxTablet,
+                compact && styles.logoBoxCompact,
+              ]}
+            >
+              <Image
+                source={{ uri: config.company_logo_url }}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
           ) : (
-            <View style={styles.logoFallback}>
-              <Feather name="clock" size={18} color={T.primaryDark} />
+            <View
+              style={[
+                styles.logoFallback,
+                layout.isTablet && styles.logoBoxTablet,
+                compact && styles.logoBoxCompact,
+              ]}
+            >
+              <Feather
+                name="clock"
+                size={compact ? 22 : layout.isTablet ? 30 : 24}
+                color={T.primaryDark}
+              />
             </View>
           )}
-          <Text style={styles.brandName} numberOfLines={1}>
+          <Text
+            style={[styles.brandName, layout.isTablet && styles.brandNameTablet]}
+            numberOfLines={1}
+          >
             {companyName}
           </Text>
         </View>
@@ -267,19 +301,44 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  logo: {
-    width: 44,
-    height: 44,
+  logoBox: {
+    width: 72,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    flexShrink: 0,
   },
-  logoFallback: {
-    width: 40,
+  logoBoxTablet: {
+    width: 96,
+    height: 64,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  logoBoxCompact: {
+    width: 56,
     height: 40,
     borderRadius: 10,
+  },
+  logoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  logoFallback: {
+    width: 72,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   brandName: { ...T.h2, fontSize: 16, flexShrink: 1 },
+  brandNameTablet: { fontSize: 20 },
   clockCol: { alignItems: "flex-end", flexShrink: 0 },
   clockTime: { ...T.h2, fontSize: 22, color: T.text },
   clockDate: { ...T.body, fontSize: 12, marginTop: 2 },

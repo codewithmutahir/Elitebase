@@ -229,6 +229,11 @@ export function PinScreen() {
   const layout = useKioskLayout();
   const compact = layout.isCompact;
   const landscape = layout.isLandscape;
+  const logoBoxStyle = [
+    styles.companyLogoBox,
+    layout.isTablet && styles.companyLogoBoxTablet,
+    compact && styles.companyLogoBoxCompact,
+  ];
 
   const pinHeader = (
     <View
@@ -239,14 +244,20 @@ export function PinScreen() {
       ]}
     >
       {config?.company_logo_url ? (
-        <Image
-          source={{ uri: config.company_logo_url }}
-          style={[styles.companyLogo, compact && styles.companyLogoCompact]}
-          resizeMode="contain"
-        />
+        <View style={logoBoxStyle}>
+          <Image
+            source={{ uri: config.company_logo_url }}
+            style={styles.companyLogoImage}
+            resizeMode="contain"
+          />
+        </View>
       ) : (
-        <View style={[styles.companyLogoFallback, compact && styles.companyLogoCompact]}>
-          <Feather name="clock" size={compact ? 18 : 22} color={T.primaryDark} />
+        <View style={[styles.companyLogoFallback, logoBoxStyle]}>
+          <Feather
+            name="clock"
+            size={compact ? 28 : layout.isTablet ? 40 : 32}
+            color={T.primaryDark}
+          />
         </View>
       )}
 
@@ -399,24 +410,39 @@ const styles = StyleSheet.create({
   headerContentCompact: {
     maxWidth: 320,
   },
-  companyLogo: {
-    width: 56,
-    height: 56,
-    marginBottom: 24,
-  },
-  companyLogoFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#F1F5F9",
+  companyLogoBox: {
+    width: 148,
+    height: 88,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 28,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  companyLogoCompact: {
-    width: 44,
-    height: 44,
-    marginBottom: 12,
+  companyLogoBoxTablet: {
+    width: 180,
+    height: 108,
+    borderRadius: 24,
+    marginBottom: 32,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  companyLogoBoxCompact: {
+    width: 112,
+    height: 68,
+    borderRadius: 16,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  companyLogoImage: {
+    width: "100%",
+    height: "100%",
+  },
+  companyLogoFallback: {
+    backgroundColor: "#F1F5F9",
   },
   title: { ...T.title, textAlign: "center" },
   titleCompact: { fontSize: 22 },

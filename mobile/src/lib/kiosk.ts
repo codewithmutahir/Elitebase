@@ -83,9 +83,6 @@ export function getPinLookupErrorMessage(error: unknown): string {
       typeof (error.response.data as { error: unknown }).error === "string"
         ? (error.response.data as { error: string }).error
         : null;
-    // #region agent log
-    fetch('http://127.0.0.1:7661/ingest/b1aea5ce-2e20-4997-ad22-9b80697758b7',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'eb7159'},body:JSON.stringify({sessionId:'eb7159',hypothesisId:'H5',location:'kiosk.ts:pin_error',message:'Mobile PIN API error',data:{baseUrl,status:error.response?.status??null,apiError},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (!error.response) {
       return "Connection error";
     }

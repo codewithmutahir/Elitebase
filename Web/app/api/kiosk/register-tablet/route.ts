@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   const tabletToken = generateTabletToken();
   const now = new Date().toISOString();
 
-  const { error: updateError } = await admin
+  const { data: updatedRows, error: updateError } = await admin
     .from("kiosk_tablets")
     .update({
       tablet_token: tabletToken,
@@ -55,11 +55,17 @@ export async function POST(request: NextRequest) {
       last_seen_at: now,
     })
     .eq("id", tablet.id)
-    .is("tablet_token", null);
+    .is("tablet_token", null)
+    .select("id");
 
   if (updateError) {
     console.error("register-tablet update failed:", updateError.message);
     return jsonError("Could not register tablet.", 500);
+  }
+
+  if (!updatedRows?.length) {
+    // Race: another device claimed this setup code, or token already set.
+    return jsonError("This setup code has already been used.", 409);
   }
 
   const { data: company, error: companyError } = await admin
