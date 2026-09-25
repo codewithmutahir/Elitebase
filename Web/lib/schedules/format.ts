@@ -30,7 +30,7 @@ export function formatShiftTimeRange(start: string, end: string): string {
 export function shiftDurationHours(start: string, end: string): number {
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
-  let startMins = sh * 60 + (sm || 0);
+  const startMins = sh * 60 + (sm || 0);
   let endMins = eh * 60 + (em || 0);
   if (endMins <= startMins) endMins += 24 * 60;
   return (endMins - startMins) / 60;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export const AUTH_FORM_MAX_ATTEMPTS = 5;
 /** Matches server sliding window when Upstash is configured. */
@@ -11,58 +11,78 @@ type AttemptState = {
   lockedUntil: number | null;
 };
 
+const EMPTY_STATE: AttemptState = { count: 0, lockedUntil: null };
+
+const listeners = new Set<() => void>();
+
+function emitAttemptChange() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
 function readState(storageKey: string): AttemptState {
   if (typeof window === "undefined") {
-    return { count: 0, lockedUntil: null };
+    return EMPTY_STATE;
   }
 
   try {
     const raw = window.localStorage.getItem(storageKey);
-    if (!raw) return { count: 0, lockedUntil: null };
+    if (!raw) return EMPTY_STATE;
     const parsed = JSON.parse(raw) as AttemptState;
     if (
       typeof parsed.count !== "number" ||
       (parsed.lockedUntil !== null && typeof parsed.lockedUntil !== "number")
     ) {
-      return { count: 0, lockedUntil: null };
+      return EMPTY_STATE;
     }
     return parsed;
   } catch {
-    return { count: 0, lockedUntil: null };
+    return EMPTY_STATE;
   }
 }
 
 function writeState(storageKey: string, state: AttemptState) {
   window.localStorage.setItem(storageKey, JSON.stringify(state));
+  emitAttemptChange();
+}
+
+function subscribeAttempts(onStoreChange: () => void) {
+  listeners.add(onStoreChange);
+  const timer = window.setInterval(onStoreChange, 1000);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key != null) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+
+  return () => {
+    listeners.delete(onStoreChange);
+    window.clearInterval(timer);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function getServerAttemptSnapshot(): AttemptState {
+  return EMPTY_STATE;
 }
 
 export function useAuthFormAttempts(storageKey: string) {
-  const [tick, setTick] = useState(0);
-  /** Avoid SSR/client mismatch from localStorage lockout before hydration. */
-  const [hydrated, setHydrated] = useState(false);
+  const state = useSyncExternalStore(
+    subscribeAttempts,
+    () => readState(storageKey),
+    getServerAttemptSnapshot
+  );
 
-  const refresh = useCallback(() => setTick((value) => value + 1), []);
+  const refresh = useCallback(() => emitAttemptChange(), []);
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const nowMs = useSyncExternalStore(
+    subscribeAttempts,
+    () => Date.now(),
+    () => 0
+  );
 
-  useEffect(() => {
-    if (!hydrated) return;
-    const timer = window.setInterval(refresh, 1000);
-    return () => window.clearInterval(timer);
-  }, [refresh, hydrated]);
-
-  const state = useMemo(() => {
-    if (!hydrated) {
-      return { count: 0, lockedUntil: null };
-    }
-    return readState(storageKey);
-  }, [storageKey, tick, hydrated]);
-
-  const now = Date.now();
   const isLocked =
-    state.lockedUntil !== null && now < state.lockedUntil;
+    state.lockedUntil !== null && nowMs > 0 && nowMs < state.lockedUntil;
 
   const attemptsUsed = isLocked
     ? AUTH_FORM_MAX_ATTEMPTS
@@ -70,9 +90,10 @@ export function useAuthFormAttempts(storageKey: string) {
 
   const attemptsRemaining = Math.max(0, AUTH_FORM_MAX_ATTEMPTS - attemptsUsed);
 
-  const lockSecondsLeft = isLocked
-    ? Math.ceil((state.lockedUntil! - now) / 1000)
-    : 0;
+  const lockSecondsLeft =
+    isLocked && state.lockedUntil !== null
+      ? Math.ceil((state.lockedUntil - nowMs) / 1000)
+      : 0;
 
   const lockMessage = isLocked
     ? `Too many attempts. Try again in ${formatLockDuration(lockSecondsLeft)}.`
@@ -85,7 +106,7 @@ export function useAuthFormAttempts(storageKey: string) {
     const time = Date.now();
 
     if (current.lockedUntil !== null && time >= current.lockedUntil) {
-      current = { count: 0, lockedUntil: null };
+      current = EMPTY_STATE;
     }
 
     if (current.lockedUntil !== null && time < current.lockedUntil) {
@@ -99,7 +120,6 @@ export function useAuthFormAttempts(storageKey: string) {
         lockedUntil: time + AUTH_FORM_LOCKOUT_MS,
       };
       writeState(storageKey, current);
-      refresh();
       return false;
     }
 
@@ -112,14 +132,13 @@ export function useAuthFormAttempts(storageKey: string) {
           : null,
     };
     writeState(storageKey, next);
-    refresh();
     return true;
   }, [storageKey, refresh]);
 
   const resetAttempts = useCallback(() => {
     window.localStorage.removeItem(storageKey);
-    refresh();
-  }, [storageKey, refresh]);
+    emitAttemptChange();
+  }, [storageKey]);
 
   return {
     canSubmit: !isLocked && state.count < AUTH_FORM_MAX_ATTEMPTS,
