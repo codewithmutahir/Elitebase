@@ -41,6 +41,7 @@ function sanitizeKnownMessage(message: string): string {
   if (
     lower.includes("unexpected token") ||
     lower.includes("digest") ||
+    lower.includes("minified react error") ||
     lower.includes("server action") ||
     lower.includes("next.js") ||
     lower.includes("turbopack") ||

@@ -13,12 +13,37 @@ type AttemptState = {
 
 const EMPTY_STATE: AttemptState = { count: 0, lockedUntil: null };
 
+/** Snapshot for useSyncExternalStore — stable reference until state or clock tick changes. */
+type AttemptSnapshot = {
+  state: AttemptState;
+  clockTick: number;
+};
+
+const SERVER_SNAPSHOT: AttemptSnapshot = { state: EMPTY_STATE, clockTick: 0 };
+
 const listeners = new Set<() => void>();
+
+let clockMs = 0;
+let subscriberCount = 0;
+let clockTimer: number | null = null;
+
+const snapshotCache = new Map<
+  string,
+  { snap: AttemptSnapshot; serialized: string; clockTick: number }
+>();
 
 function emitAttemptChange() {
   for (const listener of listeners) {
     listener();
   }
+}
+
+function invalidateSnapshotCache(storageKey?: string) {
+  if (storageKey) {
+    snapshotCache.delete(storageKey);
+    return;
+  }
+  snapshotCache.clear();
 }
 
 function readState(storageKey: string): AttemptState {
@@ -36,6 +61,9 @@ function readState(storageKey: string): AttemptState {
     ) {
       return EMPTY_STATE;
     }
+    if (parsed.count === 0 && parsed.lockedUntil === null) {
+      return EMPTY_STATE;
+    }
     return parsed;
   } catch {
     return EMPTY_STATE;
@@ -44,42 +72,83 @@ function readState(storageKey: string): AttemptState {
 
 function writeState(storageKey: string, state: AttemptState) {
   window.localStorage.setItem(storageKey, JSON.stringify(state));
+  invalidateSnapshotCache(storageKey);
   emitAttemptChange();
+}
+
+function onStorageEvent(event: StorageEvent) {
+  if (event.key != null) {
+    invalidateSnapshotCache(event.key);
+  }
+  emitAttemptChange();
+}
+
+function startClock() {
+  if (typeof window === "undefined" || clockTimer !== null) return;
+  clockMs = Date.now();
+  clockTimer = window.setInterval(() => {
+    clockMs = Date.now();
+    emitAttemptChange();
+  }, 1000);
+  window.addEventListener("storage", onStorageEvent);
+}
+
+function stopClock() {
+  if (clockTimer !== null) {
+    window.clearInterval(clockTimer);
+    clockTimer = null;
+  }
+  window.removeEventListener("storage", onStorageEvent);
 }
 
 function subscribeAttempts(onStoreChange: () => void) {
   listeners.add(onStoreChange);
-  const timer = window.setInterval(onStoreChange, 1000);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key != null) onStoreChange();
-  };
-  window.addEventListener("storage", onStorage);
+  subscriberCount += 1;
+  if (subscriberCount === 1) {
+    startClock();
+  }
 
   return () => {
     listeners.delete(onStoreChange);
-    window.clearInterval(timer);
-    window.removeEventListener("storage", onStorage);
+    subscriberCount = Math.max(0, subscriberCount - 1);
+    if (subscriberCount === 0) {
+      stopClock();
+    }
   };
 }
 
-function getServerAttemptSnapshot(): AttemptState {
-  return EMPTY_STATE;
+function getClientSnapshot(storageKey: string): AttemptSnapshot {
+  const state = readState(storageKey);
+  const serialized = JSON.stringify(state);
+  const clockTick = Math.floor(clockMs / 1000);
+
+  const cached = snapshotCache.get(storageKey);
+  if (
+    cached &&
+    cached.serialized === serialized &&
+    cached.clockTick === clockTick
+  ) {
+    return cached.snap;
+  }
+
+  const snap: AttemptSnapshot = { state, clockTick };
+  snapshotCache.set(storageKey, { snap, serialized, clockTick });
+  return snap;
+}
+
+function getServerSnapshot(): AttemptSnapshot {
+  return SERVER_SNAPSHOT;
 }
 
 export function useAuthFormAttempts(storageKey: string) {
-  const state = useSyncExternalStore(
+  const snapshot = useSyncExternalStore(
     subscribeAttempts,
-    () => readState(storageKey),
-    getServerAttemptSnapshot
+    () => getClientSnapshot(storageKey),
+    getServerSnapshot
   );
 
-  const refresh = useCallback(() => emitAttemptChange(), []);
-
-  const nowMs = useSyncExternalStore(
-    subscribeAttempts,
-    () => Date.now(),
-    () => 0
-  );
+  const { state } = snapshot;
+  const nowMs = clockMs;
 
   const isLocked =
     state.lockedUntil !== null && nowMs > 0 && nowMs < state.lockedUntil;
@@ -110,7 +179,7 @@ export function useAuthFormAttempts(storageKey: string) {
     }
 
     if (current.lockedUntil !== null && time < current.lockedUntil) {
-      refresh();
+      emitAttemptChange();
       return false;
     }
 
@@ -133,10 +202,11 @@ export function useAuthFormAttempts(storageKey: string) {
     };
     writeState(storageKey, next);
     return true;
-  }, [storageKey, refresh]);
+  }, [storageKey]);
 
   const resetAttempts = useCallback(() => {
     window.localStorage.removeItem(storageKey);
+    invalidateSnapshotCache(storageKey);
     emitAttemptChange();
   }, [storageKey]);
 
