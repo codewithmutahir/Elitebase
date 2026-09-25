@@ -28,6 +28,7 @@ export function CurrencySelect({
 
   return (
     <SearchableSelect
+      variant="auth"
       label="Company currency"
       name={name}
       defaultValue={defaultValue}

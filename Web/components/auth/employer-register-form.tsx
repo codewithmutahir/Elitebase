@@ -1,134 +1,190 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState, type FormHTMLAttributes, type ReactNode } from "react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { AuthCheckbox } from "@/components/auth/auth-checkbox";
+import { AuthField } from "@/components/auth/auth-field";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
+import { useAuthFormAttempts } from "@/lib/auth/form-attempts";
+import {
+  employerRegisterSchema,
+  type EmployerRegisterInput,
+} from "@/lib/validations/auth";
 
-type EmployerRegisterFormProps = FormHTMLAttributes<HTMLFormElement> & {
+type EmployerRegisterFormProps = {
   errorMessage?: string | null;
-  submitButton: ReactNode;
+  action: (formData: FormData) => void | Promise<void>;
 };
 
 export function EmployerRegisterForm({
   errorMessage,
-  submitButton,
-  className,
   action,
-  onSubmit,
-  ...props
 }: EmployerRegisterFormProps) {
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { canSubmit, lockMessage, consumeAttempt } = useAuthFormAttempts(
+    "auth-attempts:register-employer"
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<EmployerRegisterInput>({
+    resolver: zodResolver(employerRegisterSchema),
+    defaultValues: {
+      companyName: "",
+      ownerName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      termsAccepted: false,
+    },
+    mode: "onTouched",
+  });
+
+  const onSubmit = (data: EmployerRegisterInput) => {
+    if (!consumeAttempt()) return;
+
+    const formData = new FormData();
+    formData.set("companyName", data.companyName);
+    formData.set("ownerName", data.ownerName);
+    formData.set("email", data.email);
+    formData.set("password", data.password);
+    formData.set("confirmPassword", data.confirmPassword);
+    if (data.termsAccepted) {
+      formData.set("termsAccepted", "on");
+    }
+
+    startTransition(() => {
+      void action(formData);
+    });
+  };
+
+  const busy = isPending || isSubmitting;
+  const submitDisabled = !canSubmit || busy;
 
   return (
     <div>
+      {lockMessage ? (
+        <p
+          className="mb-6 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+          role="alert"
+        >
+          {lockMessage}
+        </p>
+      ) : null}
+
       {errorMessage ? (
         <p
-          className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="mb-6 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
           role="alert"
         >
           {errorMessage}
         </p>
       ) : null}
-      {localError ? (
-        <p
-          className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
-          role="alert"
-        >
-          {localError}
-        </p>
-      ) : null}
 
       <form
-        action={action}
-        className={cn("space-y-4", className)}
-        onSubmit={(event) => {
-          const form = event.currentTarget;
-          const password = String(new FormData(form).get("password") ?? "");
-          const confirm = String(
-            new FormData(form).get("confirmPassword") ?? ""
-          );
-          if (password !== confirm) {
-            event.preventDefault();
-            setLocalError("Passwords do not match.");
-            return;
-          }
-          setLocalError(null);
-          onSubmit?.(event);
-        }}
-        {...props}
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        aria-busy={busy}
       >
-        <Input
-          id="companyName"
-          name="companyName"
-          label="Company name"
-          type="text"
-          required
-          autoComplete="organization"
-        />
-        <Input
-          id="ownerName"
-          name="ownerName"
-          label="Your name"
-          type="text"
-          required
-          autoComplete="name"
-        />
-        <Input
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AuthField
+            id="companyName"
+            label="Company name"
+            type="text"
+            autoComplete="organization"
+            aria-required
+            error={errors.companyName?.message}
+            {...register("companyName")}
+          />
+          <AuthField
+            id="ownerName"
+            label="Your name"
+            type="text"
+            autoComplete="name"
+            aria-required
+            error={errors.ownerName?.message}
+            {...register("ownerName")}
+          />
+        </div>
+
+        <AuthField
           id="email"
-          name="email"
           label="Work email"
           type="email"
-          required
           autoComplete="email"
-        />
-        <Input
-          id="password"
-          name="password"
-          label="Password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          hint="At least 8 characters"
-        />
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          label="Confirm password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
+          aria-required
+          error={errors.email?.message}
+          {...register("email")}
         />
 
-        <label className="flex items-start gap-2.5 text-sm text-slate-600">
-          <input
-            name="termsAccepted"
-            type="checkbox"
-            required
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AuthField
+            id="password"
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            aria-required
+            hint={errors.password?.message ? undefined : "At least 8 characters"}
+            error={errors.password?.message}
+            {...register("password")}
           />
-          <span>
-            I agree to the{" "}
-            <Link
-              href="/privacy-policy"
-              target="_blank"
-              className="font-semibold text-blue-600 hover:text-blue-700"
-            >
-              Privacy Policy
-            </Link>
-          </span>
-        </label>
+          <AuthField
+            id="confirmPassword"
+            label="Confirm password"
+            type="password"
+            autoComplete="new-password"
+            aria-required
+            error={errors.confirmPassword?.message}
+            {...register("confirmPassword")}
+          />
+        </div>
 
-        <div className="pt-2">{submitButton}</div>
+        <Controller
+          name="termsAccepted"
+          control={control}
+          render={({ field: { value, onChange, onBlur, ref, name } }) => (
+            <AuthCheckbox
+              id="termsAccepted"
+              name={name}
+              ref={ref}
+              checked={value}
+              onChange={(event) => onChange(event.target.checked)}
+              onBlur={onBlur}
+              error={errors.termsAccepted?.message}
+            >
+              I agree to the{" "}
+              <Link href="/terms-of-service" target="_blank">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy-policy" target="_blank">
+                Privacy Policy
+              </Link>
+              .
+            </AuthCheckbox>
+          )}
+        />
+
+        <div className="pt-2">
+          <AuthSubmitButton
+            idleLabel="Create account"
+            pendingLabel="Creating account…"
+            disabled={submitDisabled}
+          />
+        </div>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-[var(--eb-muted)]">
         Looking for employee instructions?{" "}
         <Link
           href="/register/employee"
-          className="font-semibold text-blue-600 hover:text-blue-700"
+          className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
         >
           Go here
         </Link>

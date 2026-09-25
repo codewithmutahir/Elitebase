@@ -7,8 +7,15 @@ import { SettingsSubmitButton } from "@/components/settings/settings-submit-butt
 import { TimezoneSelect } from "@/components/auth/timezone-select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  dashboardCardClass,
+  dashboardFileInputClass,
+  dashboardPageIntroClass,
+  dashboardSectionTitleClass,
+} from "@/lib/dashboard/styles";
 import { DEFAULT_CURRENCY, resolveCurrency } from "@/lib/currencies";
 import { DEFAULT_TIMEZONE, US_TIMEZONES } from "@/lib/timezones";
+import { cn } from "@/lib/utils";
 
 type SettingsPageContentProps = {
   companyName: string;
@@ -33,21 +40,21 @@ export function SettingsPageContent({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {saved ? (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="rounded-[10px] border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-[var(--eb-status-success-fg,#059669)]">
           Settings saved successfully.
         </p>
       ) : null}
       {errorMessage ? (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {errorMessage}
         </p>
       ) : null}
 
-      <form action={updateCompanySettings} encType="multipart/form-data" className="space-y-6">
-        <Card>
+      <form action={updateCompanySettings} className="space-y-6">
+        <Card className={cn(dashboardCardClass)}>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">Company info</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className={dashboardSectionTitleClass}>Company info</h2>
+            <p className={dashboardPageIntroClass}>
               Name shown on your dashboard and kiosk experience.
             </p>
           </CardHeader>
@@ -62,10 +69,10 @@ export function SettingsPageContent({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn(dashboardCardClass)}>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">Appearance</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className={dashboardSectionTitleClass}>Appearance</h2>
+            <p className={dashboardPageIntroClass}>
               Logo displayed on kiosk idle screens and your admin header.
             </p>
           </CardHeader>
@@ -77,18 +84,21 @@ export function SettingsPageContent({
                   alt={`${companyName} logo`}
                   width={72}
                   height={72}
-                  className="h-16 w-16 rounded-lg border border-slate-200 object-contain"
+                  className="h-16 w-16 rounded-lg border border-[var(--eb-border)] object-contain"
                   unoptimized
                 />
-                <p className="text-sm text-slate-500">
+                <p className={dashboardPageIntroClass}>
                   Upload a new file to replace the current logo.
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No logo uploaded yet.</p>
+              <p className={dashboardPageIntroClass}>No logo uploaded yet.</p>
             )}
             <div>
-              <label className="mb-1.5 block text-sm font-semibold" htmlFor="logo">
+              <label
+                className="mb-1.5 block text-sm font-medium text-[var(--eb-text)]"
+                htmlFor="logo"
+              >
                 Company logo
               </label>
               <input
@@ -96,16 +106,16 @@ export function SettingsPageContent({
                 name="logo"
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700"
+                className={dashboardFileInputClass}
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn(dashboardCardClass)}>
           <CardHeader>
-            <h2 className="text-lg font-semibold text-slate-900">Regional</h2>
-            <p className="text-sm text-slate-500">
+            <h2 className={dashboardSectionTitleClass}>Regional</h2>
+            <p className={dashboardPageIntroClass}>
               Timezone and currency used across schedules, timesheets, and pay
               displays.
             </p>
@@ -124,10 +134,10 @@ export function SettingsPageContent({
         </div>
       </form>
 
-      <Card className="border-red-200 bg-red-50/30">
+      <Card className="border-red-500/25 bg-red-500/5">
         <CardHeader>
-          <h2 className="text-lg font-semibold text-red-800">Danger zone</h2>
-          <p className="text-sm text-red-700/80">
+          <h2 className="text-lg font-medium text-red-400">Danger zone</h2>
+          <p className="text-sm text-[var(--eb-muted)]">
             Permanently delete your company and all employee data. This cannot be
             undone.
           </p>
@@ -136,7 +146,7 @@ export function SettingsPageContent({
           <button
             type="button"
             disabled
-            className="cursor-not-allowed rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-400"
+            className="cursor-not-allowed rounded-[10px] border border-red-500/30 bg-[var(--eb-elevated)] px-4 py-2 text-sm font-medium text-red-400/70"
             title="Contact support to delete your company account"
           >
             Delete company (contact support)

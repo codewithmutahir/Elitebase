@@ -16,6 +16,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { EmployeeListItem } from "@/lib/employees/queries";
+import {
+  dashboardDropdownContentClass,
+  dashboardDropdownItemClass,
+} from "@/lib/dashboard/styles";
 
 type RosterRowActionsProps = {
   employee: EmployeeListItem;
@@ -40,31 +44,50 @@ export function RosterRowActions({ employee }: RosterRowActionsProps) {
             <Button
               variant="ghost"
               size="icon-sm"
+              className="text-[var(--eb-muted)] hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]"
               aria-label={`Actions for ${employee.full_name}`}
             />
           }
         >
           <MoreHorizontal className="size-4" aria-hidden />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem render={<Link href={`/employees/${employee.id}`} />}>
+        <DropdownMenuContent
+          align="end"
+          side="bottom"
+          sideOffset={6}
+          className={dashboardDropdownContentClass}
+        >
+          <DropdownMenuItem
+            className={dashboardDropdownItemClass}
+            render={
+              <Link
+                href={`/employees/${employee.id}`}
+                className="flex w-full items-center"
+              />
+            }
+          >
             View profile
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator className="bg-[var(--eb-border)]" />
           {employee.status === "active" ? (
             <DropdownMenuItem
               variant="destructive"
+              className="gap-2 rounded-md px-2 py-2"
               onClick={() => setAction("deactivate")}
             >
               Deactivate
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onClick={() => setAction("reactivate")}>
+            <DropdownMenuItem
+              className={dashboardDropdownItemClass}
+              onClick={() => setAction("reactivate")}
+            >
               Reactivate
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
             variant="destructive"
+            className="gap-2 rounded-md px-2 py-2"
             onClick={() => setAction("delete")}
           >
             Delete permanently

@@ -3,11 +3,19 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
+import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
 import { EditTimesheetDialog } from "@/components/timesheets/edit-timesheet-dialog";
 import { TimesheetsFilters } from "@/components/timesheets/timesheets-filters";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  dashboardCardClass,
+  dashboardMetricLabelClass,
+  dashboardMetricValueClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 import {
   DataTable,
   DataTableBody,
@@ -42,14 +50,26 @@ type TimesheetsViewProps = {
   queryBase: string;
 };
 
-function rowStatusBadge(row: TimesheetRow) {
+function rowStatusBadge(row: TimesheetRow, theme: "light" | "dark") {
   if (row.status === "complete") {
-    return <StatusBadge tone="success">On time</StatusBadge>;
+    return (
+      <StatusBadge tone="success" theme={theme}>
+        On time
+      </StatusBadge>
+    );
   }
   if (row.status === "open") {
-    return <StatusBadge tone="warning">Open shift</StatusBadge>;
+    return (
+      <StatusBadge tone="warning" theme={theme}>
+        Open shift
+      </StatusBadge>
+    );
   }
-  return <StatusBadge tone="error">Missing</StatusBadge>;
+  return (
+    <StatusBadge tone="error" theme={theme}>
+      Missing
+    </StatusBadge>
+  );
 }
 
 function rangeSummary(
@@ -80,6 +100,7 @@ export function TimesheetsView({
   queryBase,
 }: TimesheetsViewProps) {
   const tz = companyTimezone(timezone);
+  const { theme: dashboardTheme } = useDashboardTheme();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const totalHours = useMemo(
@@ -109,7 +130,7 @@ export function TimesheetsView({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-slate-500">
+        <p className={dashboardPageIntroClass}>
           {rangeSummary(mode, selectedMonth, from, to)}
           {selectedEmployeeName ? ` · ${selectedEmployeeName}` : ""} · Page{" "}
           {page} of {totalPages}
@@ -126,27 +147,25 @@ export function TimesheetsView({
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="p-4">
-          <p className="text-sm text-slate-500">Total hours (this page)</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">
-            {totalHours.toFixed(1)}
-          </p>
+        <Card className={cn("p-4", dashboardCardClass)}>
+          <p className={dashboardMetricLabelClass}>Total hours (this page)</p>
+          <p className={dashboardMetricValueClass}>{totalHours.toFixed(1)}</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-slate-500">Break hours (this page)</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">
+        <Card className={cn("p-4", dashboardCardClass)}>
+          <p className={dashboardMetricLabelClass}>Break hours (this page)</p>
+          <p className={dashboardMetricValueClass}>
             {totalBreakHours.toFixed(1)}
           </p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-slate-500">
+        <Card className={cn("p-4", dashboardCardClass)}>
+          <p className={dashboardMetricLabelClass}>
             {mode === "month" ? "Total shifts this month" : "Total shifts in range"}
           </p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{total}</p>
+          <p className={dashboardMetricValueClass}>{total}</p>
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className={cn("overflow-hidden", dashboardCardClass)}>
         <DataTable>
           <DataTableHeader>
             <tr>
@@ -181,14 +200,14 @@ export function TimesheetsView({
                         setExpandedId(isOpen ? null : row.id)
                       }
                     >
-                      <DataTableCell className="text-slate-400">
+                      <DataTableCell className="text-[var(--eb-muted)]">
                         {isOpen ? (
                           <ChevronDown className="size-4" aria-hidden />
                         ) : (
                           <ChevronRight className="size-4" aria-hidden />
                         )}
                       </DataTableCell>
-                      <DataTableCell className="font-semibold text-slate-900">
+                      <DataTableCell className="font-semibold text-[var(--eb-text)]">
                         {row.employeeName}
                       </DataTableCell>
                       <DataTableCell>
@@ -202,7 +221,7 @@ export function TimesheetsView({
                       <DataTableCell>
                         {row.clockOut ? formatTime(row.clockOut, tz) : "—"}
                       </DataTableCell>
-                      <DataTableCell className="font-mono text-slate-600">
+                      <DataTableCell className="font-mono text-[var(--eb-muted)]">
                         {row.breakCount > 0
                           ? `${row.breakCount} · ${row.breakHours?.toFixed(2) ?? "0"}h`
                           : "—"}
@@ -212,38 +231,38 @@ export function TimesheetsView({
                           ? row.totalHours.toFixed(2)
                           : "—"}
                       </DataTableCell>
-                      <DataTableCell>{rowStatusBadge(row)}</DataTableCell>
+                      <DataTableCell>
+                        {rowStatusBadge(row, dashboardTheme)}
+                      </DataTableCell>
                       <DataTableCell onClick={(e) => e.stopPropagation()}>
                         <EditTimesheetDialog row={row} timezone={timezone} />
                       </DataTableCell>
                     </DataTableRow>
                     {isOpen ? (
-                      <tr className="bg-slate-50">
+                      <tr className="bg-[var(--eb-elevated)]/50">
                         <td colSpan={9} className="px-6 py-4">
                           <div className="flex flex-wrap items-end justify-between gap-4">
-                            <div className="grid gap-2 text-sm sm:grid-cols-4">
+                            <div className="grid gap-2 text-sm text-[var(--eb-text)] sm:grid-cols-4">
                               <p>
-                                <span className="text-slate-500">
+                                <span className="text-[var(--eb-muted)]">
                                   Employee ID:
                                 </span>{" "}
-                                <span className="font-mono text-slate-700">
-                                  {row.employeeId}
-                                </span>
+                                <span className="font-mono">{row.employeeId}</span>
                               </p>
                               <p>
-                                <span className="text-slate-500">
+                                <span className="text-[var(--eb-muted)]">
                                   Shift status:
                                 </span>{" "}
                                 {row.status}
                               </p>
                               <p>
-                                <span className="text-slate-500">
+                                <span className="text-[var(--eb-muted)]">
                                   Recorded hours:
                                 </span>{" "}
                                 {row.totalHours ?? "In progress"}
                               </p>
                               <p>
-                                <span className="text-slate-500">Breaks:</span>{" "}
+                                <span className="text-[var(--eb-muted)]">Breaks:</span>{" "}
                                 {row.breakCount > 0
                                   ? `${row.breakCount} (${row.breakHours?.toFixed(2) ?? "0"}h unpaid)`
                                   : "None recorded"}
@@ -267,7 +286,7 @@ export function TimesheetsView({
 
       {total > 0 ? (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className={dashboardPageIntroClass}>
             {total} shift{total === 1 ? "" : "s"} matching filters
           </p>
           <div className="flex gap-2">

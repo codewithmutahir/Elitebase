@@ -23,3 +23,22 @@ export async function getCompanyByOwnerId(ownerUid: string) {
 
   return data as CompanyRow | null;
 }
+
+/** Server-only: create company row after Better Auth signup (service role). */
+export async function createCompanyForOwner(
+  ownerUid: string,
+  name: string
+): Promise<{ ok: true } | { error: string }> {
+  const admin = createClient();
+  const { error } = await admin.from("companies").insert({
+    name,
+    owner_uid: ownerUid,
+  });
+
+  if (error) {
+    console.error("createCompanyForOwner failed:", error.message);
+    return { error: error.message };
+  }
+
+  return { ok: true };
+}

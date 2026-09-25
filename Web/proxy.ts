@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 import {
+  checkAuthRateLimitForRequest,
+  getAuthRateLimitBucketForPath,
+  isAuthRateLimitStrictInProduction,
+} from "@/lib/auth/rate-limit";
+import {
   checkKioskRateLimit,
   getKioskRouteName,
 } from "@/lib/kiosk/rate-limit";
@@ -25,6 +30,31 @@ function matchesRoute(pathname: string, routes: string[]) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (request.method === "POST") {
+    const authBucket = getAuthRateLimitBucketForPath(pathname);
+    if (authBucket) {
+      try {
+        const rateLimit = await checkAuthRateLimitForRequest(request, authBucket);
+        if (rateLimit.limited) {
+          return new NextResponse("Too Many Requests", {
+            status: 429,
+            headers: {
+              "Retry-After": String(rateLimit.retryAfterSeconds),
+            },
+          });
+        }
+      } catch (error) {
+        console.error("[proxy] auth rate limit failed:", error);
+        if (isAuthRateLimitStrictInProduction()) {
+          return new NextResponse("Service Unavailable", {
+            status: 503,
+            headers: { "Retry-After": "900" },
+          });
+        }
+      }
+    }
+  }
 
   const kioskRoute = getKioskRouteName(pathname);
   if (kioskRoute) {
@@ -59,6 +89,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/auth/:path*",
     "/api/kiosk/:path*",
     "/dashboard/:path*",
     "/employees/:path*",
@@ -74,6 +105,8 @@ export const config = {
     "/reset-password",
     "/register/:path*",
     "/privacy-policy",
+    "/terms-of-service",
+    "/cookie-policy",
     "/",
   ],
 };

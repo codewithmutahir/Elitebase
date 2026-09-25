@@ -1,87 +1,61 @@
-import { Briefcase, User } from "lucide-react";
+import { Briefcase, Tablet } from "lucide-react";
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
-
-const roleCards: {
-  href: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-}[] = [
-  {
-    href: "/register/employer",
-    title: "I'm an Employer",
-    description: "Register your business and manage your team",
-    icon: Briefcase,
-  },
-  {
-    href: "/register/employee",
-    title: "I'm an Employee",
-    description: "Access your schedule and attendance",
-    icon: User,
-  },
-];
+import { AuthRegisterShell } from "@/components/auth/auth-register-shell";
+import { RegisterRoleCard } from "@/components/auth/register-role-card";
 
 export default function RegisterPage() {
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="mx-auto w-full max-w-4xl">
-        <div className="text-center">
-          <Link href="/" className="text-2xl font-bold text-slate-900">
-            Elite<span className="text-blue-600">base</span>
-          </Link>
-          <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+    <AuthRegisterShell>
+      <div className="mx-auto w-full max-w-[920px]">
+        <div className="mx-auto max-w-xl text-center">
+          <p className="text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-[var(--eb-accent)]">
+            Get started
+          </p>
+          <h1 className="mt-3 text-[clamp(1.75rem,4.5vw,2.5rem)] font-normal tracking-[-0.03em] text-[var(--eb-text)]">
             How will you use Elitebase?
           </h1>
-          <p className="mt-3 text-slate-600">
-            Choose the path that matches your role. Employers set up the company;
-            employees clock in at the workplace kiosk.
+          <p className="mt-4 text-pretty text-[0.9375rem] leading-relaxed text-[var(--eb-muted)] sm:text-base">
+            Employers set up the company, kiosks, and timesheets. Employees clock
+            in on the tablet at work—no app signup required.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {roleCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <Link key={card.href} href={card.href} className="group block">
-                <Card
-                  className={cn(
-                    "h-full border-slate-200 transition duration-200",
-                    "group-hover:border-blue-300 group-hover:bg-blue-50/50 group-hover:shadow-md"
-                  )}
-                >
-                  <CardContent className="flex h-full flex-col p-8">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition group-hover:bg-blue-100">
-                      <Icon className="size-6" aria-hidden />
-                    </div>
-                    <h2 className="mt-6 text-xl font-semibold text-slate-900">
-                      {card.title}
-                    </h2>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">
-                      {card.description}
-                    </p>
-                    <span className="mt-6 text-sm font-semibold text-blue-600 group-hover:text-blue-700">
-                      Continue →
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+        <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2 md:gap-6">
+          <RegisterRoleCard
+            href="/register/employer"
+            title="I'm an employer"
+            description="Create your company workspace and invite your team."
+            icon={Briefcase}
+            featured
+            bullets={[
+              "Register your business in minutes",
+              "Pair kiosks and manage locations",
+              "Live attendance and payroll exports",
+            ]}
+          />
+          <RegisterRoleCard
+            href="/register/employee"
+            title="I'm an employee"
+            description="Your manager adds you—you punch in at the kiosk."
+            icon={Tablet}
+            bullets={[
+              "PIN clock-in at your workplace tablet",
+              "Optional face verification on site",
+              "Schedules and hours from your employer",
+            ]}
+          />
         </div>
 
-        <p className="mt-10 text-center text-sm text-slate-500">
+        <p className="mt-10 text-center text-sm text-[var(--eb-muted)]">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-semibold text-blue-600 hover:text-blue-700"
+            className="font-medium text-[var(--eb-accent)] transition-colors hover:text-[var(--eb-text)]"
           >
             Sign in
           </Link>
         </p>
       </div>
-    </main>
+    </AuthRegisterShell>
   );
 }

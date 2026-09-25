@@ -1,26 +1,32 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { APIError } from "better-auth/api";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { EmployerRegisterForm } from "@/components/auth/employer-register-form";
 import { auth } from "@/lib/auth";
-import { SubmitButton } from "./submit-button";
+import { createCompanyForOwner } from "@/lib/company";
+import {
+  enforceAuthRateLimitInAction,
+  resolveAuthRateLimitQueryMessage,
+} from "@/lib/auth/enforce-rate-limit";
+import { parseEmployerRegisterFormData } from "@/lib/validations/auth";
 
 async function registerEmployer(formData: FormData) {
   "use server";
 
-  const companyName = String(formData.get("companyName") ?? "").trim();
-  const ownerName = String(formData.get("ownerName") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const termsAccepted = formData.get("termsAccepted") === "on";
+  await enforceAuthRateLimitInAction(
+    "register-employer",
+    "/register/employer"
+  );
 
-  if (!companyName || !ownerName || !email || !password || !termsAccepted) {
-    redirect("/register/employer?error=missing_fields");
+  const parsed = parseEmployerRegisterFormData(formData);
+  if (!parsed.success) {
+    redirect("/register/employer?error=validation");
   }
+
+  const { companyName, ownerName, email, password } = parsed.data;
 
   const requestHeaders = await headers();
   let userId: string | null = null;
@@ -98,21 +104,15 @@ async function registerEmployer(formData: FormData) {
     redirect("/register/employer?error=signup_failed");
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!supabaseUrl || !serviceRoleKey) {
+  let companyResult: { ok: true } | { error: string };
+  try {
+    companyResult = await createCompanyForOwner(userId, companyName);
+  } catch {
     redirect("/register/employer?error=missing_env");
   }
 
-  const adminClient = createSupabaseClient(supabaseUrl, serviceRoleKey);
-  const { error: companyError } = await adminClient.from("companies").insert({
-    name: companyName,
-    owner_uid: userId,
-  });
-
-  if (companyError) {
-    console.error("Company create failed:", companyError.message);
+  if ("error" in companyResult) {
+    console.error("Company create failed:", companyResult.error);
     redirect("/register/employer?error=company_create_failed");
   }
 
@@ -125,18 +125,20 @@ export default async function EmployerRegisterPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const rateLimitMessage = resolveAuthRateLimitQueryMessage(error);
   const errorMessage =
-    error === "email_exists"
-      ? "This email is already registered. Please sign in or use a different email."
-      : error === "company_create_failed"
-        ? "Account created but company setup failed. Sign in and try again, or contact support if this persists."
-        : error === "rate_limited"
-          ? "Too many attempts. Wait a minute and try again, or sign in if you already created an account."
+    rateLimitMessage ??
+    (error === "validation"
+      ? "Check the form for errors and try again."
+      : error === "email_exists"
+        ? "This email is already registered. Please sign in or use a different email."
+        : error === "company_create_failed"
+          ? "Account created but company setup failed. Sign in and try again, or contact support if this persists."
           : error === "db_unreachable"
             ? "Your network blocks Supabase Postgres (ports 5432/6543). Add BETTER_AUTH_USE_SQLITE=true to .env.local, restart npm run dev, then try again. Or use mobile hotspot / VPN for remote Postgres."
             : error
               ? "Signup failed. Check the terminal for details, then try again."
-              : null;
+              : null);
 
   return (
     <AuthSplitLayout
@@ -148,14 +150,15 @@ export default async function EmployerRegisterPage({
       ]}
     >
       <AuthFormCard
+        eyebrow="Employer registration"
         title="Create your company"
         subtitle="Tell us about your business to get started with Elitebase."
         footer={
-          <p className="text-center text-sm text-slate-500">
+          <p className="text-center text-sm text-[var(--eb-muted)]">
             Already registered?{" "}
             <Link
               href="/login"
-              className="font-semibold text-blue-600 hover:text-blue-700"
+              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
             >
               Sign in
             </Link>
@@ -165,7 +168,6 @@ export default async function EmployerRegisterPage({
         <EmployerRegisterForm
           action={registerEmployer}
           errorMessage={errorMessage}
-          submitButton={<SubmitButton />}
         />
       </AuthFormCard>
     </AuthSplitLayout>

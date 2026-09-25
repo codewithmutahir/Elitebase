@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 
 const COOLDOWN_MS = 60_000;
 const STORAGE_KEY = "employer-register-last-submit-at";
 
-export function SubmitButton() {
-  const { pending } = useFormStatus();
+type SubmitButtonProps = {
+  disabled?: boolean;
+};
+
+export function SubmitButton({ disabled: disabledProp }: SubmitButtonProps) {
   const [remainingMs, setRemainingMs] = useState(0);
 
   useEffect(() => {
@@ -36,24 +38,16 @@ export function SubmitButton() {
 
   const isCoolingDown = remainingMs > 0;
   const secondsLeft = useMemo(() => Math.ceil(remainingMs / 1000), [remainingMs]);
-  const disabled = pending || isCoolingDown;
-  const label = pending
-    ? "Creating account..."
-    : isCoolingDown
-      ? `Please wait ${secondsLeft}s`
-      : "Create account";
+  const label = isCoolingDown ? `Please wait ${secondsLeft}s` : "Create account";
 
   return (
-    <Button
-      type="submit"
-      disabled={disabled}
-      size="lg"
-      className="w-full"
+    <AuthSubmitButton
+      idleLabel={label}
+      pendingLabel="Creating account..."
+      disabled={disabledProp || isCoolingDown}
       onClick={() => {
         window.localStorage.setItem(STORAGE_KEY, String(Date.now()));
       }}
-    >
-      {label}
-    </Button>
+    />
   );
 }

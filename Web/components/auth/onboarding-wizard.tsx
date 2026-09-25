@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type OnboardingWizardProps = {
   companyName?: string | null;
+  step: number;
+  onNext: () => void;
+  onBack: () => void;
   timezoneStep: ReactNode;
   logoStep: ReactNode;
   submitButton: ReactNode;
@@ -14,12 +16,13 @@ type OnboardingWizardProps = {
 
 export function OnboardingWizard({
   companyName,
+  step,
+  onNext,
+  onBack,
   timezoneStep,
   logoStep,
   submitButton,
 }: OnboardingWizardProps) {
-  const [step, setStep] = useState(1);
-
   return (
     <div>
       <div className="mb-8 flex items-center justify-center gap-3">
@@ -27,10 +30,10 @@ export function OnboardingWizard({
           <div key={value} className="flex items-center gap-3">
             <div
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition",
+                "flex size-8 items-center justify-center rounded-full text-sm font-semibold transition",
                 step >= value
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-100 text-slate-500"
+                  ? "bg-[var(--eb-accent)] text-[var(--eb-ink)]"
+                  : "border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-muted)]"
               )}
             >
               {value}
@@ -38,53 +41,67 @@ export function OnboardingWizard({
             <span
               className={cn(
                 "hidden text-sm font-medium sm:inline",
-                step >= value ? "text-slate-900" : "text-slate-400"
+                step >= value ? "text-[var(--eb-text)]" : "text-[var(--eb-muted)]"
               )}
             >
               {value === 1 ? "Timezone" : "Brand"}
             </span>
             {value === 1 ? (
-              <div className="h-px w-8 bg-slate-200 sm:w-12" aria-hidden />
+              <div
+                className="h-px w-8 bg-[var(--eb-border)] sm:w-12"
+                aria-hidden
+              />
             ) : null}
           </div>
         ))}
       </div>
 
       {companyName ? (
-        <p className="mb-6 text-center text-sm font-medium text-slate-600">
-          Setting up <span className="text-slate-900">{companyName}</span>
+        <p className="mb-6 text-center text-sm font-medium text-[var(--eb-muted)]">
+          Setting up{" "}
+          <span className="text-[var(--eb-text)]">{companyName}</span>
         </p>
       ) : null}
 
       <div className={step === 1 ? "block" : "hidden"}>{timezoneStep}</div>
       <div className={step === 2 ? "block" : "hidden"}>{logoStep}</div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--eb-border)] pt-6">
         {step === 1 ? (
           <>
             <Link
               href="/dashboard"
-              className="text-sm font-semibold text-slate-500 hover:text-blue-600"
+              className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-accent)]"
             >
               Skip for now
             </Link>
-            <Button type="button" size="lg" onClick={() => setStep(2)}>
-              Next
-            </Button>
+            <button
+              type="button"
+              onClick={onNext}
+              className="eb-btn group relative rounded-full p-px"
+            >
+              <span className="eb-btn__content eb-btn__content--accent relative flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium text-white">
+                Next
+              </span>
+            </button>
           </>
         ) : (
           <>
-            <Button type="button" variant="ghost" onClick={() => setStep(1)}>
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-text)]"
+            >
               Back
-            </Button>
-            <div className="flex flex-wrap items-center gap-3">
+            </button>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:flex-none">
               <Link
                 href="/dashboard"
-                className="text-sm font-semibold text-slate-500 hover:text-blue-600"
+                className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-accent)]"
               >
                 Skip
               </Link>
-              {submitButton}
+              <div className="w-full min-w-[10rem] sm:w-auto">{submitButton}</div>
             </div>
           </>
         )}

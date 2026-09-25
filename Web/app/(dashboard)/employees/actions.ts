@@ -8,9 +8,11 @@ import {
   type ParsedEmployeeImportRow,
 } from "@/lib/employees/import-csv";
 import { generateEmployeePin, hashEmployeePin } from "@/lib/employees/pin";
+import {
+  CSV_FILE_TOO_LARGE_MESSAGE,
+  MAX_EMPLOYEE_CSV_BYTES,
+} from "@/lib/employees/csv-import-limits";
 import { requireCompanySession } from "@/lib/employees/session";
-
-const MAX_EMPLOYEE_CSV_BYTES = 5 * 1024 * 1024;
 
 type NewEmployeeInput = {
   fullName: string;
@@ -165,7 +167,7 @@ export type EmployeeImportResult = {
 
 function assertCsvSize(csvText: string) {
   if (Buffer.byteLength(csvText, "utf8") > MAX_EMPLOYEE_CSV_BYTES) {
-    return "CSV file is too large (max 5 MB).";
+    return CSV_FILE_TOO_LARGE_MESSAGE;
   }
   return null;
 }
@@ -263,17 +265,25 @@ export async function importEmployeesFromCsv(
   for (const employee of preview.employees) {
     if (employee.alreadyExists) {
       skippedExisting.push(employee.fullName);
-      continue;
     }
+  }
 
-    const result = await createEmployeeWithPin(company.id, {
-      fullName: employee.fullName,
-      position: employee.position,
-      hourlyRate: employee.hourlyRate,
-      payType: employee.monthlySalary ? "salary" : "hourly",
-      salaryAmount: employee.monthlySalary,
-    });
+  const importResults = await Promise.all(
+    preview.employees
+      .filter((employee) => !employee.alreadyExists)
+      .map(async (employee) => {
+        const result = await createEmployeeWithPin(company.id, {
+          fullName: employee.fullName,
+          position: employee.position,
+          hourlyRate: employee.hourlyRate,
+          payType: employee.monthlySalary ? "salary" : "hourly",
+          salaryAmount: employee.monthlySalary,
+        });
+        return { employee, result };
+      })
+  );
 
+  for (const { employee, result } of importResults) {
     if ("error" in result) {
       failed.push({ fullName: employee.fullName, error: result.error });
       continue;

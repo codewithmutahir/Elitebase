@@ -1,34 +1,50 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Star, Trash2, Trophy } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   addEmployeeNote,
   deleteEmployeeNote,
 } from "@/app/(dashboard)/employees/profile-actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  profileCardClass,
+  profileMutedClass,
+  profileNoteCardClass,
+  profileSectionTitleClass,
+  profileStatCardClass,
+  profileTextareaClass,
+  profileValueClass,
+} from "@/lib/dashboard/styles";
 import { employeeInitials, formatDateShort, formatRelativeTime } from "@/lib/employees/format";
 import type {
   EmployeeMilestone,
   EmployeeNote,
   EmployeeProfile,
 } from "@/lib/employees/profile-queries";
-import { Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type PerformanceTabProps = {
   employee: EmployeeProfile;
   onUpdated: () => void;
 };
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
-    <div className="rounded-lg border border-slate-100 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
+    <div className={profileStatCardClass}>
+      <p className="profile-stat-label">{label}</p>
+      <p className="profile-stat-value">{value}</p>
     </div>
   );
 }
@@ -67,36 +83,51 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">
-          Attendance • {stats.monthLabel}
+        <h3 className={profileSectionTitleClass}>
+          Attendance · {stats.monthLabel}
         </h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="On time rate" value={stats.onTimeRate} />
           <StatCard label="Avg hours/week" value={stats.avgHoursPerWeek} />
           <StatCard label="Missed clock outs" value={stats.missedClockOuts} />
           <StatCard label="No shows" value={stats.noShows} />
-          <StatCard label="Avg shift rating" value={stats.avgShiftRating} />
+          <StatCard
+            label="Avg shift rating"
+            value={
+              <span className="inline-flex items-center gap-1">
+                {stats.avgShiftRating}
+                <Star
+                  className="size-4 fill-[var(--eb-accent)] text-[var(--eb-accent)]"
+                  aria-hidden
+                />
+              </span>
+            }
+          />
           <StatCard label="Shifts worked" value={stats.shiftsWorked} />
           <StatCard label="Missed breaks" value={stats.missedBreaks} />
         </div>
       </div>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-slate-900">Role breakdown</h3>
+          <h3 className={profileSectionTitleClass}>Role breakdown</h3>
         </CardHeader>
         <CardContent>
           {stats.roleBreakdown.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">No roles yet</p>
+            <p className={cn("py-6 text-center text-sm", profileMutedClass)}>
+              No roles yet
+            </p>
           ) : (
             <ul className="space-y-2">
               {stats.roleBreakdown.map((row) => (
                 <li
                   key={row.roleName}
-                  className="flex justify-between border-b border-slate-50 py-2 text-sm"
+                  className="flex justify-between border-b border-[var(--eb-border)] py-2 text-sm last:border-0"
                 >
-                  <span className="font-medium text-slate-900">{row.roleName}</span>
-                  <span className="text-slate-600">{row.hours.toFixed(2)} hrs</span>
+                  <span className={profileValueClass}>{row.roleName}</span>
+                  <span className="text-[var(--eb-muted)]">
+                    {row.hours.toFixed(2)} hrs
+                  </span>
                 </li>
               ))}
             </ul>
@@ -105,17 +136,20 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
       </Card>
 
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-slate-900">Milestones</h3>
+        <h3 className={cn("mb-4", profileSectionTitleClass)}>Milestones</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           {employee.milestones.map((m: EmployeeMilestone) => (
-            <Card key={m.id}>
+            <Card key={m.id} className={profileCardClass}>
               <CardContent className="flex items-start gap-3 py-4">
-                <span className="text-2xl" aria-hidden>
-                  🏆
-                </span>
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--eb-accent)]/30 bg-[var(--eb-accent)]/10"
+                  aria-hidden
+                >
+                  <Trophy className="size-5 text-[var(--eb-accent)]" />
+                </div>
                 <div>
-                  <p className="font-semibold text-slate-900">{m.title}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className={cn("font-semibold", profileValueClass)}>{m.title}</p>
+                  <p className={cn("text-sm", profileMutedClass)}>
                     {formatDateShort(m.milestone_date)}
                   </p>
                 </div>
@@ -123,55 +157,56 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
             </Card>
           ))}
           {employee.milestones.length === 0 ? (
-            <p className="col-span-2 text-center text-sm text-slate-500">
+            <p className={cn("col-span-2 text-center text-sm", profileMutedClass)}>
               Milestones appear when a hire date is set.
             </p>
           ) : null}
         </div>
       </div>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-slate-900">Manager Notes</h3>
+          <h3 className={profileSectionTitleClass}>Manager notes</h3>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Add a new note..."
+              placeholder="Add a new note…"
               rows={3}
-              className="min-h-[80px] flex-1 rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className={profileTextareaClass}
             />
-            <Button
+            <PendingButton
               type="button"
-              disabled={pending || !noteText.trim()}
+              pending={pending}
+              pendingLabel="Adding…"
+              disabled={!noteText.trim()}
               onClick={submitNote}
               className="sm:shrink-0"
             >
               Add note
-            </Button>
+            </PendingButton>
           </div>
 
           <ul className="space-y-4">
             {employee.notes.map((note) => (
-              <li
-                key={note.id}
-                className="group rounded-lg border border-slate-100 p-4"
-              >
+              <li key={note.id} className={profileNoteCardClass}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex gap-3">
                     <Avatar className="size-8">
-                      <AvatarFallback className="bg-slate-100 text-xs font-semibold">
+                      <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-accent)]">
                         {employeeInitials(note.author_name || "A")}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className={profileValueClass}>
                         {note.author_name || "Admin"}
                       </p>
-                      <p className="mt-1 text-sm text-slate-700">{note.content}</p>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-sm text-[var(--eb-text)]">
+                        {note.content}
+                      </p>
+                      <p className={cn("mt-1 text-xs", profileMutedClass)}>
                         {formatRelativeTime(note.created_at)}
                       </p>
                     </div>
@@ -179,7 +214,7 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
                   <button
                     type="button"
                     onClick={() => removeNote(note)}
-                    className="rounded p-1 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                    className="rounded p-1 text-[var(--eb-muted)] opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                     aria-label="Delete note"
                   >
                     <Trash2 className="size-4" />
@@ -188,7 +223,9 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
               </li>
             ))}
             {employee.notes.length === 0 ? (
-              <p className="text-center text-sm text-slate-500">No notes yet.</p>
+              <p className={cn("text-center text-sm", profileMutedClass)}>
+                No notes yet.
+              </p>
             ) : null}
           </ul>
         </CardContent>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AvailabilityView } from "@/components/schedule/availability-view";
 import {
   listAvailabilityByCompany,
@@ -12,8 +13,10 @@ export default async function TeamAvailabilityPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
-  const { week: weekParam } = await searchParams;
-  const { company } = await requireCompanySession();
+  const [{ week: weekParam }, { company }] = await Promise.all([
+    searchParams,
+    requireCompanySession(),
+  ]);
   const weekMonday = parseWeekParam(weekParam);
 
   const [employees, availability, departmentOptions] = await Promise.all([
@@ -23,11 +26,19 @@ export default async function TeamAvailabilityPage({
   ]);
 
   return (
-    <AvailabilityView
-      employees={employees}
-      availability={availability}
-      departmentOptions={departmentOptions}
-      weekStart={formatWeekParam(weekMonday)}
-    />
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+          Loading availability…
+        </div>
+      }
+    >
+      <AvailabilityView
+        employees={employees}
+        availability={availability}
+        departmentOptions={departmentOptions}
+        weekStart={formatWeekParam(weekMonday)}
+      />
+    </Suspense>
   );
 }

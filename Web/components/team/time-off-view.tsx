@@ -6,6 +6,7 @@ import {
   createTimeOffRequest,
   reviewTimeOffRequest,
 } from "@/app/(dashboard)/team/time-off/actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,28 +21,56 @@ import {
 } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
+import {
+  dashboardCardClass,
+  dashboardHeadingClass,
+  dashboardNativeSelectClass,
+  dashboardPageIntroClass,
+  dashboardSubheadingClass,
+} from "@/lib/dashboard/styles";
 import type { EmployeeListItem } from "@/lib/employees/queries";
 import {
   formatTimeOffType,
   type TimeOffRequestRow,
   type TimeOffRequestStatus,
 } from "@/lib/time-off/queries";
+import { cn } from "@/lib/utils";
 
 type TimeOffViewProps = {
   requests: TimeOffRequestRow[];
   employees: EmployeeListItem[];
 };
 
-function statusBadge(status: TimeOffRequestStatus) {
+function statusBadge(
+  status: TimeOffRequestStatus,
+  theme: "light" | "dark"
+) {
   switch (status) {
     case "approved":
-      return <StatusBadge tone="success">Approved</StatusBadge>;
+      return (
+        <StatusBadge tone="success" theme={theme}>
+          Approved
+        </StatusBadge>
+      );
     case "denied":
-      return <StatusBadge tone="error">Denied</StatusBadge>;
+      return (
+        <StatusBadge tone="error" theme={theme}>
+          Denied
+        </StatusBadge>
+      );
     case "cancelled":
-      return <StatusBadge tone="neutral">Cancelled</StatusBadge>;
+      return (
+        <StatusBadge tone="neutral" theme={theme}>
+          Cancelled
+        </StatusBadge>
+      );
     default:
-      return <StatusBadge tone="warning">Pending</StatusBadge>;
+      return (
+        <StatusBadge tone="warning" theme={theme}>
+          Pending
+        </StatusBadge>
+      );
   }
 }
 
@@ -51,6 +80,7 @@ function formatDateRange(start: string, end: string) {
 }
 
 export function TimeOffView({ requests, employees }: TimeOffViewProps) {
+  const { theme: dashboardTheme } = useDashboardTheme();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState(employees[0]?.id ?? "");
@@ -112,20 +142,20 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Time Off</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className={dashboardHeadingClass}>Time Off</h2>
+          <p className={cn("mt-1", dashboardPageIntroClass)}>
             Request and approve leave. Approved days block new shift assignments.
           </p>
         </div>
         {pendingCount > 0 ? (
-          <StatusBadge tone="warning">
+          <StatusBadge tone="warning" theme={dashboardTheme}>
             {pendingCount} pending review
           </StatusBadge>
         ) : null}
       </div>
 
-      <Card className="p-4">
-        <h3 className="text-sm font-semibold text-slate-900">New request</h3>
+      <Card className={cn("p-4", dashboardCardClass)}>
+        <h3 className={dashboardSubheadingClass}>New request</h3>
         <form
           onSubmit={handleCreate}
           className="mt-4 flex flex-wrap items-end gap-4"
@@ -136,7 +166,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
               id="time-off-employee"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className="mt-1.5 block min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              className={cn(dashboardNativeSelectClass, "min-w-[200px]")}
               required
             >
               {activeEmployees.map((employee) => (
@@ -160,7 +190,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                     | "unpaid"
                 )
               }
-              className="mt-1.5 block min-w-[140px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              className={cn(dashboardNativeSelectClass, "min-w-[140px]")}
             >
               <option value="vacation">Vacation</option>
               <option value="sick">Sick</option>
@@ -200,14 +230,23 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
               placeholder="Doctor visit, family trip…"
             />
           </div>
-          <Button type="submit" disabled={pending || !employeeId}>
-            {pending ? "Saving…" : "Submit request"}
-          </Button>
+          <PendingButton
+            type="submit"
+            pending={pending}
+            pendingLabel="Saving…"
+            disabled={!employeeId}
+          >
+            Submit request
+          </PendingButton>
         </form>
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <p className="mt-3 text-sm text-red-400" role="alert">
+            {error}
+          </p>
+        ) : null}
       </Card>
 
-      <Card className="overflow-hidden">
+      <Card className={cn("overflow-hidden", dashboardCardClass)}>
         <DataTable>
           <DataTableHeader>
             <tr>
@@ -229,7 +268,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
             ) : (
               requests.map((request) => (
                 <DataTableRow key={request.id}>
-                  <DataTableCell className="font-semibold text-slate-900">
+                  <DataTableCell className="font-semibold text-[var(--eb-text)]">
                     {request.employee_name}
                   </DataTableCell>
                   <DataTableCell>
@@ -238,8 +277,10 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                   <DataTableCell>
                     {formatTimeOffType(request.request_type)}
                   </DataTableCell>
-                  <DataTableCell>{statusBadge(request.status)}</DataTableCell>
-                  <DataTableCell className="max-w-[200px] truncate text-slate-600">
+                  <DataTableCell>
+                    {statusBadge(request.status, dashboardTheme)}
+                  </DataTableCell>
+                  <DataTableCell className="max-w-[200px] truncate text-[var(--eb-muted)]">
                     {request.reason || "—"}
                   </DataTableCell>
                   <DataTableCell>

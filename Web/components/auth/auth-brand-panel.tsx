@@ -19,34 +19,23 @@ export function AuthBrandPanel({
   className,
 }: AuthBrandPanelProps) {
   return (
-    <div
+    <aside
       className={cn(
-        "relative hidden overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between",
+        "relative hidden flex-col justify-center px-8 py-12 lg:flex xl:px-14 xl:py-16",
         className
       )}
     >
-      <div
-        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl"
-        aria-hidden
-      />
+      <p className="max-w-md text-[clamp(1.35rem,2.2vw,1.75rem)] font-normal leading-snug tracking-[-0.02em] text-[var(--eb-text)]">
+        {tagline}
+      </p>
 
-      <div className="relative">
-        <Link href="/" className="text-2xl font-bold tracking-tight">
-          Elite<span className="text-blue-200">base</span>
-        </Link>
-        <p className="mt-6 max-w-md text-lg leading-relaxed text-blue-100">
-          {tagline}
-        </p>
-      </div>
-
-      <ul className="relative mt-10 space-y-4">
+      <ul className="mt-10 max-w-md space-y-4">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-3 text-sm text-blue-50">
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+          <li
+            key={feature}
+            className="flex items-start gap-3 text-sm leading-relaxed text-[var(--eb-text)]/88"
+          >
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--eb-accent)]/35 bg-[var(--eb-accent)]/10 text-[0.65rem] font-bold text-[var(--eb-accent)]">
               ✓
             </span>
             {feature}
@@ -54,9 +43,12 @@ export function AuthBrandPanel({
         ))}
       </ul>
 
-      <p className="relative mt-auto text-xs text-blue-200/80">
-        Trusted by retail, hospitality, and service businesses nationwide.
-      </p>
-    </div>
+      <Link
+        href="/register"
+        className="mt-12 inline-flex w-fit text-sm font-medium text-[var(--eb-accent)] transition-colors hover:text-[var(--eb-text)]"
+      >
+        ← Back to role selection
+      </Link>
+    </aside>
   );
 }

@@ -24,9 +24,11 @@ type TimesheetsPageProps = {
 };
 
 export default async function TimesheetsPage({ searchParams }: TimesheetsPageProps) {
-  const { company } = await requireTimesheetsSession();
+  const [{ company }, params] = await Promise.all([
+    requireTimesheetsSession(),
+    searchParams,
+  ]);
   const timezone = companyTimezone(company.timezone);
-  const params = await searchParams;
 
   const [months, employees] = await Promise.all([
     listAttendanceMonths(company.id, timezone),

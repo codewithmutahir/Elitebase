@@ -41,6 +41,13 @@ import {
 } from "@/lib/availability/week";
 import type { DepartmentOption } from "@/lib/departments/queries";
 import { fadeIn, staggerContainer } from "@/lib/animations";
+import {
+  dashboardCardClass,
+  dashboardNativeSelectClass,
+  dashboardPageIntroClass,
+  dashboardStickyTableCellClass,
+  dashboardTableHeadRowClass,
+} from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 
 type AvailabilityViewProps = {
@@ -226,17 +233,19 @@ function AvailabilityCell({
           <button
             type="button"
             className={cn(
-              "flex min-h-[52px] w-full flex-col items-center justify-center border-l border-slate-100 px-2 py-2 text-center text-xs transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset",
-              state === "unavailable" && "bg-red-50 hover:bg-red-100/80",
-              state === "partial" && "bg-white hover:bg-blue-50/50",
-              state === "available" && "bg-white"
+              "flex min-h-[52px] w-full flex-col items-center justify-center border-l border-[var(--eb-border)] px-2 py-2 text-center text-xs transition-colors hover:bg-[var(--eb-elevated)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--eb-accent)] focus-visible:ring-inset",
+              state === "unavailable" &&
+                "bg-red-500/10 hover:bg-red-500/15",
+              state === "partial" &&
+                "bg-[var(--eb-accent)]/5 hover:bg-[var(--eb-accent)]/10",
+              state === "available" && "bg-transparent"
             )}
             aria-label={`Edit ${employee.full_name} ${dayLabel} availability`}
           >
             {state === "unavailable" ? (
               <span className="font-medium text-red-600">Unavailable</span>
             ) : state === "partial" ? (
-              <span className="font-semibold text-blue-600">{label}</span>
+              <span className="font-semibold text-[var(--eb-accent)]">{label}</span>
             ) : null}
           </button>
         }
@@ -308,7 +317,7 @@ export function AvailabilityView({
           >
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
-          <span className="min-w-[200px] text-center text-sm font-semibold text-slate-900">
+          <span className="min-w-[200px] text-center text-sm font-semibold text-[var(--eb-text)]">
             {weekLabel}
           </span>
           <Button
@@ -329,7 +338,7 @@ export function AvailabilityView({
               id="availabilityDepartment"
               value={departmentId}
               onChange={(event) => setDepartmentId(event.target.value)}
-              className="mt-1.5 flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className={dashboardNativeSelectClass}
             >
               <option value="all">All departments</option>
               {departmentOptions.map((dept) => (
@@ -346,17 +355,22 @@ export function AvailabilityView({
         </div>
       </div>
 
-      <p className="text-sm text-slate-500">
+      <p className={dashboardPageIntroClass}>
         Set recurring weekly availability. Click a cell to mark unavailable or
         set specific hours.
       </p>
 
-      <Card className="overflow-hidden">
+      <Card className={cn("overflow-hidden", dashboardCardClass)}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
-                <th className="sticky left-0 z-10 w-[200px] min-w-[200px] border-r border-slate-200 bg-slate-50/95 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr className={dashboardTableHeadRowClass}>
+                <th
+                  className={cn(
+                    dashboardStickyTableCellClass,
+                    "w-[200px] min-w-[200px] text-left text-xs font-semibold uppercase tracking-wide text-[var(--eb-muted)]"
+                  )}
+                >
                   Employee
                 </th>
                 {GRID_DAYS.map((day) => {
@@ -364,12 +378,12 @@ export function AvailabilityView({
                   return (
                     <th
                       key={day.dayOfWeek}
-                      className="min-w-[100px] border-l border-slate-100 px-2 py-3 text-center"
+                      className="min-w-[100px] border-l border-[var(--eb-border)] px-2 py-3 text-center"
                     >
-                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-[var(--eb-text)]">
                         {day.label}
                       </div>
-                      <div className="mt-0.5 text-xs font-normal text-slate-400">
+                      <div className="mt-0.5 text-xs font-normal text-[var(--eb-muted)]">
                         {shortDateLabel(date)}
                       </div>
                     </th>
@@ -386,7 +400,7 @@ export function AvailabilityView({
                 <tr>
                   <td
                     colSpan={8}
-                    className="px-6 py-16 text-center text-slate-500"
+                    className="px-6 py-16 text-center text-[var(--eb-muted)]"
                   >
                     No employees match this filter.
                   </td>
@@ -396,21 +410,26 @@ export function AvailabilityView({
                   <motion.tr
                     key={employee.id}
                     variants={fadeIn}
-                    className="border-b border-slate-100 last:border-b-0"
+                    className="border-b border-[var(--eb-border)] last:border-b-0"
                   >
-                    <td className="sticky left-0 z-10 w-[200px] min-w-[200px] border-r border-slate-200 bg-white px-4 py-3">
+                    <td
+                      className={cn(
+                        dashboardStickyTableCellClass,
+                        "w-[200px] min-w-[200px]"
+                      )}
+                    >
                       <div className="flex items-center gap-3">
                         <Avatar className="size-8 shrink-0">
-                          <AvatarFallback className="bg-blue-100 text-xs font-bold text-blue-700">
+                          <AvatarFallback className="bg-[var(--eb-accent)]/15 text-xs font-bold text-[var(--eb-accent)]">
                             {initials(employee.full_name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-900">
+                          <p className="truncate font-semibold text-[var(--eb-text)]">
                             {employee.full_name}
                           </p>
                           {employee.department ? (
-                            <p className="truncate text-xs text-slate-500">
+                            <p className="truncate text-xs text-[var(--eb-muted)]">
                               {employee.department}
                             </p>
                           ) : null}

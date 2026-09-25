@@ -1,10 +1,8 @@
 "use client";
 
-import { Users } from "lucide-react";
-import { RosterPinCell } from "@/components/team/roster-pin-cell";
-import { RosterRowActions } from "@/components/team/roster-row-actions";
+import { Upload, Users } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AddEmployeeDrawer,
   AddEmployeeTrigger,
@@ -12,7 +10,11 @@ import {
 import {
   ImportEmployeesDialog,
   ImportEmployeesTrigger,
+  type CsvImportSeed,
 } from "@/components/employees/import-employees-dialog";
+import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
+import { RosterPinCell } from "@/components/team/roster-pin-cell";
+import { RosterRowActions } from "@/components/team/roster-row-actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,8 +28,14 @@ import {
 } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  dashboardCardClass,
+  dashboardNativeSelectClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
 import type { DepartmentOption } from "@/lib/departments/queries";
 import { employeeInitials } from "@/lib/employees/format";
+import { validateCsvFile } from "@/lib/employees/csv-import-limits";
 import type { EmployeeListItem } from "@/lib/employees/queries";
 import { cn } from "@/lib/utils";
 
@@ -35,18 +43,23 @@ type StatusFilter = "all" | "active" | "terminated";
 
 function faceBadge(employee: EmployeeListItem) {
   if (employee.status === "terminated") {
-    return <StatusBadge tone="error">Deactivated</StatusBadge>;
+    return <StatusBadge tone="error" theme="dark">Deactivated</StatusBadge>;
   }
   if (employee.needs_reenrollment) {
-    return <StatusBadge tone="warning">Re-scan needed</StatusBadge>;
+    return <StatusBadge tone="warning" theme="dark">Re-scan needed</StatusBadge>;
   }
   if (employee.face_registered_at) {
-    return <StatusBadge tone="success">Enrolled</StatusBadge>;
+    return <StatusBadge tone="success" theme="dark">Enrolled</StatusBadge>;
   }
   if (employee.hasPin) {
-    return <StatusBadge tone="warning">PIN only</StatusBadge>;
+    return <StatusBadge tone="warning" theme="dark">PIN only</StatusBadge>;
   }
-  return <StatusBadge tone="neutral">Pending</StatusBadge>;
+  return <StatusBadge tone="neutral" theme="dark">Pending</StatusBadge>;
+}
+
+function isCsvFile(file: File) {
+  const name = file.name.toLowerCase();
+  return name.endsWith(".csv") || file.type === "text/csv" || file.type === "application/vnd.ms-excel";
 }
 
 type RosterViewProps = {
@@ -57,9 +70,12 @@ type RosterViewProps = {
 export function RosterView({ employees, departmentOptions }: RosterViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [csvSeed, setCsvSeed] = useState<CsvImportSeed | null>(null);
   const [search, setSearch] = useState("");
   const [departmentId, setDepartmentId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [dragOver, setDragOver] = useState(false);
+  const [dropError, setDropError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -79,16 +95,84 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
     });
   }, [employees, search, departmentId, statusFilter]);
 
-  const statusTabs: { id: StatusFilter; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "active", label: "Active" },
-    { id: "terminated", label: "Terminated" },
+  const statusTabs = [
+    { id: "all" as const, label: "All" },
+    { id: "active" as const, label: "Active" },
+    { id: "terminated" as const, label: "Terminated" },
   ];
 
+  const openCsvImport = useCallback((text: string, fileName: string) => {
+    setDropError(null);
+    setCsvSeed({ text, fileName });
+    setImportOpen(true);
+  }, []);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      setDragOver(false);
+      const file = event.dataTransfer.files?.[0];
+      if (!file || !isCsvFile(file)) return;
+      const fileError = validateCsvFile(file);
+      if (fileError) {
+        setDropError(fileError);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        openCsvImport(String(reader.result ?? ""), file.name);
+      };
+      reader.readAsText(file);
+    },
+    [openCsvImport]
+  );
+
   return (
-    <div className="space-y-6">
+    <div
+      className="relative space-y-6"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {dragOver ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[var(--eb-ink)]/70 backdrop-blur-sm"
+          aria-live="polite"
+        >
+          <div className="rounded-2xl border-2 border-dashed border-[var(--eb-accent)] bg-[var(--eb-surface)] px-10 py-8 text-center shadow-xl">
+            <Upload className="mx-auto size-10 text-[var(--eb-accent)]" aria-hidden />
+            <p className="mt-4 text-lg font-medium text-[var(--eb-text)]">
+              Drop CSV to import employees
+            </p>
+            <p className="mt-1 text-sm text-[var(--eb-muted)]">
+              We&apos;ll open the import preview when you release the file.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {dropError ? (
+        <p
+          className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+          role="alert"
+        >
+          {dropError}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <p className="text-sm text-slate-500">
+        <p className={dashboardPageIntroClass}>
           Manage your team roster, kiosk access, and profiles.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -97,34 +181,29 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
-        {statusTabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setStatusFilter(tab.id)}
-            className={cn(
-              "border-b-2 px-4 py-2 text-sm font-semibold transition-colors",
-              statusFilter === tab.id
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <DashboardTabs
+        tabs={statusTabs}
+        value={statusFilter}
+        onChange={setStatusFilter}
+      />
 
       {employees.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <Card
+          className={cn(
+            dashboardCardClass,
+            "flex flex-col items-center justify-center py-16 text-center",
+            dragOver && "border-[var(--eb-accent)] ring-2 ring-[var(--eb-accent)]/30"
+          )}
+        >
+          <div className="flex size-16 items-center justify-center rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-accent)]">
             <Users className="size-8" aria-hidden />
           </div>
-          <h2 className="mt-6 text-lg font-semibold text-slate-900">
+          <h2 className="mt-6 text-lg font-medium text-[var(--eb-text)]">
             Add your first team member
           </h2>
-          <p className="mt-2 max-w-sm text-sm text-slate-500">
-            Create a profile and we&apos;ll generate a kiosk PIN for clock-in.
+          <p className="mt-2 max-w-sm text-sm text-[var(--eb-muted)]">
+            Create a profile and we&apos;ll generate a kiosk PIN for clock-in. Or
+            drag a CSV anywhere on this page to import.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <ImportEmployeesTrigger onClick={() => setImportOpen(true)} />
@@ -144,12 +223,14 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
               />
             </div>
             <div className="w-full sm:w-48">
-              <Label htmlFor="departmentFilter">Department</Label>
+              <Label htmlFor="departmentFilter" className="text-[var(--eb-text)]">
+                Department
+              </Label>
               <select
                 id="departmentFilter"
                 value={departmentId}
                 onChange={(event) => setDepartmentId(event.target.value)}
-                className="mt-1.5 flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={dashboardNativeSelectClass}
               >
                 <option value="all">All departments</option>
                 {departmentOptions.map((dept) => (
@@ -161,7 +242,7 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
             </div>
           </div>
 
-          <Card className="overflow-hidden">
+          <Card className={cn(dashboardCardClass, "overflow-hidden")}>
             <DataTable>
               <DataTableHeader>
                 <tr>
@@ -178,7 +259,9 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7}>
-                      <DataTableEmpty>No employees match your filters.</DataTableEmpty>
+                      <DataTableEmpty>
+                        No employees match your filters.
+                      </DataTableEmpty>
                     </td>
                   </tr>
                 ) : (
@@ -187,16 +270,16 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                     return (
                       <DataTableRow
                         key={employee.id}
-                        className={cn(terminated && "bg-slate-50/80 opacity-75")}
+                        className={cn(terminated && "opacity-70")}
                       >
                         <DataTableCell>
                           <div className="flex items-center gap-3">
                             <span
                               className={cn(
-                                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                                "flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold",
                                 terminated
-                                  ? "bg-slate-200 text-slate-500"
-                                  : "bg-blue-100 text-blue-700"
+                                  ? "bg-[var(--eb-hover-overlay)] text-[var(--eb-muted)]"
+                                  : "border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-accent)]"
                               )}
                             >
                               {employeeInitials(employee.full_name)}
@@ -205,16 +288,18 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                               <Link
                                 href={`/employees/${employee.id}`}
                                 className={cn(
-                                  "font-semibold hover:text-blue-600",
+                                  "font-medium hover:text-[var(--eb-accent)]",
                                   terminated
-                                    ? "text-slate-500 line-through"
-                                    : "text-slate-900"
+                                    ? "text-[var(--eb-muted)] line-through"
+                                    : "text-[var(--eb-text)]"
                                 )}
                               >
                                 {employee.full_name}
                               </Link>
                               {employee.email ? (
-                                <p className="text-xs text-slate-500">{employee.email}</p>
+                                <p className="text-xs text-[var(--eb-muted)]">
+                                  {employee.email}
+                                </p>
                               ) : null}
                             </div>
                           </div>
@@ -223,9 +308,13 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
                         <DataTableCell>{employee.position ?? "—"}</DataTableCell>
                         <DataTableCell>
                           {terminated ? (
-                            <StatusBadge tone="error">Deactivated</StatusBadge>
+                            <StatusBadge tone="error" theme="dark">
+                              Deactivated
+                            </StatusBadge>
                           ) : (
-                            <StatusBadge tone="success">Active</StatusBadge>
+                            <StatusBadge tone="success" theme="dark">
+                              Active
+                            </StatusBadge>
                           )}
                         </DataTableCell>
                         <DataTableCell>
@@ -254,7 +343,14 @@ export function RosterView({ employees, departmentOptions }: RosterViewProps) {
         onClose={() => setDrawerOpen(false)}
         departmentOptions={departmentOptions}
       />
-      <ImportEmployeesDialog open={importOpen} onOpenChange={setImportOpen} />
+      <ImportEmployeesDialog
+        open={importOpen}
+        onOpenChange={(open) => {
+          if (!open) setCsvSeed(null);
+          setImportOpen(open);
+        }}
+        csvSeed={csvSeed}
+      />
     </div>
   );
 }

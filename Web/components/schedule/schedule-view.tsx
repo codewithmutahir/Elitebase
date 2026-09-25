@@ -53,6 +53,18 @@ import { isWorkingDayOnDate } from "@/lib/employees/working-days";
 import { useCompany } from "@/contexts/company-context";
 import { resolveCurrency } from "@/lib/currencies";
 import { fadeIn, staggerContainer } from "@/lib/animations";
+import {
+  dashboardCardClass,
+  dashboardGridBodyCellClass,
+  dashboardGridCornerHeadClass,
+  dashboardGridDayHeadClass,
+  dashboardGridOffDayCellClass,
+  dashboardGridRowLabelCellClass,
+  dashboardGridRowLabelCellMutedClass,
+  dashboardGridTheadClass,
+  dashboardGridTfootClass,
+  dashboardNativeSelectClass,
+} from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 
 type ScheduleViewProps = {
@@ -84,16 +96,16 @@ function ScheduleCell({
 }) {
   if (isOffDay) {
     return (
-      <td className="min-w-[110px] border-l border-slate-100 bg-slate-50/80 align-top p-0">
+      <td className={dashboardGridOffDayCellClass}>
         <div className="flex min-h-[72px] items-center justify-center p-2">
-          <span className="text-xs font-medium text-slate-400">Off</span>
+          <span className="text-xs font-medium text-[var(--eb-muted)]">Off</span>
         </div>
       </td>
     );
   }
 
   return (
-    <td className="min-w-[110px] border-l border-slate-100 align-top p-0">
+    <td className={dashboardGridBodyCellClass}>
       <div className="group relative min-h-[72px] p-1">
         <div className="relative z-10">
           {shifts.map((shift) => (
@@ -105,7 +117,7 @@ function ScheduleCell({
         <button
           type="button"
           onClick={onAdd}
-          className="absolute right-1 top-1 z-20 flex size-7 items-center justify-center rounded-full bg-blue-600 text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+          className="absolute right-1 top-1 z-20 flex size-7 items-center justify-center rounded-full bg-[var(--eb-accent)] text-[var(--eb-ink,#060A12)] opacity-0 shadow-md transition-opacity group-hover:opacity-100"
           aria-label="Add shift"
         >
           <Plus className="size-3.5" aria-hidden />
@@ -209,7 +221,7 @@ export function ScheduleView({
           >
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
-          <span className="min-w-[240px] text-center text-sm font-semibold text-slate-900">
+          <span className="min-w-[240px] text-center text-sm font-semibold text-[var(--eb-text)]">
             {weekLabel}
           </span>
           <Button
@@ -224,7 +236,7 @@ export function ScheduleView({
           <select
             value="week"
             disabled
-            className="ml-2 h-9 rounded-lg border border-input bg-transparent px-3 text-sm text-slate-600"
+            className={cn(dashboardNativeSelectClass, "ml-2 h-9 w-auto py-0")}
             aria-label="View"
           >
             <option value="week">Week</option>
@@ -244,23 +256,21 @@ export function ScheduleView({
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className={cn("overflow-hidden", dashboardCardClass)}>
         <div className="max-h-[calc(100vh-220px)] overflow-auto">
           <table className="w-full min-w-[960px] border-collapse text-sm">
-            <thead className="sticky top-0 z-30 bg-white shadow-sm">
-              <tr className="border-b border-slate-200">
-                <th className="sticky left-0 z-40 w-[220px] min-w-[220px] border-r border-slate-200 bg-white px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  &nbsp;
-                </th>
+            <thead className={dashboardGridTheadClass}>
+              <tr>
+                <th className={dashboardGridCornerHeadClass}>&nbsp;</th>
                 {GRID_DAYS.map((day) => {
                   const date = dateForDayInWeek(weekMonday, day.dayOfWeek);
                   const isToday = isSameCalendarDay(date, today);
                   return (
                     <th
                       key={day.dayOfWeek}
-                      className="min-w-[110px] border-l border-slate-100 px-2 py-3 text-center"
+                      className={dashboardGridDayHeadClass}
                     >
-                      <div className="text-xs font-semibold uppercase text-slate-500">
+                      <div className="text-xs font-semibold uppercase text-[var(--eb-muted)]">
                         {day.label}
                       </div>
                       <div className="mt-1 flex justify-center">
@@ -268,8 +278,8 @@ export function ScheduleView({
                           className={cn(
                             "flex size-7 items-center justify-center rounded-full text-sm font-semibold",
                             isToday
-                              ? "bg-blue-600 text-white"
-                              : "text-slate-800"
+                              ? "bg-[var(--eb-accent)] text-[var(--eb-ink,#060A12)]"
+                              : "text-[var(--eb-text)]"
                           )}
                         >
                           {date.getDate()}
@@ -286,10 +296,15 @@ export function ScheduleView({
               initial="initial"
               animate="animate"
             >
-              <motion.tr variants={fadeIn} className="border-b border-slate-100">
-                <td className="sticky left-0 z-20 w-[220px] min-w-[220px] border-r border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="font-semibold text-slate-900">Open shifts</p>
-                  <p className="text-xs text-slate-500">Unassigned</p>
+              <motion.tr
+                variants={fadeIn}
+                className="border-b border-[var(--eb-border)]"
+              >
+                <td className={dashboardGridRowLabelCellMutedClass}>
+                  <p className="font-semibold text-[var(--eb-text)]">
+                    Open shifts
+                  </p>
+                  <p className="text-xs text-[var(--eb-muted)]">Unassigned</p>
                 </td>
                 {weekDates.map((dateStr) => (
                   <ScheduleCell
@@ -319,20 +334,20 @@ export function ScheduleView({
                   <motion.tr
                     key={employee.id}
                     variants={fadeIn}
-                    className="border-b border-slate-100"
+                    className="border-b border-[var(--eb-border)]"
                   >
-                    <td className="sticky left-0 z-20 w-[220px] min-w-[220px] border-r border-slate-200 bg-white px-4 py-3">
+                    <td className={dashboardGridRowLabelCellClass}>
                       <div className="flex items-center gap-3">
                         <Avatar className="size-8 shrink-0">
-                          <AvatarFallback className="bg-blue-100 text-xs font-bold text-blue-700">
+                          <AvatarFallback className="bg-[var(--eb-accent)]/15 text-xs font-bold text-[var(--eb-accent)]">
                             {initials(employee.full_name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-900">
+                          <p className="truncate font-semibold text-[var(--eb-text)]">
                             {employee.full_name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-[var(--eb-muted)]">
                             {formatHours(totals.hours)} hrs / {payLabel}:{" "}
                             {formatWages(totals.wages, currency)}
                           </p>
@@ -366,9 +381,14 @@ export function ScheduleView({
               })}
             </motion.tbody>
 
-            <tfoot className="sticky bottom-0 z-30 border-t border-slate-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+            <tfoot className={dashboardGridTfootClass}>
               <tr>
-                <td className="sticky left-0 z-40 w-[220px] min-w-[220px] border-r border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500">
+                <td
+                  className={cn(
+                    dashboardGridCornerHeadClass,
+                    "py-2 normal-case"
+                  )}
+                >
                   Totals
                 </td>
                 {weekDates.map((dateStr) => {
@@ -381,7 +401,7 @@ export function ScheduleView({
                   return (
                     <td
                       key={`total-${dateStr}`}
-                      className="border-l border-slate-100 px-2 py-2 text-center text-xs text-slate-600"
+                      className="border-l border-[var(--eb-border)] px-2 py-2 text-center text-xs text-[var(--eb-muted)]"
                     >
                       <div className="leading-snug">
                         Wages: {formatWages(totals.wages, currency)}

@@ -1,103 +1,176 @@
 import Link from "next/link";
+
 import { headers } from "next/headers";
+
 import { redirect } from "next/navigation";
+
+import { AuthAlert } from "@/components/auth/auth-alert";
+
+import { AuthFormCard } from "@/components/auth/auth-form-card";
+
+import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
+
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
+
 import { auth } from "@/lib/auth";
-import { ForgotPasswordSubmitButton } from "./submit-button";
+
+import {
+  enforceAuthRateLimitInAction,
+  resolveAuthRateLimitQueryMessage,
+} from "@/lib/auth/enforce-rate-limit";
+import { parseForgotPasswordFormData } from "@/lib/validations/auth";
 
 async function requestReset(formData: FormData) {
   "use server";
 
-  const email = String(formData.get("email") ?? "").trim();
+  await enforceAuthRateLimitInAction("forgot-password", "/forgot-password");
 
-  if (!email) {
-    redirect("/forgot-password?error=missing_email");
+  const parsed = parseForgotPasswordFormData(formData);
+
+  if (!parsed.success) {
+
+    redirect("/forgot-password?error=validation");
+
   }
+
+
+
+  const { email } = parsed.data;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "http://localhost:3000";
 
+
+
   try {
+
     await auth.api.requestPasswordReset({
+
       body: {
+
         email,
+
         redirectTo: `${appUrl}/reset-password`,
+
       },
+
       headers: await headers(),
+
     });
+
   } catch (error) {
+
     console.error(
+
       "Password reset request failed:",
+
       error instanceof Error ? error.message : error
+
     );
+
     redirect("/forgot-password?error=request_failed");
+
   }
 
+
+
   redirect("/forgot-password?sent=1");
+
 }
 
+
+
 export default async function ForgotPasswordPage({
+
   searchParams,
+
 }: {
+
   searchParams: Promise<{ error?: string; sent?: string }>;
+
 }) {
+
   const { error, sent } = await searchParams;
 
+
+
+  const rateLimitMessage = resolveAuthRateLimitQueryMessage(error);
   const errorMessage =
-    error === "missing_email"
-      ? "Enter your email address."
+    rateLimitMessage ??
+    (error === "validation" || error === "missing_email"
+      ? "Enter a valid email address."
       : error === "request_failed"
         ? "Could not send reset email. Try again in a moment."
         : error
           ? "Something went wrong. Please try again."
-          : null;
+          : null);
+
+
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-6 py-16 text-[#0F172A]">
-      <section className="mx-auto w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold">Reset your password</h1>
-        <p className="mt-3 text-[#64748B]">
-          Enter your account email and we&apos;ll send a link to choose a new
-          password.
-        </p>
+
+    <AuthSplitLayout backHref="/login" backLabel="Back to sign in">
+
+      <AuthFormCard
+
+        eyebrow="Account recovery"
+
+        title="Reset your password"
+
+        subtitle="Enter your work email and we'll send a link to choose a new password."
+
+        footer={
+
+          <p className="text-center text-sm text-[var(--eb-muted)]">
+
+            Remember your password?{" "}
+
+            <Link
+
+              href="/login"
+
+              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
+
+            >
+
+              Sign in
+
+            </Link>
+
+          </p>
+
+        }
+
+      >
 
         {sent === "1" ? (
-          <p className="mt-5 rounded-lg bg-green-50 px-4 py-3 text-sm text-[#047857]">
+
+          <AuthAlert variant="success">
+
             If an account exists for that email, you&apos;ll receive a reset link
+
             shortly. Check your inbox and spam folder.
-          </p>
+
+          </AuthAlert>
+
         ) : null}
+
+
 
         {errorMessage ? (
-          <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-[#B91C1C]">
-            {errorMessage}
-          </p>
+
+          <AuthAlert variant="error">{errorMessage}</AuthAlert>
+
         ) : null}
 
-        {sent !== "1" ? (
-          <form action={requestReset} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold" htmlFor="email">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="w-full rounded-lg border border-[#CBD5E1] px-4 py-3 outline-none ring-[#2563EB] focus:ring-2"
-              />
-            </div>
 
-            <ForgotPasswordSubmitButton />
-          </form>
-        ) : null}
 
-        <p className="mt-6 text-center text-sm text-[#64748B]">
-          <Link href="/login" className="font-semibold text-[#2563EB]">
-            Back to sign in
-          </Link>
-        </p>
-      </section>
-    </main>
+        {sent !== "1" ? <ForgotPasswordForm action={requestReset} /> : null}
+
+      </AuthFormCard>
+
+    </AuthSplitLayout>
+
   );
+
 }
+

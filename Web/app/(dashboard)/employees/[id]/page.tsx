@@ -8,8 +8,7 @@ export default async function EmployeeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
-  const { company } = await requireCompanySession();
+  const [{ id }, { company }] = await Promise.all([params, requireCompanySession()]);
   const employee = await getEmployeeProfile(company.id, id);
 
   if (!employee) {

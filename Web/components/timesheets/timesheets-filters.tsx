@@ -1,9 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  dashboardFormPanelClass,
+  dashboardMetricLabelClass,
+  dashboardNativeSelectClass,
+  dashboardSectionTitleClass,
+} from "@/lib/dashboard/styles";
 import { getMonthRange } from "@/lib/timesheets/dates";
 import { formatTimesheetMonthLabel } from "@/lib/timesheets/labels";
 import type { TimesheetEmployeeOption } from "@/lib/timesheets/data";
@@ -30,6 +36,7 @@ export function TimesheetsFilters({
   const [employeeId, setEmployeeId] = useState(selectedEmployeeId);
   const [fromDate, setFromDate] = useState(from);
   const [toDate, setToDate] = useState(to);
+  const [submitting, setSubmitting] = useState(false);
 
   const showCustomRange = month === "custom";
 
@@ -50,11 +57,12 @@ export function TimesheetsFilters({
   return (
     <form
       method="get"
-      className="space-y-4 rounded-xl border border-slate-100 bg-white p-4 shadow-sm"
+      className={dashboardFormPanelClass}
+      onSubmit={() => setSubmitting(true)}
     >
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Filter timesheets</h3>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <h3 className={dashboardSectionTitleClass}>Filter timesheets</h3>
+        <p className={`mt-0.5 ${dashboardMetricLabelClass}`}>
           Browse clock-in, breaks, and hours by month or a custom date range.
         </p>
       </div>
@@ -67,7 +75,7 @@ export function TimesheetsFilters({
             name="month"
             value={month}
             onChange={(event) => handleMonthChange(event.target.value)}
-            className="mt-1.5 block min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            className={`${dashboardNativeSelectClass} min-w-[200px]`}
           >
             {months.length === 0 ? (
               <option value="custom">Custom date range</option>
@@ -91,7 +99,7 @@ export function TimesheetsFilters({
             name="employeeId"
             value={employeeId}
             onChange={(event) => setEmployeeId(event.target.value)}
-            className="mt-1.5 block min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            className={`${dashboardNativeSelectClass} min-w-[200px]`}
           >
             <option value="all">All employees</option>
             {employees.map((employee) => (
@@ -102,11 +110,13 @@ export function TimesheetsFilters({
           </select>
         </div>
 
-        <Button type="submit">Apply</Button>
+        <PendingButton type="submit" pending={submitting} pendingLabel="Applying…">
+          Apply
+        </PendingButton>
       </div>
 
       {showCustomRange ? (
-        <div className="flex flex-wrap items-end gap-4 border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap items-end gap-4 border-t border-[var(--eb-border)] pt-4">
           <div>
             <Label htmlFor="from">From</Label>
             <Input
@@ -134,7 +144,7 @@ export function TimesheetsFilters({
         <>
           <input type="hidden" name="from" value={monthBounds.from} />
           <input type="hidden" name="to" value={monthBounds.to} />
-          <p className="text-xs text-slate-500">
+          <p className={`text-xs ${dashboardMetricLabelClass}`}>
             Showing {formatTimesheetMonthLabel(month)} ({monthBounds.from} to{" "}
             {monthBounds.to})
           </p>

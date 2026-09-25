@@ -33,6 +33,15 @@ const STORAGE_KEY = "sidebar-expanded";
 const SCHEDULE_OPEN_KEY = "sidebar-schedule-open";
 const TEAM_OPEN_KEY = "sidebar-team-open";
 
+const navActive =
+  "bg-[var(--eb-accent)]/15 text-[var(--eb-accent)]";
+const navIdle =
+  "text-[var(--eb-muted)] hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]";
+const iconActive = "text-[var(--eb-accent)]";
+const iconIdle = "text-[var(--eb-muted)]";
+const dotActive = "bg-[var(--eb-accent)]";
+const dotIdle = "bg-[var(--eb-muted)]/45";
+
 type NavItem = {
   href: string;
   label: string;
@@ -134,20 +143,25 @@ export function Sidebar() {
   }, []);
 
   const toggleSchedule = useCallback(() => {
-    setScheduleOpen((open) => {
-      const next = !open;
-      window.localStorage.setItem(SCHEDULE_OPEN_KEY, next ? "true" : "false");
-      return next;
-    });
+    setScheduleOpen((open) => !open);
   }, []);
 
   const toggleTeam = useCallback(() => {
-    setTeamOpen((open) => {
-      const next = !open;
-      window.localStorage.setItem(TEAM_OPEN_KEY, next ? "true" : "false");
-      return next;
-    });
+    setTeamOpen((open) => !open);
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(
+      SCHEDULE_OPEN_KEY,
+      scheduleOpen ? "true" : "false"
+    );
+  }, [scheduleOpen, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    window.localStorage.setItem(TEAM_OPEN_KEY, teamOpen ? "true" : "false");
+  }, [teamOpen, mounted]);
 
   const expandAndOpenTeam = useCallback(() => {
     setPinnedState(true);
@@ -200,9 +214,7 @@ export function Sidebar() {
       "flex h-11 items-center rounded-lg text-sm font-medium transition-colors",
       isWide ? "w-full gap-3 px-3" : "w-11 justify-center",
       indented && isWide && "ml-6 h-10 w-[calc(100%-1.5rem)] px-3",
-      active
-        ? "bg-blue-50 text-blue-600"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      active ? navActive : navIdle
     );
 
     const linkContent = (
@@ -211,7 +223,7 @@ export function Sidebar() {
           <Icon
             className={cn(
               "size-5 shrink-0",
-              active ? "text-blue-600" : "text-slate-500"
+              active ? iconActive : iconIdle
             )}
             strokeWidth={active ? 2.5 : 2}
             aria-hidden
@@ -220,7 +232,7 @@ export function Sidebar() {
           <span
             className={cn(
               "size-1.5 shrink-0 rounded-full",
-              active ? "bg-blue-600" : "bg-slate-300"
+              active ? dotActive : dotIdle
             )}
             aria-hidden
           />
@@ -273,9 +285,7 @@ export function Sidebar() {
     const linkClassName = cn(
       "flex h-10 items-center gap-2 rounded-lg text-sm font-medium transition-colors",
       "ml-6 w-[calc(100%-1.5rem)] px-3",
-      active
-        ? "bg-blue-50 text-blue-600"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      active ? navActive : navIdle
     );
 
     return (
@@ -284,7 +294,7 @@ export function Sidebar() {
           <span
             className={cn(
               "size-1.5 shrink-0 rounded-full",
-              active ? "bg-blue-600" : "bg-slate-300"
+              active ? dotActive : dotIdle
             )}
             aria-hidden
           />
@@ -302,9 +312,7 @@ export function Sidebar() {
     const linkClassName = cn(
       "flex h-10 items-center gap-2 rounded-lg text-sm font-medium transition-colors",
       "ml-6 w-[calc(100%-1.5rem)] px-3",
-      active
-        ? "bg-blue-50 text-blue-600"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      active ? navActive : navIdle
     );
 
     return (
@@ -313,7 +321,7 @@ export function Sidebar() {
           <span
             className={cn(
               "size-1.5 shrink-0 rounded-full",
-              active ? "bg-blue-600" : "bg-slate-300"
+              active ? dotActive : dotIdle
             )}
             aria-hidden
           />
@@ -328,9 +336,7 @@ export function Sidebar() {
     const parentClassName = cn(
       "flex h-11 w-full items-center rounded-lg text-sm font-medium transition-colors",
       isWide ? "gap-3 px-3" : "w-11 justify-center",
-      parentActive
-        ? "bg-blue-50 text-blue-600"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      parentActive ? navActive : navIdle
     );
 
     const parentInner = (
@@ -338,7 +344,7 @@ export function Sidebar() {
         <Users
           className={cn(
             "size-5 shrink-0",
-            parentActive ? "text-blue-600" : "text-slate-500"
+            parentActive ? iconActive : iconIdle
           )}
           strokeWidth={parentActive ? 2.5 : 2}
           aria-hidden
@@ -348,7 +354,7 @@ export function Sidebar() {
             <span className="flex-1 truncate text-left">Team</span>
             <ChevronDown
               className={cn(
-                "size-4 shrink-0 text-slate-400 transition-transform duration-200",
+                "size-4 shrink-0 text-[var(--eb-muted)] transition-transform duration-200",
                 teamOpen && "rotate-180"
               )}
               aria-hidden
@@ -392,9 +398,9 @@ export function Sidebar() {
           {teamOpen && isWide ? (
             <motion.ul
               key="team-sub"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="mt-1 space-y-0.5 overflow-hidden"
             >
@@ -412,9 +418,7 @@ export function Sidebar() {
     const parentClassName = cn(
       "flex h-11 w-full items-center rounded-lg text-sm font-medium transition-colors",
       isWide ? "gap-3 px-3" : "w-11 justify-center",
-      parentActive
-        ? "bg-blue-50 text-blue-600"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+      parentActive ? navActive : navIdle
     );
 
     const parentInner = (
@@ -422,7 +426,7 @@ export function Sidebar() {
         <CalendarDays
           className={cn(
             "size-5 shrink-0",
-            parentActive ? "text-blue-600" : "text-slate-500"
+            parentActive ? iconActive : iconIdle
           )}
           strokeWidth={parentActive ? 2.5 : 2}
           aria-hidden
@@ -432,7 +436,7 @@ export function Sidebar() {
             <span className="flex-1 truncate text-left">Schedule</span>
             <ChevronDown
               className={cn(
-                "size-4 shrink-0 text-slate-400 transition-transform duration-200",
+                "size-4 shrink-0 text-[var(--eb-muted)] transition-transform duration-200",
                 scheduleOpen && "rotate-180"
               )}
               aria-hidden
@@ -476,9 +480,9 @@ export function Sidebar() {
           {scheduleOpen && isWide ? (
             <motion.ul
               key="schedule-sub"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="mt-1 space-y-0.5 overflow-hidden"
             >
@@ -499,7 +503,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-slate-100 bg-white transition-[width] duration-300 ease-in-out",
+        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-[var(--eb-border)] bg-[var(--eb-surface)]/95 backdrop-blur-md transition-[width] duration-300 ease-in-out",
         isWide ? "w-[240px]" : "w-[64px]"
       )}
       onMouseEnter={() => setHovered(true)}
@@ -508,7 +512,7 @@ export function Sidebar() {
     >
       <div
         className={cn(
-          "flex shrink-0 items-center border-b border-slate-100 px-3 py-4",
+          "flex shrink-0 items-center border-b border-[var(--eb-border)] px-3 py-4",
           isWide ? "gap-3" : "justify-center"
         )}
       >
@@ -523,7 +527,7 @@ export function Sidebar() {
             />
           </div>
         ) : (
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-bold text-[var(--eb-accent)]">
             {companyAbbr}
           </div>
         )}
@@ -537,10 +541,10 @@ export function Sidebar() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="min-w-0 flex-1"
             >
-              <p className="truncate text-sm font-bold text-slate-900">
+              <p className="truncate text-sm font-semibold text-[var(--eb-text)]">
                 {company.name}
               </p>
-              <p className="text-xs font-medium text-slate-500">Elitebase</p>
+              <p className="text-xs font-medium text-[var(--eb-muted)]">Elitebase</p>
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -564,7 +568,7 @@ export function Sidebar() {
 
       <div
         className={cn(
-          "shrink-0 border-t border-slate-100 p-2",
+          "shrink-0 border-t border-[var(--eb-border)] p-2",
           isWide ? "px-2" : "flex justify-center"
         )}
       >
@@ -575,7 +579,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => setPinnedState(!pinned)}
                 className={cn(
-                  "flex items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900",
+                  "flex items-center justify-center rounded-lg text-[var(--eb-muted)] transition-colors hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]",
                   isWide ? "h-9 w-full gap-2 px-3" : "size-9"
                 )}
                 aria-label={pinned ? "Collapse sidebar" : "Expand sidebar"}
@@ -601,27 +605,27 @@ export function Sidebar() {
 
       <div
         className={cn(
-          "shrink-0 border-t border-slate-100 p-2",
+          "shrink-0 border-t border-[var(--eb-border)] p-2",
           isWide ? "px-3 py-3" : "flex justify-center py-3"
         )}
       >
         {isWide ? (
           <div className="flex items-center gap-3">
             <Avatar className="size-8">
-              <AvatarFallback className="bg-slate-100 text-xs font-semibold text-slate-700">
+              <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-text)]">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="truncate text-sm font-semibold text-[var(--eb-text)]">
                 {user.name || "Account"}
               </p>
-              <p className="truncate text-xs text-slate-500">{user.email}</p>
+              <p className="truncate text-xs text-[var(--eb-muted)]">{user.email}</p>
             </div>
             <button
               type="button"
               onClick={handleSignOut}
-              className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-500"
+              className="rounded-lg p-2 text-[var(--eb-muted)] transition-colors hover:bg-[var(--eb-hover-overlay)] hover:text-red-400"
               aria-label="Log out"
             >
               <LogOut className="size-4" aria-hidden />
@@ -633,11 +637,11 @@ export function Sidebar() {
               render={
                 <button
                   type="button"
-                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--eb-accent)]/50"
                   aria-label={user.email}
                 >
                   <Avatar className="size-8">
-                    <AvatarFallback className="bg-slate-100 text-xs font-semibold text-slate-700">
+                    <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-text)]">
                       {initials}
                     </AvatarFallback>
                   </Avatar>

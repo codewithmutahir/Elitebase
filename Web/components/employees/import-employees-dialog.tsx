@@ -1,13 +1,14 @@
 "use client";
 
 import { FileUp, Upload } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   importEmployeesFromCsv,
   previewEmployeeCsvImport,
   type EmployeeImportPreviewResult,
   type EmployeeImportResult,
 } from "@/app/(dashboard)/employees/actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,17 +20,29 @@ import {
 } from "@/components/ui/dialog";
 import { useCompany } from "@/contexts/company-context";
 import { resolveCurrency } from "@/lib/currencies";
+import {
+  validateCsvFile,
+  validateCsvText,
+} from "@/lib/employees/csv-import-limits";
 import { employeeImportPinsToCsv } from "@/lib/employees/import-csv";
+import { getUserFacingError } from "@/lib/errors/user-facing";
 import { formatHourlyRate, formatMonthlySalary } from "@/lib/money/format";
 
 type Step = "upload" | "preview" | "result";
 
+export type CsvImportSeed = {
+  text: string;
+  fileName: string;
+};
+
 export function ImportEmployeesDialog({
   open,
   onOpenChange,
+  csvSeed,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  csvSeed?: CsvImportSeed | null;
 }) {
   const { company } = useCompany();
   const currency = resolveCurrency(company.currency);
@@ -59,20 +72,21 @@ export function ImportEmployeesDialog({
     onOpenChange(nextOpen);
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  function loadCsvText(text: string, name: string) {
+    const textError = validateCsvText(text);
+    if (textError) {
+      setError(textError);
+      setStep("upload");
+      return;
+    }
 
     setError(null);
     setPreview(null);
     setResult(null);
-    setFileName(file.name);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result ?? "");
-      setCsvText(text);
-      startTransition(async () => {
+    setFileName(name);
+    setCsvText(text);
+    startTransition(async () => {
+      try {
         const nextPreview = await previewEmployeeCsvImport(text);
         if (nextPreview.error) {
           setError(nextPreview.error);
@@ -81,7 +95,26 @@ export function ImportEmployeesDialog({
         }
         setPreview(nextPreview);
         setStep("preview");
-      });
+      } catch (caught) {
+        setError(getUserFacingError(caught));
+        setStep("upload");
+      }
+    });
+  }
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileError = validateCsvFile(file);
+    if (fileError) {
+      setError(fileError);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      loadCsvText(String(reader.result ?? ""), file.name);
     };
     reader.onerror = () => {
       setError("Could not read the CSV file.");
@@ -89,17 +122,26 @@ export function ImportEmployeesDialog({
     reader.readAsText(file);
   }
 
+  useEffect(() => {
+    if (!open || !csvSeed?.text) return;
+    loadCsvText(csvSeed.text, csvSeed.fileName);
+  }, [open, csvSeed?.text, csvSeed?.fileName]);
+
   function handleImport() {
     if (!csvText) return;
     setError(null);
     startTransition(async () => {
-      const importResult = await importEmployeesFromCsv(csvText);
-      if (importResult.error && importResult.created.length === 0) {
-        setError(importResult.error);
-        return;
+      try {
+        const importResult = await importEmployeesFromCsv(csvText);
+        if (importResult.error && importResult.created.length === 0) {
+          setError(importResult.error);
+          return;
+        }
+        setResult(importResult);
+        setStep("result");
+      } catch (caught) {
+        setError(getUserFacingError(caught));
       }
-      setResult(importResult);
-      setStep("result");
     });
   }
 
@@ -134,7 +176,7 @@ export function ImportEmployeesDialog({
 
         {step === "upload" ? (
           <div className="space-y-4">
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-blue-400 hover:bg-blue-50/40">
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-[var(--eb-border)] bg-[var(--eb-elevated)]/40 px-6 py-10 text-center transition hover:border-[var(--eb-accent)]/50 hover:bg-[var(--eb-accent)]/5">
               <Upload className="size-8 text-slate-400" aria-hidden />
               <span className="mt-3 text-sm font-semibold text-slate-900">
                 Choose CSV file
@@ -295,15 +337,15 @@ export function ImportEmployeesDialog({
                 >
                   Back
                 </Button>
-                <Button
+                <PendingButton
                   type="button"
                   onClick={handleImport}
-                  disabled={isPending || !preview?.toImportCount}
+                  pending={isPending}
+                  pendingLabel="Importing…"
+                  disabled={!preview?.toImportCount}
                 >
-                  {isPending
-                    ? "Importing..."
-                    : `Import ${preview?.toImportCount ?? 0} employees`}
-                </Button>
+                  {`Import ${preview?.toImportCount ?? 0} employees`}
+                </PendingButton>
               </>
             ) : (
               <Button

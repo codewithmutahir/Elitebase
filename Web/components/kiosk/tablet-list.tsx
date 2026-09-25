@@ -6,6 +6,12 @@ import { deactivateTablet } from "@/app/(dashboard)/kiosk-setup/actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
 import {
+  dashboardCardClass,
+  dashboardPageIntroClass,
+  dashboardSectionTitleClass,
+} from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
+import {
   DataTable,
   DataTableBody,
   DataTableCell,
@@ -39,12 +45,17 @@ export function TabletList({ tablets }: { tablets: KioskTabletRow[] }) {
 
   if (tablets.length === 0) {
     return (
-      <Card className="flex flex-col items-center py-16 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+      <Card
+        className={cn(
+          "flex flex-col items-center py-16 text-center",
+          dashboardCardClass
+        )}
+      >
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-elevated)]/80 text-[var(--eb-accent)]">
           <Tablet className="size-7" aria-hidden />
         </div>
-        <h3 className="mt-4 font-semibold text-slate-900">No tablets yet</h3>
-        <p className="mt-2 max-w-sm text-sm text-slate-500">
+        <h3 className={cn("mt-4", dashboardSectionTitleClass)}>No tablets found</h3>
+        <p className={cn("mt-2 max-w-sm", dashboardPageIntroClass)}>
           Generate a setup code above, then enter it in the kiosk app on your
           first tablet.
         </p>
@@ -53,7 +64,7 @@ export function TabletList({ tablets }: { tablets: KioskTabletRow[] }) {
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className={cn("overflow-hidden", dashboardCardClass)}>
       <DataTable>
         <DataTableHeader>
           <tr>
@@ -67,14 +78,14 @@ export function TabletList({ tablets }: { tablets: KioskTabletRow[] }) {
         <DataTableBody>
           {tablets.map((tablet) => (
             <DataTableRow key={tablet.id}>
-              <DataTableCell className="font-semibold text-slate-900">
+              <DataTableCell className="font-semibold text-[var(--eb-text)]">
                 {tablet.location_name ?? "Main Location"}
               </DataTableCell>
               <DataTableCell>
                 <TabletStatus tablet={tablet} />
               </DataTableCell>
               <DataTableCell>{formatLastSeen(tablet.last_seen_at)}</DataTableCell>
-              <DataTableCell className="font-mono text-slate-600">
+              <DataTableCell className="font-mono text-[var(--eb-muted)]">
                 {!tablet.tablet_token && tablet.setup_code
                   ? tablet.setup_code
                   : "—"}

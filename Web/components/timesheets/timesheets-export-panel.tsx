@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  dashboardFormPanelClass,
+  dashboardMetricLabelClass,
+  dashboardNativeSelectClass,
+  dashboardSectionTitleClass,
+} from "@/lib/dashboard/styles";
 import { formatTimesheetMonthLabel } from "@/lib/timesheets/labels";
 import type { TimesheetEmployeeOption } from "@/lib/timesheets/data";
 
@@ -41,16 +47,18 @@ export function TimesheetsExportPanel({
   }, [month, employeeId, selectedEmployee, format]);
 
   return (
-    <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+    <div className={dashboardFormPanelClass}>
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-900">Export timesheets</h3>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <h3 className={dashboardSectionTitleClass}>Export timesheets</h3>
+        <p className={`mt-0.5 text-xs ${dashboardMetricLabelClass}`}>
           Download CSV for a month with attendance data. All employees exports are
           grouped by person with subtotals; single-employee exports stay chronological.
         </p>
       </div>
       {months.length === 0 ? (
-        <p className="text-sm text-slate-500">No attendance months available yet.</p>
+        <p className={`text-sm ${dashboardMetricLabelClass}`}>
+          No attendance months available yet.
+        </p>
       ) : (
         <div className="flex flex-wrap items-end gap-4">
           <div>
@@ -59,7 +67,7 @@ export function TimesheetsExportPanel({
               id="export-month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="mt-1.5 block min-w-[180px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              className={`${dashboardNativeSelectClass} min-w-[180px]`}
             >
               {months.map((value) => (
                 <option key={value} value={value}>
@@ -74,7 +82,7 @@ export function TimesheetsExportPanel({
               id="export-employee"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              className="mt-1.5 block min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              className={`${dashboardNativeSelectClass} min-w-[200px]`}
             >
               <option value="all">All employees</option>
               {employees.map((employee) => (
@@ -92,7 +100,7 @@ export function TimesheetsExportPanel({
               onChange={(e) =>
                 setFormat(e.target.value as "standard" | "quickbooks")
               }
-              className="mt-1.5 block min-w-[180px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              className={`${dashboardNativeSelectClass} min-w-[180px]`}
             >
               <option value="standard">Standard CSV</option>
               <option value="quickbooks">QuickBooks payroll</option>

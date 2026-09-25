@@ -2,7 +2,7 @@
 
 import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   createDepartment,
   createRole,
@@ -11,13 +11,21 @@ import {
   updateDepartment,
   updateRole,
 } from "@/app/(dashboard)/schedule/departments/actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { DepartmentWithRoles } from "@/lib/departments/queries";
+import {
+  dashboardAccentLinkClass,
+  dashboardCardClass,
+  dashboardFocusRingClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 
 const PRESET_COLORS = [
+  "#2EC4B6",
   "#2563EB",
   "#7C3AED",
   "#DB2777",
@@ -33,12 +41,16 @@ type DepartmentsViewProps = {
   initialDepartments: DepartmentWithRoles[];
 };
 
+type LocalDepartment = DepartmentWithRoles & { optimistic?: boolean };
+
 export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [departments, setDepartments] =
+    useState<LocalDepartment[]>(initialDepartments);
   const [error, setError] = useState<string | null>(null);
   const [newDeptName, setNewDeptName] = useState("");
-  const [newDeptColor, setNewDeptColor] = useState("#2563EB");
+  const [newDeptColor, setNewDeptColor] = useState("#2EC4B6");
   const [showAddDept, setShowAddDept] = useState(false);
   const [newRoleByDept, setNewRoleByDept] = useState<Record<string, string>>(
     {}
@@ -48,19 +60,36 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [editingRoleName, setEditingRoleName] = useState("");
 
+  useEffect(() => {
+    setDepartments((prev) => {
+      const optimistic = prev.filter(
+        (d) => d.optimistic || String(d.id).startsWith("optimistic-")
+      );
+      if (optimistic.length === 0) return initialDepartments;
+      const serverIds = new Set(initialDepartments.map((d) => d.id));
+      const stillPending = optimistic.filter((d) => !serverIds.has(d.id));
+      return [...initialDepartments, ...stillPending];
+    });
+  }, [initialDepartments]);
+
   function refresh() {
     router.refresh();
   }
 
-  function run(action: () => Promise<{ error?: string; ok?: boolean } | { id?: string }>) {
+  function run(
+    action: () => Promise<{ error?: string; ok?: boolean } | { id?: string }>,
+    onSuccess?: () => void
+  ) {
     setError(null);
-    startTransition(async () => {
-      const result = await action();
-      if (result && "error" in result && result.error) {
-        setError(result.error);
-        return;
-      }
-      refresh();
+    startTransition(() => {
+      void action().then((result) => {
+        if (result && "error" in result && result.error) {
+          setError(result.error);
+          return;
+        }
+        onSuccess?.();
+        refresh();
+      });
     });
   }
 
@@ -70,21 +99,77 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
       setError("Department name is required.");
       return;
     }
-    run(async () => {
-      const result = await createDepartment(name, newDeptColor);
-      if (!result.error) {
-        setNewDeptName("");
-        setNewDeptColor("#2563EB");
-        setShowAddDept(false);
+    const color = newDeptColor;
+    const tempId = `optimistic-${Date.now()}`;
+    setDepartments((prev) => [
+      ...prev,
+      { id: tempId, name, color, roles: [], optimistic: true },
+    ]);
+    setNewDeptName("");
+    setNewDeptColor("#2EC4B6");
+    setShowAddDept(false);
+    setError(null);
+
+    startTransition(async () => {
+      const result = await createDepartment(name, color);
+      if ("error" in result && result.error) {
+        setDepartments((prev) => prev.filter((dept) => dept.id !== tempId));
+        setError(result.error);
+        return;
       }
-      return result;
+      if ("id" in result && result.id) {
+        setDepartments((prev) =>
+          prev.map((dept) =>
+            dept.id === tempId
+              ? { ...dept, id: result.id, optimistic: false }
+              : dept
+          )
+        );
+      }
+      refresh();
+    });
+  }
+
+  function handleAddRole(deptId: string) {
+    const name = (newRoleByDept[deptId] ?? "").trim();
+    if (!name) return;
+    const tempRoleId = `role-${Date.now()}`;
+    setDepartments((prev) =>
+      prev.map((dept) =>
+        dept.id === deptId
+          ? {
+              ...dept,
+              roles: [...dept.roles, { id: tempRoleId, name, department_id: deptId }],
+            }
+          : dept
+      )
+    );
+    setNewRoleByDept((prev) => ({ ...prev, [deptId]: "" }));
+
+    startTransition(async () => {
+      const result = await createRole(deptId, name);
+      if ("error" in result && result.error) {
+        setDepartments((prev) =>
+          prev.map((dept) =>
+            dept.id === deptId
+              ? {
+                  ...dept,
+                  roles: dept.roles.filter((role) => role.id !== tempRoleId),
+                }
+              : dept
+          )
+        );
+        setError(result.error);
+        return;
+      }
+      refresh();
     });
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <p className="text-sm text-slate-500">
+        <p className={dashboardPageIntroClass}>
           Organize your team by department and define job roles for scheduling.
         </p>
         <Button
@@ -98,29 +183,40 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
       </div>
 
       {error ? (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          {error}
+        </p>
       ) : null}
 
-      <Card className="overflow-hidden">
+      <Card className={cn("overflow-hidden", dashboardCardClass)}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-[var(--eb-border)] bg-[var(--eb-elevated)]/90 text-xs font-semibold uppercase tracking-wide text-[var(--eb-muted)]">
               <tr>
                 <th className="w-[220px] px-6 py-3">Department</th>
                 <th className="px-6 py-3">Roles</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {initialDepartments.length === 0 ? (
+            <tbody className="divide-y divide-[var(--eb-border)]">
+              {departments.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={3}
+                    className="px-6 py-12 text-center text-[var(--eb-muted)]"
+                  >
                     No departments yet. Add your first department below.
                   </td>
                 </tr>
               ) : (
-                initialDepartments.map((dept) => (
-                  <tr key={dept.id} className="align-top hover:bg-slate-50/50">
+                departments.map((dept) => (
+                  <tr
+                    key={dept.id}
+                    className={cn(
+                      "align-top transition-colors hover:bg-[var(--eb-elevated)]/40",
+                      dept.optimistic && "opacity-80"
+                    )}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <label className="relative cursor-pointer">
@@ -168,7 +264,10 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                                 setEditingDeptId(null);
                               }
                             }}
-                            className="h-8 w-full max-w-[160px] rounded-md border border-slate-200 px-2 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            className={cn(
+                              "h-8 w-full max-w-[160px] rounded-md border border-[var(--eb-border)] bg-[var(--eb-elevated)]/70 px-2 text-sm font-semibold text-[var(--eb-text)]",
+                              dashboardFocusRingClass
+                            )}
                           />
                         ) : (
                           <button
@@ -177,7 +276,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                               setEditingDeptId(dept.id);
                               setEditingDeptName(dept.name);
                             }}
-                            className="text-left font-semibold text-slate-900 hover:text-blue-600"
+                            className="text-left font-semibold text-[var(--eb-text)] transition-colors hover:text-[var(--eb-accent)]"
                           >
                             {dept.name}
                           </button>
@@ -211,12 +310,15 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                                   setEditingRoleId(null);
                                 }
                               }}
-                              className="h-8 min-w-[100px] rounded-full border border-blue-300 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500/20"
+                              className={cn(
+                                "h-8 min-w-[100px] rounded-full border border-[var(--eb-border)] bg-[var(--eb-elevated)]/70 px-3 text-sm text-[var(--eb-text)]",
+                                dashboardFocusRingClass
+                              )}
                             />
                           ) : (
                             <span
                               key={role.id}
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-1 pr-1 pl-3 text-sm font-medium text-slate-700"
+                              className="inline-flex items-center gap-1 rounded-full border border-[var(--eb-border)] bg-[var(--eb-elevated)]/60 py-1 pr-1 pl-3 text-sm font-medium text-[var(--eb-text)]"
                             >
                               <button
                                 type="button"
@@ -224,7 +326,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                                   setEditingRoleId(role.id);
                                   setEditingRoleName(role.name);
                                 }}
-                                className="hover:text-blue-600"
+                                className="hover:text-[var(--eb-accent)]"
                               >
                                 {role.name}
                               </button>
@@ -255,42 +357,21 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                             }
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
-                                const name = (newRoleByDept[dept.id] ?? "").trim();
-                                if (!name) return;
-                                run(async () => {
-                                  const result = await createRole(dept.id, name);
-                                  if (!result.error) {
-                                    setNewRoleByDept((prev) => ({
-                                      ...prev,
-                                      [dept.id]: "",
-                                    }));
-                                  }
-                                  return result;
-                                });
+                                handleAddRole(dept.id);
                               }
                             }}
-                            className="h-8 w-28 rounded-full border border-dashed border-slate-300 bg-white px-3 text-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            className={cn(
+                              "h-8 w-28 rounded-full border border-dashed border-[var(--eb-border)] bg-[var(--eb-elevated)]/50 px-3 text-sm text-[var(--eb-text)] outline-none placeholder:text-[var(--eb-muted)]",
+                              dashboardFocusRingClass
+                            )}
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            className="text-blue-600"
+                            className="text-[var(--eb-accent)]"
                             disabled={pending}
-                            onClick={() => {
-                              const name = (newRoleByDept[dept.id] ?? "").trim();
-                              if (!name) return;
-                              run(async () => {
-                                const result = await createRole(dept.id, name);
-                                if (!result.error) {
-                                  setNewRoleByDept((prev) => ({
-                                    ...prev,
-                                    [dept.id]: "",
-                                  }));
-                                }
-                                return result;
-                              });
-                            }}
+                            onClick={() => handleAddRole(dept.id)}
                             aria-label="Add role"
                           >
                             <Plus className="size-4" aria-hidden />
@@ -313,18 +394,18 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
               )}
 
               {showAddDept ? (
-                <tr className="bg-blue-50/30">
+                <tr className="bg-[var(--eb-accent)]/5">
                   <td className="px-6 py-4" colSpan={3}>
                     <div className="flex flex-wrap items-end gap-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-500">
+                        <span className="text-xs font-semibold text-[var(--eb-muted)]">
                           Color
                         </span>
                         <input
                           type="color"
                           value={newDeptColor}
                           onChange={(event) => setNewDeptColor(event.target.value)}
-                          className="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-white"
+                          className="h-9 w-12 cursor-pointer rounded border border-[var(--eb-border)] bg-[var(--eb-elevated)]"
                         />
                         <div className="flex gap-1">
                           {PRESET_COLORS.map((color) => (
@@ -334,7 +415,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                               className={cn(
                                 "size-6 rounded-full ring-2 ring-offset-1 transition",
                                 newDeptColor === color
-                                  ? "ring-blue-500"
+                                  ? "ring-[var(--eb-accent)]"
                                   : "ring-transparent"
                               )}
                               style={{ backgroundColor: color }}
@@ -367,13 +448,14 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                         >
                           Cancel
                         </Button>
-                        <Button
+                        <PendingButton
                           type="button"
                           onClick={handleAddDepartment}
-                          disabled={pending}
+                          pending={pending}
+                          pendingLabel="Saving…"
                         >
                           Save department
-                        </Button>
+                        </PendingButton>
                       </div>
                     </div>
                   </td>
@@ -383,12 +465,12 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
           </table>
         </div>
 
-        {!showAddDept && initialDepartments.length > 0 ? (
-          <div className="border-t border-slate-100 px-6 py-3">
+        {!showAddDept && departments.length > 0 ? (
+          <div className="border-t border-[var(--eb-border)] px-6 py-3">
             <button
               type="button"
               onClick={() => setShowAddDept(true)}
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              className={cn("text-sm", dashboardAccentLinkClass)}
             >
               + Add another department
             </button>

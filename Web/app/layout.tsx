@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { NavigationProgress } from "@/components/navigation/navigation-progress";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -7,6 +7,12 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-landing",
   display: "swap",
 });
 
@@ -24,12 +30,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      data-scroll-behavior="smooth"
-      className={`${inter.className} ${inter.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body
         suppressHydrationWarning
-        className="flex min-h-full flex-col font-sans"
+        className={`${inter.className} flex min-h-full flex-col font-sans`}
       >
         <NavigationProgress />
         <TooltipProvider>{children}</TooltipProvider>

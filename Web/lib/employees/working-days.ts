@@ -83,39 +83,43 @@ export async function syncWorkingDaysToAvailability(
   );
   const onPgDays = normalized.map(isoToPgDay);
 
-  for (const pgDay of onPgDays) {
-    const { error } = await admin
-      .from("employee_availability")
-      .delete()
-      .eq("employee_id", employeeId)
-      .eq("company_id", companyId)
-      .eq("day_of_week", pgDay);
+  await Promise.all(
+    onPgDays.map(async (pgDay) => {
+      const { error } = await admin
+        .from("employee_availability")
+        .delete()
+        .eq("employee_id", employeeId)
+        .eq("company_id", companyId)
+        .eq("day_of_week", pgDay);
 
-    if (error) {
-      console.error("syncWorkingDaysToAvailability clear:", error.message);
-      throw new Error("Could not sync working days.");
-    }
-  }
+      if (error) {
+        console.error("syncWorkingDaysToAvailability clear:", error.message);
+        throw new Error("Could not sync working days.");
+      }
+    })
+  );
 
-  for (const pgDay of offPgDays) {
-    const { error } = await admin.from("employee_availability").upsert(
-      {
-        employee_id: employeeId,
-        company_id: companyId,
-        day_of_week: pgDay,
-        is_available: false,
-        start_time: null,
-        end_time: null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "employee_id,day_of_week" }
-    );
+  await Promise.all(
+    offPgDays.map(async (pgDay) => {
+      const { error } = await admin.from("employee_availability").upsert(
+        {
+          employee_id: employeeId,
+          company_id: companyId,
+          day_of_week: pgDay,
+          is_available: false,
+          start_time: null,
+          end_time: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "employee_id,day_of_week" }
+      );
 
-    if (error) {
-      console.error("syncWorkingDaysToAvailability upsert:", error.message);
-      throw new Error("Could not sync working days.");
-    }
-  }
+      if (error) {
+        console.error("syncWorkingDaysToAvailability upsert:", error.message);
+        throw new Error("Could not sync working days.");
+      }
+    })
+  );
 }
 
 export async function assertEmployeeWorkingDay(

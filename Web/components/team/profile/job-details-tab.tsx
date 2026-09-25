@@ -9,13 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useCompany } from "@/contexts/company-context";
+import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
+import { resolveCurrency } from "@/lib/currencies";
+import {
+  dashboardNativeSelectClass,
+  profileCardClass,
+  profileEditPanelClass,
+  profileFieldLabelClass,
+  profileInputClass,
+  profileKioskBannerClass,
+  profileLinkClass,
+  profileMutedClass,
+  profileSectionTitleClass,
+  profileTimelineBorderClass,
+  profileTimelineDotClass,
+  profileTimelineDotMutedClass,
+  profileValueClass,
+} from "@/lib/dashboard/styles";
 import {
   formatDateShort,
   formatHourlyRate,
   formatMonthlySalary,
 } from "@/lib/employees/format";
-import { useCompany } from "@/contexts/company-context";
-import { resolveCurrency } from "@/lib/currencies";
 import type { EmployeeProfile, PayType } from "@/lib/employees/profile-queries";
 import {
   ALL_ISO_DAYS,
@@ -39,6 +55,7 @@ export function JobDetailsTab({
   onUpdated,
 }: JobDetailsTabProps) {
   const { company } = useCompany();
+  const { theme: dashboardTheme } = useDashboardTheme();
   const currency = resolveCurrency(company.currency);
   const [editing, setEditing] = useState(false);
   const [locationOpen, setLocationOpen] = useState(true);
@@ -115,15 +132,13 @@ export function JobDetailsTab({
       ? formatMonthlySalary(employee.salary_amount, currency)
       : formatHourlyRate(employee.hourly_rate, currency);
 
+  const badgeTheme = dashboardTheme;
+
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Access, Roles & Wages
-            </h3>
-          </div>
+          <h3 className={profileSectionTitleClass}>Access, Roles & Wages</h3>
           {!editing ? (
             <Button
               type="button"
@@ -138,21 +153,23 @@ export function JobDetailsTab({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-slate-900">{companyName}</span>
+            <span className={cn("font-medium", profileValueClass)}>{companyName}</span>
             {employee.status === "active" ? (
-              <StatusBadge tone="success">Active</StatusBadge>
+              <StatusBadge tone="success" theme={badgeTheme}>
+                Active
+              </StatusBadge>
             ) : (
-              <StatusBadge tone="error">Deactivated</StatusBadge>
+              <StatusBadge tone="error" theme={badgeTheme}>
+                Deactivated
+              </StatusBadge>
             )}
           </div>
 
           {editing ? (
-            <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
+            <div className={profileEditPanelClass}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">
-                    Access
-                  </label>
+                  <label className={profileFieldLabelClass}>Access</label>
                   <select
                     value={employmentType}
                     onChange={(e) =>
@@ -160,7 +177,7 @@ export function JobDetailsTab({
                         e.target.value as EmployeeProfile["employment_type"]
                       )
                     }
-                    className="flex h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+                    className={cn(dashboardNativeSelectClass, "mt-0")}
                   >
                     <option value="employee">Employee</option>
                     <option value="manager">Manager</option>
@@ -168,27 +185,23 @@ export function JobDetailsTab({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">
-                    Pay type
-                  </label>
+                  <label className={profileFieldLabelClass}>Pay type</label>
                   <select
                     value={payType}
                     onChange={(e) => setPayType(e.target.value as PayType)}
-                    className="flex h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+                    className={cn(dashboardNativeSelectClass, "mt-0")}
                   >
                     <option value="hourly">Hourly</option>
                     <option value="salary">Fixed salary (monthly)</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500">
-                    Start date
-                  </label>
+                  <label className={profileFieldLabelClass}>Start date</label>
                   <input
                     type="date"
                     value={hireDate}
                     onChange={(e) => setHireDate(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+                    className={profileInputClass}
                   />
                 </div>
                 {payType === "hourly" ? (
@@ -198,6 +211,7 @@ export function JobDetailsTab({
                     value={hourlyRate}
                     onChange={setHourlyRate}
                     currency={currency}
+                    variant="dashboard"
                   />
                 ) : (
                   <CurrencyAmountInput
@@ -206,15 +220,14 @@ export function JobDetailsTab({
                     value={salaryAmount}
                     onChange={setSalaryAmount}
                     currency={currency}
+                    variant="dashboard"
                   />
                 )}
               </div>
 
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="text-xs font-semibold text-slate-500">
-                    Working days
-                  </label>
+                  <label className={profileFieldLabelClass}>Working days</label>
                   <div className="flex flex-wrap gap-2">
                     {(Object.keys(WORKING_DAY_PRESETS) as WorkingDayPreset[]).map(
                       (preset) => (
@@ -235,7 +248,10 @@ export function JobDetailsTab({
                   {ALL_ISO_DAYS.map((isoDay) => (
                     <label
                       key={isoDay}
-                      className="inline-flex items-center gap-2 text-sm text-slate-700"
+                      className={cn(
+                        "inline-flex items-center gap-2 text-sm",
+                        profileValueClass
+                      )}
                     >
                       <input
                         type="checkbox"
@@ -268,17 +284,13 @@ export function JobDetailsTab({
           ) : (
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <dt className="text-xs font-semibold uppercase text-slate-500">
-                  Access
-                </dt>
-                <dd className="mt-1 capitalize text-slate-900">
+                <dt className={profileFieldLabelClass}>Access</dt>
+                <dd className={cn("mt-1 capitalize", profileValueClass)}>
                   {employee.employment_type}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase text-slate-500">
-                  PIN
-                </dt>
+                <dt className={profileFieldLabelClass}>PIN</dt>
                 <dd className="mt-1">
                   <RosterPinCell
                     employeeId={employee.id}
@@ -288,90 +300,87 @@ export function JobDetailsTab({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase text-slate-500">
-                  Start Date
-                </dt>
-                <dd className="mt-1 text-slate-900">
+                <dt className={profileFieldLabelClass}>Start Date</dt>
+                <dd className={cn("mt-1", profileValueClass)}>
                   {formatDateShort(employee.hire_date)}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase text-slate-500">
-                  Role & Wages
-                </dt>
-                <dd className="mt-1 flex flex-wrap items-center gap-2 text-slate-900">
-                  <span>
+                <dt className={profileFieldLabelClass}>Role & Wages</dt>
+                <dd className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className={profileValueClass}>
                     {roleLabel} · {compensationLabel}
                   </span>
-                  <StatusBadge tone="info">Primary role</StatusBadge>
+                  <StatusBadge tone="neutral" theme={badgeTheme}>
+                    Primary role
+                  </StatusBadge>
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase text-slate-500">
-                  Working days
-                </dt>
-                <dd className="mt-1 text-slate-900">
+                <dt className={profileFieldLabelClass}>Working days</dt>
+                <dd className={cn("mt-1", profileValueClass)}>
                   {formatWorkingDaysLabel(employee.working_days)}
                 </dd>
               </div>
             </dl>
           )}
 
-          <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-sm text-slate-600">
+          <div className={profileKioskBannerClass}>
             <p>
               Kiosk face:{" "}
               {employee.needs_reenrollment ? (
-                <span className="font-medium text-amber-700">
-                  Re-scan required at kiosk
-                </span>
+                <span className="font-medium text-amber-400">Re-scan required at kiosk</span>
               ) : employee.face_registered_at ? (
-                <span className="font-medium text-emerald-700">Enrolled</span>
+                <span className="font-medium text-emerald-400">Enrolled</span>
               ) : (
-                <span className="font-medium text-amber-700">Pending at kiosk</span>
+                <span className="font-medium text-amber-400">Pending at kiosk</span>
               )}
               {" · "}
               PIN {employee.hasPin ? "configured" : "not set"}
             </p>
             {employee.needs_reenrollment ? (
-              <p className="mt-2 text-xs text-amber-800">
-                Their face was enrolled under the previous recognition model.
-                Next clock-in they will be guided to re-scan once.
+              <p className="mt-2 text-xs text-amber-400/90">
+                Their face was enrolled under the previous recognition model. Next
+                clock-in they will be guided to re-scan once.
               </p>
             ) : null}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={profileCardClass}>
         <button
           type="button"
           className="flex w-full items-center justify-between px-6 py-4 text-left"
           onClick={() => setLocationOpen((o) => !o)}
         >
-          <h3 className="text-lg font-semibold text-slate-900">
-            Location Settings
-          </h3>
+          <h3 className={profileSectionTitleClass}>Location Settings</h3>
           <ChevronDown
             className={cn(
-              "size-5 text-slate-400 transition-transform",
+              "size-5 text-[var(--eb-muted)] transition-transform",
               locationOpen && "rotate-180"
             )}
           />
         </button>
         {locationOpen ? (
-          <CardContent className="space-y-2 border-t border-slate-100 pt-0 text-sm text-slate-700">
+          <CardContent className="space-y-2 border-t border-[var(--eb-border)] pt-4 text-sm">
             {[
               "Show in Schedule",
               "Send Location Alerts",
               "Include in Time Clock",
               "Eligible for Open Shifts",
             ].map((label) => (
-              <label key={label} className="flex items-center gap-2 py-1">
+              <label
+                key={label}
+                className={cn("flex items-center gap-2 py-1", profileValueClass)}
+              >
                 <input type="checkbox" checked readOnly className="rounded" />
                 {label}
               </label>
             ))}
-            <label className="flex items-center gap-2 py-1 text-slate-500">
+            <label
+              className={cn("flex items-center gap-2 py-1", profileMutedClass)}
+            >
               <input type="checkbox" readOnly className="rounded" />
               Can waive missed breaks
             </label>
@@ -379,52 +388,54 @@ export function JobDetailsTab({
         ) : null}
       </Card>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Recent Job History
-          </h3>
-          <span className="text-sm text-slate-400">View all job history</span>
+          <h3 className={profileSectionTitleClass}>Recent Job History</h3>
+          <button type="button" className={cn("text-sm", profileLinkClass)}>
+            View all job history
+          </button>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-4 border-l-2 border-slate-200 pl-4">
+          <ul className={cn("space-y-4", profileTimelineBorderClass)}>
             {employee.hire_date ? (
               <>
                 <li className="relative">
-                  <span className="absolute -left-[21px] top-1.5 size-2.5 rounded-full bg-blue-600" />
-                  <p className="font-medium text-slate-900">
+                  <span className={profileTimelineDotClass} />
+                  <p className={cn("font-medium", profileValueClass)}>
                     Hired at {companyName}
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className={cn("text-sm", profileMutedClass)}>
                     {formatDateShort(employee.hire_date)}
                   </p>
                 </li>
                 <li className="relative">
-                  <span className="absolute -left-[21px] top-1.5 size-2.5 rounded-full bg-slate-300" />
-                  <p className="font-medium text-slate-900">
+                  <span className={profileTimelineDotMutedClass} />
+                  <p className={cn("font-medium", profileValueClass)}>
                     Started as {roleLabel} ({compensationLabel})
                   </p>
-                  <p className="text-sm text-slate-500">
+                  <p className={cn("text-sm", profileMutedClass)}>
                     {formatDateShort(employee.hire_date)}
                   </p>
                 </li>
               </>
             ) : (
-              <li className="text-sm text-slate-500">No hire date on file.</li>
+              <li className={cn("text-sm", profileMutedClass)}>No hire date on file.</li>
             )}
           </ul>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-slate-900">
-            Time Off Balances
-          </h3>
+          <h3 className={profileSectionTitleClass}>Time Off Balances</h3>
         </CardHeader>
-        <CardContent className="text-center text-sm text-slate-500">
-          <p>No time off policies added yet.</p>
-          <p className="mt-2 text-blue-600">View all time off →</p>
+        <CardContent className="text-center text-sm">
+          <p className={profileMutedClass}>No time off policies added yet.</p>
+          <p className="mt-2">
+            <button type="button" className={profileLinkClass}>
+              View all time off →
+            </button>
+          </p>
         </CardContent>
       </Card>
     </div>

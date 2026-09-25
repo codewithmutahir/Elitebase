@@ -7,9 +7,13 @@ export default async function SuperAdminCompaniesPage({
 }: {
   searchParams: Promise<{ error?: string; suspended?: string }>;
 }) {
-  await requireSuperAdminSession();
-  const params = await searchParams;
-  const companies = await listAllCompaniesForSuperAdmin();
+  const [params, companies] = await Promise.all([
+    searchParams,
+    (async () => {
+      await requireSuperAdminSession();
+      return listAllCompaniesForSuperAdmin();
+    })(),
+  ]);
 
   const errorMessage =
     params.error === "suspend_failed"

@@ -228,8 +228,10 @@ export async function addEmployeeNote(employeeId: string, content: string) {
 
   if (!userRow) return { error: "Employee not found." };
 
-  const { auth } = await import("@/lib/auth");
-  const { headers } = await import("next/headers");
+  const [{ auth }, { headers }] = await Promise.all([
+    import("@/lib/auth"),
+    import("next/headers"),
+  ]);
   const fullSession = await auth.api.getSession({ headers: await headers() });
   const authorName = fullSession?.user?.name ?? "Admin";
 

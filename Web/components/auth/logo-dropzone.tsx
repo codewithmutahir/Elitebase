@@ -8,11 +8,15 @@ import { cn } from "@/lib/utils";
 type LogoDropzoneProps = {
   name?: string;
   existingLogoUrl?: string | null;
+  onFileChange?: (file: File | undefined) => void;
+  error?: string;
 };
 
 export function LogoDropzone({
   name = "logo",
   existingLogoUrl,
+  onFileChange,
+  error,
 }: LogoDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -26,17 +30,18 @@ export function LogoDropzone({
     dataTransfer.items.add(file);
     inputRef.current.files = dataTransfer.files;
     setFileName(file.name);
+    onFileChange?.(file);
   }
 
   return (
     <div>
-      <Label htmlFor={name}>
+      <Label htmlFor={name} className="text-[var(--eb-text)]">
         Company logo{" "}
-        <span className="font-normal text-slate-500">(optional)</span>
+        <span className="font-normal text-[var(--eb-muted)]">(optional)</span>
       </Label>
 
       {existingLogoUrl ? (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-[var(--eb-muted)]">
           You already have a logo saved. Upload a new file to replace it.
         </p>
       ) : null}
@@ -54,9 +59,11 @@ export function LogoDropzone({
         }}
         className={cn(
           "mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition",
-          dragOver
-            ? "border-blue-400 bg-blue-50"
-            : "border-slate-200 bg-slate-50/50 hover:border-blue-300 hover:bg-blue-50/50"
+          error
+            ? "border-red-400/60 bg-red-950/20"
+            : dragOver
+              ? "border-[var(--eb-accent)] bg-[var(--eb-accent)]/10"
+              : "border-[var(--eb-border)] bg-[var(--eb-elevated)]/40 hover:border-[var(--eb-accent)]/50"
         )}
         onClick={() => inputRef.current?.click()}
         onKeyDown={(event) => {
@@ -68,26 +75,32 @@ export function LogoDropzone({
         role="button"
         tabIndex={0}
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+        <div className="flex size-12 items-center justify-center rounded-full border border-[var(--eb-border)] bg-[var(--eb-surface)] text-[var(--eb-accent)]">
           <Upload className="size-5" aria-hidden />
         </div>
-        <p className="mt-3 text-sm font-semibold text-slate-900">
+        <p className="mt-3 text-sm font-semibold text-[var(--eb-text)]">
           Drag and drop your logo
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-[var(--eb-muted)]">
           or click to browse · PNG, JPG, WebP, GIF · max 2 MB
         </p>
         {fileName ? (
-          <p className="mt-3 rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-100">
+          <p className="mt-3 rounded-full border border-[var(--eb-border)] bg-[var(--eb-surface)] px-3 py-1 text-xs font-medium text-[var(--eb-accent)]">
             {fileName}
           </p>
         ) : null}
       </div>
 
+      {error ? (
+        <p className="mt-2 text-xs text-red-400" role="alert">
+          {error}
+        </p>
+      ) : null}
+
       <input
         ref={inputRef}
         id={name}
-        name={name}
+        name={onFileChange ? undefined : name}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="sr-only"

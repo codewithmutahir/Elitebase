@@ -1,9 +1,70 @@
 @import "tailwindcss";
-@config "../tailwind.config.ts";
+@config "../tailwind.config.mjs";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* Aeonik (trial files in /public/fonts/aeonik) — primary landing type */
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/aeonik/AeonikTRIAL-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  /* Tailwind font-medium (500) — trial pack has no Medium cut */
+  font-family: "Aeonik";
+  src: url("/fonts/aeonik/AeonikTRIAL-Regular.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/aeonik/AeonikTRIAL-RegularItalic.woff") format("woff");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/aeonik/AeonikTRIAL-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/aeonik/AeonikTRIAL-BoldItalic.woff") format("woff");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Satoshi — fallback if Aeonik glyphs missing */
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/satoshi/Satoshi-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/satoshi/Satoshi-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/satoshi/Satoshi-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --elite-primary: #2563eb;
@@ -49,10 +110,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.623 0.214 259.815);
+  --font-landing: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {
   --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-landing: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --font-landing-mono: var(--font-mono-landing), ui-monospace, monospace;
 
   --color-elite-primary: var(--elite-primary);
   --color-elite-primary-dark: var(--elite-primary-dark);
@@ -140,42 +204,438 @@
   --sidebar-ring: oklch(0.623 0.214 259.815);
 }
 
-/* Typography — Inter everywhere */
-body,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-span,
-button,
-input,
-select,
-textarea {
+/* Typography — Inter for product UI (landing overrides via .landing-shell) */
+body {
   font-family: var(--font-inter), "Inter", sans-serif;
 }
 
-/* Global UX */
 html {
   scroll-behavior: smooth;
 }
 
+/* ScrollTrigger needs auto scroll-behavior while hero is pinned */
+html.landing-scroll-lock {
+  scroll-behavior: auto !important;
+}
+
 * {
-  @apply transition-all duration-200 ease-in-out;
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Landing marketing shell — always dark ink/teal */
+.landing-shell {
+  --eb-ink: #060a12;
+  --eb-surface: #0e1524;
+  --eb-elevated: #151d2e;
+  --eb-border: rgba(255, 255, 255, 0.08);
+  --eb-text: #eceef2;
+  --eb-muted: #8b93a7;
+  --eb-accent: #2ec4b6;
+  --eb-accent-dark: #1fa89c;
+  --eb-accent-glow: rgba(46, 196, 182, 0.35);
+  --eb-cta-secondary: #f4f5f7;
+  --eb-cta-secondary-fg: #0b1220;
+  font-family: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif !important;
+  color: var(--eb-text);
+  background: var(--eb-ink);
+}
+
+/* Dashboard product shell — light/dark via .dashboard-shell--* */
+.dashboard-shell {
+  --eb-accent: #2ec4b6;
+  --eb-accent-dark: #1fa89c;
+  --eb-accent-glow: rgba(46, 196, 182, 0.35);
+  --eb-cta-secondary: #f4f5f7;
+  --eb-cta-secondary-fg: #0b1220;
+  font-family: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif !important;
+  color: var(--eb-text);
+  background: var(--eb-ink);
+}
+
+.dashboard-shell--dark {
+  --eb-ink: #060a12;
+  --eb-surface: #0e1524;
+  --eb-elevated: #151d2e;
+  --eb-border: rgba(255, 255, 255, 0.08);
+  --eb-text: #eceef2;
+  --eb-muted: #8b93a7;
+  --eb-hover-overlay: rgba(255, 255, 255, 0.06);
+  --eb-status-success-fg: rgb(52, 211, 153);
+  --eb-status-warning-fg: rgb(251, 191, 36);
+  --eb-status-error-fg: rgb(248, 113, 113);
+}
+
+.dashboard-shell--light {
+  --eb-ink: #eef1f6;
+  --eb-surface: #ffffff;
+  --eb-elevated: #f4f6f9;
+  --eb-border: rgba(15, 23, 42, 0.1);
+  --eb-text: #0f172a;
+  --eb-muted: #64748b;
+  --eb-hover-overlay: rgba(15, 23, 42, 0.05);
+  --eb-status-success-fg: rgb(5, 150, 105);
+  --eb-status-warning-fg: rgb(180, 83, 9);
+  --eb-status-error-fg: rgb(220, 38, 38);
+}
+
+.dashboard-shell input[type="checkbox"],
+.dashboard-sheet input[type="checkbox"] {
+  accent-color: var(--eb-accent);
+}
+
+/* Profile / dashboard tokens from lib/dashboard/styles.ts (plain CSS fallback) */
+.dashboard-shell .profile-stat-card {
+  border-radius: 10px;
+  border: 1px solid var(--eb-border);
+  background-color: color-mix(in srgb, var(--eb-elevated) 88%, var(--eb-surface));
+  padding: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dashboard-shell .profile-stat-card .profile-stat-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--eb-muted);
+}
+
+.dashboard-shell .profile-stat-card .profile-stat-value {
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--eb-text);
+}
+
+.dashboard-shell .dashboard-tab--active {
+  border-color: var(--eb-accent);
+  color: var(--eb-accent);
+}
+
+.dashboard-shell .dashboard-tab--inactive {
+  border-color: transparent;
+  color: var(--eb-muted);
+}
+
+.dashboard-shell .dashboard-tab--inactive:hover {
+  color: var(--eb-text);
+}
+
+.dashboard-shell--dark,
+.dashboard-shell--light {
+  --background: var(--eb-ink);
+  --foreground: var(--eb-text);
+  --card: var(--eb-surface);
+  --card-foreground: var(--eb-text);
+  --popover: var(--eb-surface);
+  --popover-foreground: var(--eb-text);
+  --primary: #2ec4b6;
+  --primary-foreground: #060a12;
+  --secondary: var(--eb-elevated);
+  --secondary-foreground: var(--eb-text);
+  --muted: var(--eb-elevated);
+  --muted-foreground: var(--eb-muted);
+  --accent: var(--eb-elevated);
+  --accent-foreground: var(--eb-text);
+  --border: var(--eb-border);
+  --input: var(--eb-border);
+  --ring: rgba(46, 196, 182, 0.45);
+  --sidebar: var(--eb-surface);
+  --sidebar-foreground: var(--eb-text);
+  --sidebar-primary: var(--eb-accent);
+  --sidebar-primary-foreground: var(--eb-ink);
+  --sidebar-accent: var(--eb-hover-overlay);
+  --sidebar-accent-foreground: var(--eb-text);
+  --sidebar-border: var(--eb-border);
+  --sidebar-ring: rgba(46, 196, 182, 0.45);
+}
+
+.dashboard-shell--dark * {
+  scrollbar-color: rgba(139, 147, 167, 0.45) transparent;
+}
+
+.dashboard-shell--dark *::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 147, 167, 0.45);
+}
+
+.dashboard-shell--light * {
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+.dashboard-shell--light *::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.35);
+}
+
+.dashboard-shell--dark .dashboard-main-glow {
+  opacity: 1;
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(46, 196, 182, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 100% 0%,
+      rgba(46, 196, 182, 0.06),
+      transparent 50%
+    );
+}
+
+.dashboard-shell--light .dashboard-main-glow {
+  opacity: 1;
+  background:
+    radial-gradient(
+      ellipse 70% 45% at 50% -15%,
+      rgba(46, 196, 182, 0.08),
+      transparent 55%
+    );
+}
+
+.dashboard-shell select.dashboard-native-select,
+.dashboard-shell .dashboard-native-select {
+  color-scheme: light dark;
+}
+
+/* Native selects without explicit dashboard classes still follow shell tokens */
+.dashboard-shell select:not([multiple]):not([size]) {
+  color-scheme: light dark;
+  border-color: var(--eb-border);
+  background-color: color-mix(in srgb, var(--eb-elevated) 70%, transparent);
+  color: var(--eb-text);
+}
+
+.dashboard-shell select:not([multiple]):not([size]):focus-visible {
+  border-color: var(--eb-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--eb-accent) 25%, transparent);
+}
+
+.dashboard-shell--dark select:not([multiple]):not([size]) option,
+.dashboard-shell--light select:not([multiple]):not([size]) option {
+  background-color: var(--eb-surface);
+  color: var(--eb-text);
+}
+
+/* Portaled dropdowns (account menu, etc.) — outside .dashboard-shell DOM */
+html[data-dashboard-theme="dark"] .dashboard-dropdown {
+  --eb-surface: #0e1524;
+  --eb-elevated: #151d2e;
+  --eb-border: rgba(255, 255, 255, 0.08);
+  --eb-text: #eceef2;
+  --eb-muted: #8b93a7;
+  --eb-hover-overlay: rgba(255, 255, 255, 0.06);
+  --popover: var(--eb-surface);
+  --popover-foreground: var(--eb-text);
+  --accent: var(--eb-hover-overlay);
+  --accent-foreground: var(--eb-text);
+  --border: var(--eb-border);
+  color-scheme: dark;
+}
+
+html[data-dashboard-theme="light"] .dashboard-dropdown {
+  --eb-surface: #ffffff;
+  --eb-elevated: #f4f6f9;
+  --eb-border: rgba(15, 23, 42, 0.1);
+  --eb-text: #0f172a;
+  --eb-muted: #64748b;
+  --eb-hover-overlay: rgba(15, 23, 42, 0.05);
+  --popover: var(--eb-surface);
+  --popover-foreground: var(--eb-text);
+  --accent: var(--eb-hover-overlay);
+  --accent-foreground: var(--eb-text);
+  --border: var(--eb-border);
+  color-scheme: light;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-dropdown [data-slot="dropdown-menu-item"]:not([data-variant="destructive"]),
+html[data-dashboard-theme="light"] .dashboard-dropdown [data-slot="dropdown-menu-item"]:not([data-variant="destructive"]) {
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-dropdown [data-slot="dropdown-menu-item"]:focus,
+html[data-dashboard-theme="dark"] .dashboard-dropdown [data-slot="dropdown-menu-item"][data-highlighted],
+html[data-dashboard-theme="light"] .dashboard-dropdown [data-slot="dropdown-menu-item"]:focus,
+html[data-dashboard-theme="light"] .dashboard-dropdown [data-slot="dropdown-menu-item"][data-highlighted] {
+  background-color: var(--eb-hover-overlay);
+  color: var(--eb-text);
+}
+
+/* Portaled sheets (add employee, shifts, etc.) */
+html[data-dashboard-theme="dark"] .dashboard-sheet,
+html[data-dashboard-theme="light"] .dashboard-sheet {
+  --eb-accent: #2ec4b6;
+  --eb-accent-dark: #1fa89c;
+  --popover: var(--eb-surface);
+  --popover-foreground: var(--eb-text);
+  --foreground: var(--eb-text);
+  --muted-foreground: var(--eb-muted);
+  --border: var(--eb-border);
+  --input: var(--eb-border);
+  --ring: rgba(46, 196, 182, 0.45);
+  --primary: #2ec4b6;
+  --primary-foreground: #060a12;
+}
+
+html[data-dashboard-theme="dark"] [data-slot="sheet-content"].dashboard-sheet,
+html[data-dashboard-theme="light"] [data-slot="sheet-content"].dashboard-sheet {
+  background-color: var(--eb-surface);
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet {
+  --eb-surface: #0e1524;
+  --eb-elevated: #151d2e;
+  --eb-border: rgba(255, 255, 255, 0.08);
+  --eb-text: #eceef2;
+  --eb-muted: #8b93a7;
+  --eb-hover-overlay: rgba(255, 255, 255, 0.06);
+  --eb-ink: #060a12;
+  --eb-accent-glow: rgba(46, 196, 182, 0.35);
+  color-scheme: dark;
+}
+
+html[data-dashboard-theme="light"] .dashboard-sheet {
+  --eb-surface: #ffffff;
+  --eb-elevated: #f4f6f9;
+  --eb-border: rgba(15, 23, 42, 0.1);
+  --eb-text: #0f172a;
+  --eb-muted: #64748b;
+  --eb-hover-overlay: rgba(15, 23, 42, 0.05);
+  --eb-ink: #eef1f6;
+  color-scheme: light;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"],
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"] {
+  background-color: color-mix(in srgb, var(--eb-elevated) 70%, transparent);
+  border-color: var(--eb-border);
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"]:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"]:focus-visible {
+  border-color: var(--eb-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--eb-accent) 25%, transparent);
+}
+
+.dashboard-shell--dark select.dashboard-native-select option,
+.dashboard-shell--dark .dashboard-native-select option {
+  background-color: var(--eb-surface);
+  color: var(--eb-text);
+}
+
+.dashboard-shell--light select.dashboard-native-select option,
+.dashboard-shell--light .dashboard-native-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+@keyframes lattice-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lattice-loader__dot {
+  animation: lattice-pulse 1.1s ease-in-out infinite;
+}
+
+.landing-shell :where(h1, h2, h3, h4, h5, h6, p, span, a, button, li, label),
+.dashboard-shell :where(h1, h2, h3, h4, h5, h6, p, span, a, button, li, label) {
+  font-family: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.landing-shell [data-mono] {
+  font-family: var(--font-mono-landing), ui-monospace, monospace;
+}
+
+/* Never let global transitions fight scroll / GSAP transforms */
+.landing-shell .hero-frame,
+.landing-shell .hero-copy,
+.landing-shell .hero-glow,
+.landing-shell .aurora-blob,
+.landing-shell .hero-aurora-cursor {
+  transition: none !important;
+}
+
+/* Soft logo fade — smooth gradient on both edges like Orchid */
+/* (marquee layout/animation lives in landing-brands.tsx — do not wrap here) */
+
+.landing-shell .eb-stat-gradient {
+  display: inline-block;
+  background-image: linear-gradient(
+    100deg,
+    #f2f4f7 0%,
+    #d0d7e2 28%,
+    #6dd9cf 62%,
+    #2ec4b6 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Orchid-style layered buttons (teal brand) */
+.eb-btn {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.1)
+  );
+}
+
+.eb-btn__content--accent {
+  background-image: linear-gradient(#2ec4b6, #1a9e92);
+  backdrop-filter: blur(24px);
+}
+
+.eb-btn__content--light {
+  background-image: linear-gradient(#f7f8fa, #e8eaef);
+  backdrop-filter: blur(24px);
+}
+
+.eb-btn__content--ghost {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.08)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.eb-btn__bg--accent {
+  background-image: linear-gradient(#00000080, #00000080),
+    linear-gradient(#2ec4b6, #1a9e92);
+}
+
+.eb-btn__bg--light {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.06)),
+    linear-gradient(#ffffff, #eceef2);
+}
+
+.eb-btn__bg--ghost {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.14)
+  );
 }
 
 ::selection {
-  background-color: #dbeafe;
+  background-color: rgba(46, 196, 182, 0.35);
 }
 
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #2ec4b6;
   outline-offset: 2px;
 }
 
-/* Custom scrollbar */
 * {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 transparent;
@@ -199,6 +659,12 @@ html {
   background-color: #64748b;
 }
 
+@keyframes aurora-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(4vw, -3vh, 0); }
+  66% { transform: translate3d(-3vw, 4vh, 0); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -212,5 +678,16 @@ html {
 
   html {
     @apply font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

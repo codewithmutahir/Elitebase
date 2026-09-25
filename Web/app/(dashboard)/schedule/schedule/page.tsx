@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ScheduleView } from "@/components/schedule/schedule-view";
 import { listDepartmentsWithRoles } from "@/lib/departments/queries";
 import { listScheduleEmployees, listShiftsForWeek } from "@/lib/schedules/queries";
@@ -9,8 +10,10 @@ export default async function SchedulePage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
-  const { week: weekParam } = await searchParams;
-  const { company } = await requireCompanySession();
+  const [{ week: weekParam }, { company }] = await Promise.all([
+    searchParams,
+    requireCompanySession(),
+  ]);
   const weekMonday = parseWeekParam(weekParam);
 
   const [employees, shifts, departments] = await Promise.all([
@@ -20,11 +23,19 @@ export default async function SchedulePage({
   ]);
 
   return (
-    <ScheduleView
-      employees={employees}
-      shifts={shifts}
-      departments={departments}
-      weekStart={formatWeekParam(weekMonday)}
-    />
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+          Loading schedule…
+        </div>
+      }
+    >
+      <ScheduleView
+        employees={employees}
+        shifts={shifts}
+        departments={departments}
+        weekStart={formatWeekParam(weekMonday)}
+      />
+    </Suspense>
   );
 }

@@ -5,19 +5,25 @@ import { APIError } from "better-auth/api";
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
-import { Input } from "@/components/ui/input";
+import { LoginForm } from "@/components/auth/login-form";
 import { auth } from "@/lib/auth";
-import { LoginSubmitButton } from "./submit-button";
+import {
+  enforceAuthRateLimitInAction,
+  resolveAuthRateLimitQueryMessage,
+} from "@/lib/auth/enforce-rate-limit";
+import { parseLoginFormData } from "@/lib/validations/auth";
 
 async function signIn(formData: FormData) {
   "use server";
 
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  await enforceAuthRateLimitInAction("login", "/login");
 
-  if (!email || !password) {
-    redirect("/login?error=missing_fields");
+  const parsed = parseLoginFormData(formData);
+  if (!parsed.success) {
+    redirect("/login?error=validation");
   }
+
+  const { email, password } = parsed.data;
 
   try {
     await auth.api.signInEmail({
@@ -62,26 +68,29 @@ export default async function LoginPage({
       ? "Your password was reset. Sign in with your new password."
       : null;
 
+  const rateLimitMessage = resolveAuthRateLimitQueryMessage(error);
   const errorMessage =
-    error === "invalid_credentials"
+    rateLimitMessage ??
+    (error === "invalid_credentials"
       ? "Incorrect email or password. Please try again."
-      : error === "missing_fields"
-        ? "Enter your email and password."
+      : error === "validation" || error === "missing_fields"
+        ? "Enter a valid email and password."
         : error
           ? "Could not sign you in. Please try again."
-          : null;
+          : null);
 
   return (
     <AuthSplitLayout>
       <AuthFormCard
+        eyebrow="Employer sign in"
         title="Welcome back"
         subtitle="Sign in to your company dashboard and manage attendance."
         footer={
-          <p className="text-center text-sm text-slate-500">
+          <p className="text-center text-sm text-[var(--eb-muted)]">
             Don&apos;t have an account?{" "}
             <Link
               href="/register"
-              className="font-semibold text-blue-600 hover:text-blue-700"
+              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
             >
               Get started
             </Link>
@@ -95,43 +104,7 @@ export default async function LoginPage({
           <AuthAlert variant="error">{errorMessage}</AuthAlert>
         ) : null}
 
-        <form action={signIn} className="space-y-4">
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            label="Email"
-            autoComplete="email"
-            required
-          />
-
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-slate-900"
-              >
-                Password
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-
-          <LoginSubmitButton />
-        </form>
+        <LoginForm action={signIn} />
       </AuthFormCard>
     </AuthSplitLayout>
   );

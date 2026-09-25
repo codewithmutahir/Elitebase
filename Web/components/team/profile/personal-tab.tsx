@@ -8,6 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDateLong } from "@/lib/employees/format";
 import type { EmployeeProfile } from "@/lib/employees/profile-queries";
+import {
+  dashboardNativeSelectClass,
+  profileCardClass,
+  profileEditPanelClass,
+  profileFieldLabelClass,
+  profileFieldLabelPlainClass,
+  profileInputClass,
+  profileMutedClass,
+  profileSectionTitleClass,
+  profileValueClass,
+} from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 
 type PersonalTabProps = {
   employee: EmployeeProfile;
@@ -16,9 +28,9 @@ type PersonalTabProps = {
 
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1 border-b border-slate-50 py-3 sm:grid-cols-2">
-      <dt className="text-sm text-slate-500">{label}</dt>
-      <dd className="text-sm font-medium text-slate-900">{value || "—"}</dd>
+    <div className="grid gap-1 border-b border-[var(--eb-border)] py-3 sm:grid-cols-2">
+      <dt className={profileFieldLabelPlainClass}>{label}</dt>
+      <dd className={profileValueClass}>{value || "—"}</dd>
     </div>
   );
 }
@@ -77,17 +89,16 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Contact Information
-          </h3>
+          <h3 className={profileSectionTitleClass}>Contact Information</h3>
           {!contactEditing ? (
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               onClick={() => setContactEditing(true)}
+              aria-label="Edit contact information"
             >
               <Pencil className="size-4" aria-hidden />
             </Button>
@@ -95,7 +106,7 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
         </CardHeader>
         <CardContent>
           {contactEditing ? (
-            <div className="space-y-3">
+            <div className={profileEditPanelClass}>
               {[
                 ["Preferred name", fullName, setFullName, "text"],
                 ["Personal email", email, setEmail, "email"],
@@ -110,14 +121,12 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
                 ["Relationship", emergencyRelation, setEmergencyRelation, "text"],
               ].map(([label, val, setVal, type]) => (
                 <div key={label as string} className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500">
-                    {label as string}
-                  </label>
+                  <label className={profileFieldLabelClass}>{label as string}</label>
                   <input
                     type={type as string}
                     value={val as string}
                     onChange={(e) => (setVal as (v: string) => void)(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-input px-3 text-sm"
+                    className={profileInputClass}
                   />
                 </div>
               ))}
@@ -152,17 +161,16 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <h3 className="text-lg font-semibold text-slate-900">
-            Additional Information
-          </h3>
+          <h3 className={profileSectionTitleClass}>Additional Information</h3>
           {!additionalEditing && !contactEditing ? (
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               onClick={() => setAdditionalEditing(true)}
+              aria-label="Edit additional information"
             >
               <Pencil className="size-4" aria-hidden />
             </Button>
@@ -170,22 +178,18 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
         </CardHeader>
         <CardContent>
           {additionalEditing ? (
-            <div className="space-y-3">
+            <div className={profileEditPanelClass}>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">
-                  Date of birth
-                </label>
+                <label className={profileFieldLabelClass}>Date of birth</label>
                 <input
                   type="date"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
-                  className="flex h-10 w-full rounded-lg border border-input px-3 text-sm"
+                  className={profileInputClass}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-500">
-                  Employment type
-                </label>
+                <label className={profileFieldLabelClass}>Employment type</label>
                 <select
                   value={employmentType}
                   onChange={(e) =>
@@ -193,7 +197,7 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
                       e.target.value as EmployeeProfile["employment_type"]
                     )
                   }
-                  className="flex h-10 w-full rounded-lg border border-input px-3 text-sm"
+                  className={cn(dashboardNativeSelectClass, "mt-0")}
                 >
                   <option value="employee">Employee</option>
                   <option value="manager">Manager</option>
@@ -224,7 +228,7 @@ export function PersonalTab({ employee, onUpdated }: PersonalTabProps) {
               />
             </dl>
           )}
-          <p className="mt-4 text-xs text-slate-500">
+          <p className={cn("mt-4 text-xs", profileMutedClass)}>
             Sensitive information is only visible to admins.
           </p>
         </CardContent>

@@ -9,14 +9,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
+import {
+  profileCardClass,
+  profileInputClass,
+  profileLinkClass,
+  profileMutedClass,
+  profileSectionTitleClass,
+  profileTableHeadClass,
+  profileTableRowClass,
+  profileValueClass,
+} from "@/lib/dashboard/styles";
 import { formatDateShort } from "@/lib/employees/format";
 import type { EmployeeDocument } from "@/lib/employees/profile-queries";
 import { cn } from "@/lib/utils";
 
-function docStatusBadge(status: EmployeeDocument["status"]) {
-  if (status === "completed") return <StatusBadge tone="success">Completed</StatusBadge>;
-  if (status === "sent") return <StatusBadge tone="info">Sent</StatusBadge>;
-  return <StatusBadge tone="warning">Not sent</StatusBadge>;
+function docStatusBadge(
+  status: EmployeeDocument["status"],
+  theme: "light" | "dark"
+) {
+  if (status === "completed")
+    return (
+      <StatusBadge tone="success" theme={theme}>
+        Completed
+      </StatusBadge>
+    );
+  if (status === "sent")
+    return (
+      <StatusBadge tone="info" theme={theme}>
+        Sent
+      </StatusBadge>
+    );
+  return (
+    <StatusBadge tone="warning" theme={theme}>
+      Not sent
+    </StatusBadge>
+  );
 }
 
 type DocumentsTabProps = {
@@ -30,6 +58,7 @@ export function DocumentsTab({
   documents,
   onUpdated,
 }: DocumentsTabProps) {
+  const { theme: dashboardTheme } = useDashboardTheme();
   const [pending, startTransition] = useTransition();
   const [certName, setCertName] = useState("");
   const [showCertForm, setShowCertForm] = useState(false);
@@ -68,6 +97,8 @@ export function DocumentsTab({
     });
   }
 
+  const linkClass = cn(profileLinkClass, "text-sm font-semibold");
+
   return (
     <div className="space-y-8">
       <input
@@ -83,27 +114,23 @@ export function DocumentsTab({
         }}
       />
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className={profileSectionTitleClass}>
             Certificates ({certificates.length})
           </h3>
-          <button
-            type="button"
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-            onClick={() => setShowCertForm(true)}
-          >
+          <button type="button" className={linkClass} onClick={() => setShowCertForm(true)}>
             Add a certificate
           </button>
         </CardHeader>
         <CardContent>
           {showCertForm ? (
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               <input
                 value={certName}
                 onChange={(e) => setCertName(e.target.value)}
                 placeholder="Certificate name"
-                className="flex h-10 flex-1 rounded-lg border border-input px-3 text-sm"
+                className={cn(profileInputClass, "min-w-[200px] flex-1")}
               />
               <Button type="button" disabled={pending} onClick={addCertificate}>
                 Add
@@ -119,13 +146,13 @@ export function DocumentsTab({
           ) : null}
 
           {certificates.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">
+            <p className={cn("py-8 text-center text-sm", profileMutedClass)}>
               No certificates added yet.
             </p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs font-semibold uppercase text-slate-500">
+                <tr className={profileTableHeadClass}>
                   <th className="pb-2">Name</th>
                   <th className="pb-2">Uploaded date</th>
                   <th className="pb-2">File</th>
@@ -133,9 +160,9 @@ export function DocumentsTab({
               </thead>
               <tbody>
                 {certificates.map((doc) => (
-                  <tr key={doc.id} className="border-b border-slate-50">
-                    <td className="py-3 font-medium">{doc.name}</td>
-                    <td className="py-3 text-slate-500">
+                  <tr key={doc.id} className={profileTableRowClass}>
+                    <td className={cn("py-3", profileValueClass)}>{doc.name}</td>
+                    <td className={cn("py-3", profileMutedClass)}>
                       {doc.file_url
                         ? formatDateShort(doc.created_at.slice(0, 10))
                         : "—"}
@@ -146,14 +173,14 @@ export function DocumentsTab({
                           href={doc.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-semibold text-blue-600"
+                          className={linkClass}
                         >
                           Download
                         </a>
                       ) : (
                         <button
                           type="button"
-                          className="font-semibold text-blue-600"
+                          className={linkClass}
                           disabled={pending}
                           onClick={() => {
                             setUploadDocId(doc.id);
@@ -172,17 +199,17 @@ export function DocumentsTab({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={profileCardClass}>
         <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className={profileSectionTitleClass}>
             Onboarding Documents ({onboarding.length})
           </h3>
-          <span className="text-sm text-slate-400">Add a document</span>
+          <span className={cn("text-sm", profileMutedClass)}>Add a document</span>
         </CardHeader>
         <CardContent>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-xs font-semibold uppercase text-slate-500">
+              <tr className={profileTableHeadClass}>
                 <th className="pb-2">Name</th>
                 <th className="pb-2">Versions</th>
                 <th className="pb-2">File/Status</th>
@@ -190,18 +217,16 @@ export function DocumentsTab({
             </thead>
             <tbody>
               {onboarding.map((doc) => (
-                <tr key={doc.id} className="border-b border-slate-50">
-                  <td className="py-3 font-medium">{doc.name}</td>
-                  <td className="py-3 text-slate-600">{doc.versions}</td>
+                <tr key={doc.id} className={profileTableRowClass}>
+                  <td className={cn("py-3", profileValueClass)}>{doc.name}</td>
+                  <td className={cn("py-3", profileMutedClass)}>{doc.versions}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      {docStatusBadge(doc.status)}
+                      {docStatusBadge(doc.status, dashboardTheme)}
                       {doc.status !== "completed" ? (
                         <button
                           type="button"
-                          className={cn(
-                            "text-sm font-semibold text-blue-600 hover:text-blue-700"
-                          )}
+                          className={linkClass}
                           disabled={pending}
                           onClick={() => {
                             setUploadDocId(doc.id);
@@ -215,7 +240,7 @@ export function DocumentsTab({
                           href={doc.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-sm font-semibold text-blue-600"
+                          className={linkClass}
                         >
                           View
                         </a>

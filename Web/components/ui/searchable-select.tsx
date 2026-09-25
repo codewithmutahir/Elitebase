@@ -14,15 +14,22 @@ type SearchableSelectSection = {
   options: SearchableSelectOption[];
 };
 
+type SearchableSelectVariant = "light" | "auth";
+
 type SearchableSelectProps = {
   label: string;
   name: string;
   defaultValue: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   options?: SearchableSelectOption[];
   sections?: SearchableSelectSection[];
   searchPlaceholder?: string;
   helperText?: string;
   emptyMessage?: string;
+  error?: string;
+  /** `auth` — ink/teal fields on dark onboarding & auth shells; default `light` for dashboard settings. */
+  variant?: SearchableSelectVariant;
 };
 
 function filterOptions(options: SearchableSelectOption[], query: string) {
@@ -39,17 +46,23 @@ export function SearchableSelect({
   label,
   name,
   defaultValue,
+  value: valueProp,
+  onValueChange,
   options = [],
   sections,
   searchPlaceholder = "Search…",
   helperText,
   emptyMessage = "No matches",
+  error,
+  variant = "light",
 }: SearchableSelectProps) {
+  const isAuth = variant === "auth";
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState(defaultValue);
+  const [uncontrolledSelected, setUncontrolledSelected] = useState(defaultValue);
+  const selected = valueProp ?? uncontrolledSelected;
   const [open, setOpen] = useState(false);
 
   const flatOptions = useMemo(() => {
@@ -105,7 +118,10 @@ export function SearchableSelect({
   }, [open]);
 
   function choose(value: string) {
-    setSelected(value);
+    if (valueProp === undefined) {
+      setUncontrolledSelected(value);
+    }
+    onValueChange?.(value);
     setOpen(false);
     setQuery("");
   }
@@ -116,8 +132,18 @@ export function SearchableSelect({
         <button
           type="button"
           className={cn(
-            "w-full px-3 py-2 text-left text-sm hover:bg-slate-50",
-            option.value === selected && "bg-blue-50 font-semibold text-blue-700"
+            "w-full px-3 py-2.5 text-left text-sm transition-colors",
+            isAuth
+              ? [
+                  "text-[var(--eb-text)] hover:bg-white/[0.06]",
+                  option.value === selected &&
+                    "bg-[var(--eb-accent)]/15 font-medium text-[var(--eb-accent)]",
+                ]
+              : [
+                  "hover:bg-slate-50",
+                  option.value === selected &&
+                    "bg-blue-50 font-semibold text-blue-700",
+                ]
           )}
           onClick={() => choose(option.value)}
         >
@@ -133,7 +159,14 @@ export function SearchableSelect({
 
   return (
     <div ref={rootRef} className="w-full min-w-0">
-      <Label htmlFor={id}>{label}</Label>
+      <Label
+        htmlFor={id}
+        className={cn(
+          isAuth && "font-normal text-[var(--eb-text)]"
+        )}
+      >
+        {label}
+      </Label>
       <input type="hidden" name={name} value={selected} />
 
       <button
@@ -143,19 +176,48 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "mt-1.5 flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-900",
-          "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          "mt-1.5 flex h-11 w-full min-w-0 items-center justify-between gap-2 px-3.5 text-left text-sm outline-none transition-[border-color,box-shadow]",
+          isAuth
+            ? [
+                "rounded-[10px] border border-[var(--eb-border)] bg-[var(--eb-elevated)]/70 text-[var(--eb-text)]",
+                "focus:border-[var(--eb-accent)] focus:ring-2 focus:ring-[var(--eb-accent)]/25",
+                open && "border-[var(--eb-accent)] ring-2 ring-[var(--eb-accent)]/25",
+                error &&
+                  "border-red-400/60 focus:border-red-400 focus:ring-red-400/20",
+              ]
+            : [
+                "rounded-lg border border-slate-200 bg-white py-2.5 text-slate-900",
+                "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
+              ]
         )}
       >
         <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
-        <span className="shrink-0 text-slate-400" aria-hidden>
+        <span
+          className={cn(
+            "shrink-0 text-xs",
+            isAuth ? "text-[var(--eb-muted)]" : "text-slate-400"
+          )}
+          aria-hidden
+        >
           {open ? "▴" : "▾"}
         </span>
       </button>
 
       {open ? (
-        <div className="mt-2 w-full min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-2">
+        <div
+          className={cn(
+            "mt-2 w-full min-w-0 overflow-hidden rounded-[10px] border shadow-lg",
+            isAuth
+              ? "border-[var(--eb-border)] bg-[var(--eb-surface)] shadow-[0_12px_40px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+              : "border-slate-200 bg-white shadow-sm"
+          )}
+        >
+          <div
+            className={cn(
+              "p-2",
+              isAuth ? "border-b border-[var(--eb-border)]" : "border-b border-slate-100"
+            )}
+          >
             <input
               ref={searchRef}
               type="text"
@@ -163,7 +225,12 @@ export function SearchableSelect({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={searchPlaceholder}
-              className="box-border w-full min-w-0 max-w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className={cn(
+                "box-border w-full min-w-0 max-w-full rounded-md border px-3 py-2 text-sm outline-none transition-[border-color,box-shadow]",
+                isAuth
+                  ? "border-[var(--eb-border)] bg-[var(--eb-elevated)]/80 text-[var(--eb-text)] placeholder:text-[var(--eb-muted)] focus:border-[var(--eb-accent)] focus:ring-2 focus:ring-[var(--eb-accent)]/25"
+                  : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              )}
             />
           </div>
           <ul
@@ -174,7 +241,10 @@ export function SearchableSelect({
               ? filteredSections.flatMap((section) => [
                   <li
                     key={`${section.title}-header`}
-                    className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400"
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-semibold uppercase tracking-wide",
+                      isAuth ? "text-[var(--eb-muted)]" : "text-slate-400"
+                    )}
                   >
                     {section.title}
                   </li>,
@@ -182,14 +252,38 @@ export function SearchableSelect({
                 ])
               : filteredOptions.map(renderOption)}
             {!hasResults ? (
-              <li className="px-3 py-2 text-sm text-slate-500">{emptyMessage}</li>
+              <li
+                className={cn(
+                  "px-3 py-2 text-sm",
+                  isAuth ? "text-[var(--eb-muted)]" : "text-slate-500"
+                )}
+              >
+                {emptyMessage}
+              </li>
             ) : null}
           </ul>
         </div>
       ) : null}
 
-      {helperText ? (
-        <p className="mt-1.5 text-xs text-slate-500">{helperText}</p>
+      {error ? (
+        <p
+          className={cn(
+            "mt-1.5 text-xs",
+            isAuth ? "text-red-300" : "text-red-400"
+          )}
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : helperText ? (
+        <p
+          className={cn(
+            "mt-1.5 text-xs",
+            isAuth ? "text-[var(--eb-muted)]" : "text-slate-500"
+          )}
+        >
+          {helperText}
+        </p>
       ) : null}
     </div>
   );

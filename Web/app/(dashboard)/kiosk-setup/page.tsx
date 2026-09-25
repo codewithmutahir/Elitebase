@@ -9,14 +9,14 @@ export default async function KioskSetupPage() {
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-[var(--eb-muted)]">
         Pair tablets with your company so employees can clock in on-site.
       </p>
 
       <GenerateSetupPanel />
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">
+        <h2 className="mb-4 text-lg font-medium tracking-tight text-[var(--eb-text)]">
           Registered tablets
         </h2>
         <TabletList tablets={tablets} />

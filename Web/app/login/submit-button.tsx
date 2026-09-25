@@ -1,14 +1,20 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 
-export function LoginSubmitButton() {
+type LoginSubmitButtonProps = {
+  disabled?: boolean;
+};
+
+export function LoginSubmitButton({ disabled: disabledProp }: LoginSubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending} size="lg" className="w-full">
-      {pending ? "Signing in..." : "Sign in"}
-    </Button>
+    <AuthSubmitButton
+      idleLabel="Sign in"
+      pendingLabel="Signing in..."
+      disabled={disabledProp || pending}
+    />
   );
 }

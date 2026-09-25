@@ -40,6 +40,15 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
 
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      return jsonOk({
+        ok: false,
+        status: response.status,
+        error: errorText || `Face service warmup failed (${response.status})`,
+      });
+    }
+
     const body = (await response.json().catch(() => ({}))) as {
       model_loaded?: boolean;
       load_ms?: number;
