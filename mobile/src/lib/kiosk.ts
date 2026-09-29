@@ -198,6 +198,31 @@ export function getKioskApiErrorMessage(
   return fallback;
 }
 
+export type LeaveRequestResponse = {
+  request_id: string;
+  status: string;
+};
+
+export async function submitLeaveRequest(
+  employeeId: string,
+  leaveType: "paid_leave" | "unpaid_leave",
+  startDate: string,
+  endDate?: string,
+  reason?: string
+): Promise<LeaveRequestResponse> {
+  const { data } = await api.post<LeaveRequestResponse>(
+    "/api/kiosk/leave-request",
+    {
+      employee_id: employeeId,
+      leave_type: leaveType,
+      start_date: startDate,
+      end_date: endDate || startDate,
+      reason: reason || undefined,
+    }
+  );
+  return data;
+}
+
 export function getRegisterTabletErrorMessage(error: unknown): string {
   const baseUrl = getApiBaseUrl();
 

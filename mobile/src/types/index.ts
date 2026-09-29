@@ -24,6 +24,8 @@ export type AttendanceActionType =
   | "break_start"
   | "break_end";
 
+export type LeaveType = "paid_leave" | "unpaid_leave";
+
 export type RootStackParamList = {
   Setup: undefined;
   Idle: undefined;
@@ -32,9 +34,14 @@ export type RootStackParamList = {
   FaceRegister: { employee: KioskEmployee };
   FaceScan: { employee: KioskEmployee };
   Action: { employee: KioskEmployee; matchScore?: number };
+  LeaveRequest: { employee: KioskEmployee };
   Success: {
     employee: KioskEmployee;
     actionType: AttendanceActionType;
     timestamp: string;
+  };
+  LeaveSuccess: {
+    employee: KioskEmployee;
+    leaveType: LeaveType;
   };
 };

@@ -87,7 +87,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [requestType, setRequestType] = useState<
-    "vacation" | "sick" | "personal" | "unpaid"
+    "vacation" | "sick" | "personal" | "unpaid" | "paid_leave" | "unpaid_leave"
   >("vacation");
   const [reason, setReason] = useState("");
 
@@ -188,10 +188,14 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                     | "sick"
                     | "personal"
                     | "unpaid"
+                    | "paid_leave"
+                    | "unpaid_leave"
                 )
               }
               className={cn(dashboardNativeSelectClass, "min-w-[140px]")}
             >
+              <option value="paid_leave">Paid Leave</option>
+              <option value="unpaid_leave">Unpaid Leave</option>
               <option value="vacation">Vacation</option>
               <option value="sick">Sick</option>
               <option value="personal">Personal</option>
@@ -253,6 +257,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
               <DataTableHead>Employee</DataTableHead>
               <DataTableHead>Dates</DataTableHead>
               <DataTableHead>Type</DataTableHead>
+              <DataTableHead>By</DataTableHead>
               <DataTableHead>Status</DataTableHead>
               <DataTableHead>Reason</DataTableHead>
               <DataTableHead className="w-40">Actions</DataTableHead>
@@ -261,7 +266,7 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
           <DataTableBody>
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <DataTableEmpty>No time-off requests yet.</DataTableEmpty>
                 </td>
               </tr>
@@ -276,6 +281,9 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                   </DataTableCell>
                   <DataTableCell>
                     {formatTimeOffType(request.request_type)}
+                  </DataTableCell>
+                  <DataTableCell className="capitalize text-[var(--eb-muted)]">
+                    {request.requested_by === "employee" ? "Employee" : "Employer"}
                   </DataTableCell>
                   <DataTableCell>
                     {statusBadge(request.status, dashboardTheme)}

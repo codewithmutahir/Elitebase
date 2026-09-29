@@ -4,6 +4,8 @@ export type ParsedEmployeeImportRow = {
   payrollId: string | null;
   hourlyRate: number | null;
   monthlySalary: number | null;
+  scheduleStart: string | null;
+  scheduleEnd: string | null;
 };
 
 export type ParseEmployeeCsvResult = {
@@ -101,8 +103,20 @@ export function parseEmployeeTimecardCsv(csvText: string): ParseEmployeeCsvResul
   const payrollIdIndex = findColumnIndex(headers, ["Payroll ID"]);
   const monthlySalaryIndex = findColumnIndex(headers, [
     "Effective monthly salary",
+    "Salary",
+    "Monthly salary",
   ]);
   const dailyWageIndex = findColumnIndex(headers, ["Wage rate (per day)"]);
+  const scheduleStartIndex = findColumnIndex(headers, [
+    "Schedule start",
+    "Shift start",
+    "Start time",
+  ]);
+  const scheduleEndIndex = findColumnIndex(headers, [
+    "Schedule end",
+    "Shift end",
+    "End time",
+  ]);
 
   if (nameIndex < 0) {
     return {
@@ -158,6 +172,11 @@ export function parseEmployeeTimecardCsv(csvText: string): ParseEmployeeCsvResul
       dailyWageIndex >= 0 ? parseMoney(fields[dailyWageIndex]) : null;
     const hourlyRate = hourlyRateFromDailyWage(dailyWage);
 
+    const scheduleStart =
+      scheduleStartIndex >= 0 ? (fields[scheduleStartIndex] ?? "").trim() || null : null;
+    const scheduleEnd =
+      scheduleEndIndex >= 0 ? (fields[scheduleEndIndex] ?? "").trim() || null : null;
+
     const existing = byName.get(key);
     if (!existing) {
       byName.set(key, {
@@ -166,6 +185,8 @@ export function parseEmployeeTimecardCsv(csvText: string): ParseEmployeeCsvResul
         payrollId,
         hourlyRate,
         monthlySalary,
+        scheduleStart,
+        scheduleEnd,
       });
       continue;
     }
@@ -178,6 +199,8 @@ export function parseEmployeeTimecardCsv(csvText: string): ParseEmployeeCsvResul
     if (existing.monthlySalary == null && monthlySalary != null) {
       existing.monthlySalary = monthlySalary;
     }
+    if (!existing.scheduleStart && scheduleStart) existing.scheduleStart = scheduleStart;
+    if (!existing.scheduleEnd && scheduleEnd) existing.scheduleEnd = scheduleEnd;
   }
 
   const employees = [...byName.values()].sort((a, b) =>
@@ -197,18 +220,31 @@ export function parseEmployeeTimecardCsv(csvText: string): ParseEmployeeCsvResul
 }
 
 export function employeeImportPinsToCsv(
-  rows: Array<{ fullName: string; pin: string; position: string | null }>
+  rows: Array<{
+    fullName: string;
+    pin: string;
+    position: string | null;
+    salary?: number | null;
+    scheduleStart?: string | null;
+    scheduleEnd?: string | null;
+  }>
 ) {
-  const header = ["Name", "Position", "PIN"];
+  const header = ["Name", "Position", "PIN", "Salary", "Schedule"];
+  const escape = (value: string) =>
+    /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   const lines = [
     header.join(","),
     ...rows.map((row) => {
-      const escape = (value: string) =>
-        /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+      const schedule =
+        row.scheduleStart && row.scheduleEnd
+          ? `${row.scheduleStart} – ${row.scheduleEnd}`
+          : "";
       return [
         escape(row.fullName),
         escape(row.position ?? ""),
         escape(row.pin),
+        row.salary != null && row.salary > 0 ? String(row.salary) : "",
+        escape(schedule),
       ].join(",");
     }),
   ];

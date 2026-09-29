@@ -34,6 +34,8 @@ import { IdleScreen } from "@/screens/IdleScreen";
 import { PinScreen } from "@/screens/PinScreen";
 import { SetupScreen } from "@/screens/SetupScreen";
 import { SuccessScreen } from "@/screens/SuccessScreen";
+import { LeaveRequestScreen } from "@/screens/LeaveRequestScreen";
+import { LeaveSuccessScreen } from "@/screens/LeaveSuccessScreen";
 import type { RootStackParamList } from "@/types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -151,7 +153,9 @@ function KioskAppTree() {
           <Stack.Screen name="FaceRegister" component={FaceRegisterScreen} />
           <Stack.Screen name="FaceScan" component={FaceScanScreen} />
           <Stack.Screen name="Action" component={ActionScreen} />
+          <Stack.Screen name="LeaveRequest" component={LeaveRequestScreen} />
           <Stack.Screen name="Success" component={SuccessScreen} />
+          <Stack.Screen name="LeaveSuccess" component={LeaveSuccessScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

@@ -146,6 +146,9 @@ export function EmployeesView({
                   <DataTableHead>Employee</DataTableHead>
                   <DataTableHead>Department</DataTableHead>
                   <DataTableHead>Position</DataTableHead>
+                  <DataTableHead>Schedule</DataTableHead>
+                  <DataTableHead>Salary</DataTableHead>
+                  <DataTableHead>Today</DataTableHead>
                   <DataTableHead>PIN</DataTableHead>
                   <DataTableHead>Face</DataTableHead>
                   <DataTableHead className="text-right">Actions</DataTableHead>
@@ -154,7 +157,7 @@ export function EmployeesView({
               <DataTableBody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={9}>
                       <DataTableEmpty>No employees match your filters.</DataTableEmpty>
                     </td>
                   </tr>
@@ -188,6 +191,23 @@ export function EmployeesView({
                       </DataTableCell>
                       <DataTableCell>{employee.department ?? "—"}</DataTableCell>
                       <DataTableCell>{employee.position ?? "—"}</DataTableCell>
+                      <DataTableCell className="whitespace-nowrap text-xs">
+                        {employee.schedule_start_time?.slice(0, 5)} – {employee.schedule_end_time?.slice(0, 5)}
+                      </DataTableCell>
+                      <DataTableCell className="whitespace-nowrap text-xs">
+                        {employee.pay_type === "salary" && employee.salary_amount
+                          ? `$${employee.salary_amount.toLocaleString()}/mo`
+                          : "—"}
+                      </DataTableCell>
+                      <DataTableCell>
+                        {employee.today_status === "on_time" ? (
+                          <StatusBadge tone="success">On Time</StatusBadge>
+                        ) : employee.today_status === "late" ? (
+                          <StatusBadge tone="error">Late</StatusBadge>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </DataTableCell>
                       <DataTableCell>
                         <RosterPinCell
                           employeeId={employee.id}

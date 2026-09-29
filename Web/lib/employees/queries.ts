@@ -17,6 +17,13 @@ export type EmployeeListItem = {
   face_registered_at: string | null;
   /** True when face must be re-scanned after InsightFace model change. */
   needs_reenrollment: boolean;
+  schedule_start_time: string;
+  schedule_end_time: string;
+  salary_amount: number | null;
+  pay_type: string;
+  bonus_amount: number;
+  /** Latest clock-in attendance status for today (on_time | late | null). */
+  today_status: string | null;
 };
 
 export type EmployeeDetail = {
@@ -62,7 +69,7 @@ export async function listEmployees(companyId: string) {
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, email, department_id, departments ( name ), position, role, status, is_active, face_registered_at, needs_reenrollment, employee_pins ( id, pin_plain )"
+      "id, full_name, email, department_id, departments ( name ), position, role, status, is_active, face_registered_at, needs_reenrollment, schedule_start_time, schedule_end_time, salary_amount, pay_type, bonus_amount, employee_pins ( id, pin_plain )"
     )
     .eq("company_id", companyId)
     .order("full_name", { ascending: true });
@@ -70,6 +77,31 @@ export async function listEmployees(companyId: string) {
   if (error) {
     console.error("listEmployees failed:", error.message);
     return [];
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const todayStart = `${today}T00:00:00.000Z`;
+  const todayEnd = `${today}T23:59:59.999Z`;
+
+  const employeeIds = (data ?? []).map((r) => r.id);
+  let todayStatuses: Record<string, string> = {};
+
+  if (employeeIds.length > 0) {
+    const { data: attendanceRows } = await admin
+      .from("attendance")
+      .select("employee_id, attendance_status")
+      .eq("company_id", companyId)
+      .eq("type", "clock_in")
+      .gte("timestamp", todayStart)
+      .lte("timestamp", todayEnd)
+      .in("employee_id", employeeIds)
+      .order("timestamp", { ascending: false });
+
+    for (const row of attendanceRows ?? []) {
+      if (!todayStatuses[row.employee_id] && row.attendance_status) {
+        todayStatuses[row.employee_id] = row.attendance_status;
+      }
+    }
   }
 
   return (data ?? []).map((row) => {
@@ -94,6 +126,12 @@ export async function listEmployees(companyId: string) {
       pin: pinRow?.pin_plain ?? null,
       face_registered_at: row.face_registered_at,
       needs_reenrollment: Boolean(row.needs_reenrollment),
+      schedule_start_time: (row.schedule_start_time as string) ?? "09:00",
+      schedule_end_time: (row.schedule_end_time as string) ?? "17:00",
+      salary_amount: row.salary_amount != null ? Number(row.salary_amount) : null,
+      pay_type: (row.pay_type as string) ?? "hourly",
+      bonus_amount: Number(row.bonus_amount ?? 0),
+      today_status: todayStatuses[row.id] ?? null,
     } satisfies EmployeeListItem;
   });
 }

@@ -50,6 +50,10 @@ export type EmployeeProfile = {
   salary_amount: number | null;
   salary_period: SalaryPeriod;
   working_days: number[];
+  schedule_start_time: string;
+  schedule_end_time: string;
+  bonus_amount: number;
+  bonus_note: string | null;
   date_of_birth: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
@@ -93,6 +97,7 @@ export async function getEmployeeProfile(
       id, company_id, full_name, email, phone, role, employment_type, status,
       department_id, departments ( name ), position, hire_date, hourly_rate,
       pay_type, salary_amount, salary_period, working_days,
+      schedule_start_time, schedule_end_time, bonus_amount, bonus_note,
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
       is_active, face_registered_at, face_consent, face_consent_at, needs_reenrollment, created_at,
@@ -154,6 +159,10 @@ export async function getEmployeeProfile(
     working_days: Array.isArray(data.working_days)
       ? (data.working_days as number[])
       : [1, 2, 3, 4, 5],
+    schedule_start_time: (data.schedule_start_time as string) ?? "09:00",
+    schedule_end_time: (data.schedule_end_time as string) ?? "17:00",
+    bonus_amount: Number(data.bonus_amount ?? 0),
+    bonus_note: (data.bonus_note as string) ?? null,
     date_of_birth: data.date_of_birth,
     emergency_contact_name: data.emergency_contact_name,
     emergency_contact_phone: data.emergency_contact_phone,

@@ -8,6 +8,7 @@ import {
   requireKioskTablet,
 } from "@/lib/kiosk/api";
 import { isAttendanceType } from "@/lib/kiosk/attendance";
+import { computeAttendanceStatus } from "@/lib/attendance/status";
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
 
 export const runtime = "nodejs";
@@ -53,6 +54,27 @@ export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString();
   const admin = createClient();
 
+  let attendanceStatus: string | null = null;
+  if (type === "clock_in") {
+    const { data: empSchedule } = await admin
+      .from("employees")
+      .select("schedule_start_time")
+      .eq("id", employeeId)
+      .eq("company_id", tablet.company_id)
+      .maybeSingle();
+
+    const { data: companyRow } = await admin
+      .from("companies")
+      .select("timezone")
+      .eq("id", tablet.company_id)
+      .maybeSingle();
+
+    const scheduleStart = (empSchedule?.schedule_start_time as string) ?? "09:00";
+    const tz = companyRow?.timezone ?? "America/New_York";
+
+    attendanceStatus = computeAttendanceStatus(timestamp, scheduleStart, tz);
+  }
+
   const { data, error } = await admin
     .from("attendance")
     .insert({
@@ -62,8 +84,9 @@ export async function POST(request: NextRequest) {
       type,
       timestamp,
       face_match_score: faceMatchScore,
+      attendance_status: attendanceStatus,
     })
-    .select("id, type, timestamp")
+    .select("id, type, timestamp, attendance_status")
     .single();
 
   if (error || !data) {
@@ -77,6 +100,7 @@ export async function POST(request: NextRequest) {
       employee_id: employeeId,
       type: data.type,
       timestamp: data.timestamp,
+      attendance_status: data.attendance_status,
     },
   });
 }

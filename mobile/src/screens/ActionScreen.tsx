@@ -211,6 +211,17 @@ export function ActionScreen() {
         onPress={() => void handleAction(breakAction)}
         compact
       />
+      <ActionButton
+        label="Request Leave"
+        icon="calendar"
+        bg={T.surfaceHi}
+        bordered
+        disabled={loadingStatus || submitting !== null}
+        onPress={() =>
+          navigation.navigate("LeaveRequest", { employee })
+        }
+        compact
+      />
     </View>
   );
 

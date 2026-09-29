@@ -23,6 +23,10 @@ export async function updateEmployeeJobDetails(
     pay_type: PayType;
     salary_amount: number | null;
     working_days: number[];
+    schedule_start_time: string;
+    schedule_end_time: string;
+    bonus_amount: number;
+    bonus_note: string | null;
   }
 ) {
   const { company } = await requireCompanySession();
@@ -31,6 +35,12 @@ export async function updateEmployeeJobDetails(
 
   if (data.pay_type === "salary" && (!data.salary_amount || data.salary_amount <= 0)) {
     return { error: "Monthly salary is required for salaried employees." };
+  }
+
+  const startTime = data.schedule_start_time || "09:00";
+  const endTime = data.schedule_end_time || "17:00";
+  if (endTime <= startTime) {
+    return { error: "Shift end must be after shift start." };
   }
 
   const { error } = await admin
@@ -43,6 +53,10 @@ export async function updateEmployeeJobDetails(
       salary_amount: data.pay_type === "salary" ? data.salary_amount : null,
       salary_period: "monthly",
       working_days: workingDays,
+      schedule_start_time: startTime,
+      schedule_end_time: endTime,
+      bonus_amount: data.bonus_amount ?? 0,
+      bonus_note: data.bonus_note?.trim() || null,
     })
     .eq("id", employeeId)
     .eq("company_id", company.id);

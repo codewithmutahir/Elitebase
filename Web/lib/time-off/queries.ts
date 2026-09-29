@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type TimeOffRequestType = "vacation" | "sick" | "personal" | "unpaid";
+export type TimeOffRequestType = "vacation" | "sick" | "personal" | "unpaid" | "paid_leave" | "unpaid_leave";
 export type TimeOffRequestStatus = "pending" | "approved" | "denied" | "cancelled";
 
 export type TimeOffRequestRow = {
@@ -14,6 +14,7 @@ export type TimeOffRequestRow = {
   reason: string | null;
   reviewed_at: string | null;
   created_at: string;
+  requested_by: "employer" | "employee";
 };
 
 type RawRow = {
@@ -26,6 +27,7 @@ type RawRow = {
   reason: string | null;
   reviewed_at: string | null;
   created_at: string;
+  requested_by: string;
   employees: { full_name: string } | { full_name: string }[] | null;
 };
 
@@ -44,7 +46,7 @@ export async function listTimeOffRequests(
   const { data, error } = await admin
     .from("time_off_requests")
     .select(
-      "id, employee_id, start_date, end_date, request_type, status, reason, reviewed_at, created_at, employees ( full_name )"
+      "id, employee_id, start_date, end_date, request_type, status, reason, reviewed_at, created_at, requested_by, employees ( full_name )"
     )
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
@@ -65,6 +67,7 @@ export async function listTimeOffRequests(
     reason: row.reason,
     reviewed_at: row.reviewed_at,
     created_at: row.created_at,
+    requested_by: (row.requested_by ?? "employer") as "employer" | "employee",
   }));
 }
 
@@ -115,6 +118,10 @@ export function formatTimeOffType(type: TimeOffRequestType): string {
       return "Personal";
     case "unpaid":
       return "Unpaid";
+    case "paid_leave":
+      return "Paid Leave";
+    case "unpaid_leave":
+      return "Unpaid Leave";
     default:
       return type;
   }

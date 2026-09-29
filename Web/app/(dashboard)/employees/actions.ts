@@ -24,6 +24,11 @@ type NewEmployeeInput = {
   hourlyRate?: number | null;
   payType?: "hourly" | "salary";
   salaryAmount?: number | null;
+  workingDays?: number[];
+  scheduleStartTime?: string | null;
+  scheduleEndTime?: string | null;
+  bonusAmount?: number | null;
+  bonusNote?: string | null;
 };
 
 function normalizeEmployeeName(name: string) {
@@ -43,6 +48,10 @@ async function createEmployeeWithPin(
   const pinHash = await hashEmployeePin(plainPin);
   const admin = createClient();
 
+  const workingDays = input.workingDays?.length
+    ? input.workingDays.filter((d) => d >= 1 && d <= 7)
+    : [1, 2, 3, 4, 5];
+
   const { data: employee, error: insertError } = await admin
     .from("employees")
     .insert({
@@ -60,6 +69,11 @@ async function createEmployeeWithPin(
       salary_period: "monthly",
       status: "active",
       employment_type: role === "manager" ? "manager" : "employee",
+      working_days: workingDays,
+      schedule_start_time: input.scheduleStartTime || "09:00",
+      schedule_end_time: input.scheduleEndTime || "17:00",
+      bonus_amount: input.bonusAmount ?? 0,
+      bonus_note: input.bonusNote ?? null,
     })
     .select("id, full_name, position")
     .single();
@@ -110,6 +124,23 @@ export async function addEmployee(
     String(formData.get("departmentId") ?? "").trim() || null;
   const position = String(formData.get("position") ?? "").trim() || null;
   const hireDate = String(formData.get("hireDate") ?? "").trim() || null;
+  const payType = String(formData.get("payType") ?? "hourly").trim() as "hourly" | "salary";
+  const salaryAmount = Number(formData.get("salaryAmount") ?? 0) || null;
+  const scheduleStartTime = String(formData.get("scheduleStartTime") ?? "09:00").trim() || "09:00";
+  const scheduleEndTime = String(formData.get("scheduleEndTime") ?? "17:00").trim() || "17:00";
+  const bonusAmountRaw = Number(formData.get("bonusAmount") ?? 0);
+  const bonusAmount = bonusAmountRaw > 0 ? bonusAmountRaw : null;
+  const bonusNote = String(formData.get("bonusNote") ?? "").trim() || null;
+
+  const workingDaysRaw = formData.get("workingDays");
+  let workingDays: number[] | undefined;
+  if (workingDaysRaw) {
+    try {
+      workingDays = JSON.parse(String(workingDaysRaw));
+    } catch {
+      workingDays = undefined;
+    }
+  }
 
   if (!fullName) {
     return { error: "Full name is required." };
@@ -122,6 +153,13 @@ export async function addEmployee(
     departmentId,
     position,
     hireDate,
+    payType,
+    salaryAmount,
+    workingDays,
+    scheduleStartTime,
+    scheduleEndTime,
+    bonusAmount,
+    bonusNote,
   });
 
   if ("error" in created) {
@@ -278,6 +316,8 @@ export async function importEmployeesFromCsv(
           hourlyRate: employee.hourlyRate,
           payType: employee.monthlySalary ? "salary" : "hourly",
           salaryAmount: employee.monthlySalary,
+          scheduleStartTime: employee.scheduleStart,
+          scheduleEndTime: employee.scheduleEnd,
         });
         return { employee, result };
       })

@@ -12,6 +12,8 @@ const REQUEST_TYPES: TimeOffRequestType[] = [
   "sick",
   "personal",
   "unpaid",
+  "paid_leave",
+  "unpaid_leave",
 ];
 
 function revalidateTimeOff() {

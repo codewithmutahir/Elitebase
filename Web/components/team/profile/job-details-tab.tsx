@@ -32,6 +32,7 @@ import {
   formatHourlyRate,
   formatMonthlySalary,
 } from "@/lib/employees/format";
+import { formatMoney } from "@/lib/money/format";
 import type { EmployeeProfile, PayType } from "@/lib/employees/profile-queries";
 import {
   ALL_ISO_DAYS,
@@ -68,6 +69,10 @@ export function JobDetailsTab({
   );
   const [workingDays, setWorkingDays] = useState<number[]>(employee.working_days);
   const [hireDate, setHireDate] = useState(employee.hire_date ?? "");
+  const [scheduleStart, setScheduleStart] = useState(employee.schedule_start_time ?? "09:00");
+  const [scheduleEnd, setScheduleEnd] = useState(employee.schedule_end_time ?? "17:00");
+  const [bonusAmount, setBonusAmount] = useState(String(employee.bonus_amount ?? 0));
+  const [bonusNote, setBonusNote] = useState(employee.bonus_note ?? "");
 
   function applyPreset(preset: WorkingDayPreset) {
     setWorkingDays([...WORKING_DAY_PRESETS[preset]]);
@@ -93,6 +98,10 @@ export function JobDetailsTab({
     );
     setWorkingDays(employee.working_days);
     setHireDate(employee.hire_date ?? "");
+    setScheduleStart(employee.schedule_start_time ?? "09:00");
+    setScheduleEnd(employee.schedule_end_time ?? "17:00");
+    setBonusAmount(String(employee.bonus_amount ?? 0));
+    setBonusNote(employee.bonus_note ?? "");
   }
 
   function save() {
@@ -105,6 +114,10 @@ export function JobDetailsTab({
         salary_amount:
           payType === "salary" ? Number(salaryAmount) || 0 : null,
         working_days: workingDays,
+        schedule_start_time: scheduleStart,
+        schedule_end_time: scheduleEnd,
+        bonus_amount: Number(bonusAmount) || 0,
+        bonus_note: bonusNote.trim() || null,
       });
       if (result.error) {
         toast.error(result.error);
@@ -118,6 +131,10 @@ export function JobDetailsTab({
         salary_amount:
           payType === "salary" ? Number(salaryAmount) || 0 : null,
         working_days: normalizeWorkingDays(workingDays),
+        schedule_start_time: scheduleStart,
+        schedule_end_time: scheduleEnd,
+        bonus_amount: Number(bonusAmount) || 0,
+        bonus_note: bonusNote.trim() || null,
       });
       setEditing(false);
       toast.success("Job details saved");
@@ -265,6 +282,52 @@ export function JobDetailsTab({
                 </div>
               </div>
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className={profileFieldLabelClass}>Shift start</label>
+                  <input
+                    type="time"
+                    value={scheduleStart}
+                    onChange={(e) => setScheduleStart(e.target.value)}
+                    className={profileInputClass}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={profileFieldLabelClass}>Shift end</label>
+                  <input
+                    type="time"
+                    value={scheduleEnd}
+                    onChange={(e) => setScheduleEnd(e.target.value)}
+                    className={profileInputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className={profileFieldLabelClass}>Bonus amount</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={bonusAmount}
+                    onChange={(e) => setBonusAmount(e.target.value)}
+                    className={profileInputClass}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={profileFieldLabelClass}>Bonus note</label>
+                  <input
+                    type="text"
+                    value={bonusNote}
+                    onChange={(e) => setBonusNote(e.target.value)}
+                    className={profileInputClass}
+                    placeholder="Performance, signing…"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -322,6 +385,23 @@ export function JobDetailsTab({
                   {formatWorkingDaysLabel(employee.working_days)}
                 </dd>
               </div>
+              <div>
+                <dt className={profileFieldLabelClass}>Schedule</dt>
+                <dd className={cn("mt-1", profileValueClass)}>
+                  {employee.schedule_start_time?.slice(0, 5) ?? "09:00"} – {employee.schedule_end_time?.slice(0, 5) ?? "17:00"}
+                </dd>
+              </div>
+              {employee.bonus_amount > 0 ? (
+                <div>
+                  <dt className={profileFieldLabelClass}>Bonus</dt>
+                  <dd className={cn("mt-1", profileValueClass)}>
+                    {formatMoney(employee.bonus_amount, currency)}
+                    {employee.bonus_note ? (
+                      <span className="ml-1 text-[var(--eb-muted)]">({employee.bonus_note})</span>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           )}
 

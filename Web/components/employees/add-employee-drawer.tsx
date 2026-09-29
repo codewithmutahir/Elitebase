@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { addEmployee, type AddEmployeeState } from "@/app/(dashboard)/employees/actions";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,11 @@ import {
   dashboardSheetOverlayClass,
   dashboardSheetSuccessPanelClass,
 } from "@/lib/dashboard/styles";
+import {
+  ALL_ISO_DAYS,
+  ISO_DAY_LABELS,
+  normalizeWorkingDays,
+} from "@/lib/employees/working-days";
 import { cn } from "@/lib/utils";
 
 const initialState: AddEmployeeState | null = null;
@@ -44,6 +49,19 @@ export function AddEmployeeDrawer({
 }: AddEmployeeDrawerProps) {
   const [state, formAction, pending] = useActionState(addEmployee, initialState);
   const showSuccess = Boolean(state?.plainPin);
+  const [payType, setPayType] = useState<"hourly" | "salary">("hourly");
+  const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5]);
+
+  function toggleDay(day: number) {
+    setWorkingDays((prev) => {
+      const normalized = normalizeWorkingDays(prev);
+      if (normalized.includes(day)) {
+        const next = normalized.filter((d) => d !== day);
+        return next.length > 0 ? next : normalized;
+      }
+      return normalizeWorkingDays([...normalized, day]);
+    });
+  }
 
   return (
     <Sheet
@@ -120,7 +138,8 @@ export function AddEmployeeDrawer({
             </div>
           ) : (
             <form action={formAction} className="flex min-h-0 flex-1 flex-col">
-              <div className="space-y-4">
+              <input type="hidden" name="workingDays" value={JSON.stringify(workingDays)} />
+              <div className="space-y-5">
                 {state?.error ? (
                   <p
                     className="rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
@@ -130,6 +149,7 @@ export function AddEmployeeDrawer({
                   </p>
                 ) : null}
 
+                {/* — Basic info — */}
                 <Input
                   id="fullName"
                   name="fullName"
@@ -190,6 +210,111 @@ export function AddEmployeeDrawer({
                     type="date"
                     className={dashboardFieldInputClass}
                   />
+                </div>
+
+                {/* — Schedule — */}
+                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                  <p className="text-sm font-semibold text-[var(--eb-text)]">Schedule</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="scheduleStartTime">Shift start</Label>
+                      <input
+                        id="scheduleStartTime"
+                        name="scheduleStartTime"
+                        type="time"
+                        defaultValue="09:00"
+                        className={cn(dashboardFieldInputClass, "mt-1.5")}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="scheduleEndTime">Shift end</Label>
+                      <input
+                        id="scheduleEndTime"
+                        name="scheduleEndTime"
+                        type="time"
+                        defaultValue="17:00"
+                        className={cn(dashboardFieldInputClass, "mt-1.5")}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Working days</Label>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {ALL_ISO_DAYS.map((day) => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleDay(day)}
+                          className={cn(
+                            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                            normalizeWorkingDays(workingDays).includes(day)
+                              ? "bg-[var(--eb-accent)] text-white"
+                              : "border border-[var(--eb-border)] bg-transparent text-[var(--eb-muted)] hover:text-[var(--eb-text)]"
+                          )}
+                        >
+                          {ISO_DAY_LABELS[day]}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--eb-muted)]">
+                      Unselected days are off days
+                    </p>
+                  </div>
+                </div>
+
+                {/* — Pay — */}
+                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                  <p className="text-sm font-semibold text-[var(--eb-text)]">Compensation</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="payType">Pay type</Label>
+                      <select
+                        id="payType"
+                        name="payType"
+                        value={payType}
+                        onChange={(e) => setPayType(e.target.value as "hourly" | "salary")}
+                        className={cn(dashboardNativeSelectClass, "mt-1.5")}
+                      >
+                        <option value="hourly">Hourly</option>
+                        <option value="salary">Monthly salary</option>
+                      </select>
+                    </div>
+                    {payType === "salary" ? (
+                      <Input
+                        id="salaryAmount"
+                        name="salaryAmount"
+                        label="Monthly salary"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className={dashboardFieldInputClass}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* — Bonus — */}
+                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                  <p className="text-sm font-semibold text-[var(--eb-text)]">Bonus</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Input
+                      id="bonusAmount"
+                      name="bonusAmount"
+                      label="Amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      className={dashboardFieldInputClass}
+                    />
+                    <Input
+                      id="bonusNote"
+                      name="bonusNote"
+                      label="Note"
+                      placeholder="Signing bonus, performance…"
+                      className={dashboardFieldInputClass}
+                    />
+                  </div>
                 </div>
               </div>
 
