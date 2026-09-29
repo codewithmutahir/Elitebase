@@ -11,6 +11,7 @@ import {
   dashboardSectionTitleClass,
 } from "@/lib/dashboard/styles";
 import { formatTimesheetMonthLabel } from "@/lib/timesheets/labels";
+import { API_V1 } from "@/lib/api/paths";
 import type { TimesheetEmployeeOption } from "@/lib/timesheets/data";
 
 type TimesheetsExportPanelProps = {
@@ -43,7 +44,7 @@ export function TimesheetsExportPanel({
     if (format === "quickbooks") {
       params.set("format", "quickbooks");
     }
-    return `/api/timesheets/export?${params.toString()}`;
+    return `${API_V1.timesheets.export}?${params.toString()}`;
   }, [month, employeeId, selectedEmployee, format]);
 
   return (

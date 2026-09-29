@@ -7,6 +7,7 @@ import {
 } from "@/lib/storage";
 import type { TabletConfig } from "@/types";
 import { api } from "@/lib/api";
+import { MOBILE_API } from "@/lib/apiPaths";
 
 export type ValidateTabletResponse = {
   tablet_id: string;
@@ -148,7 +149,7 @@ export async function validateTabletSession(): Promise<boolean> {
 
   try {
     const { data } = await api.post<ValidateTabletResponse>(
-      "/api/kiosk/validate-tablet",
+      MOBILE_API.kiosk.validateTablet,
       {}
     );
     noteTabletAuthSuccess();

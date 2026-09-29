@@ -48,10 +48,7 @@ function getLimiter(route: string): Ratelimit | null {
   return limiter;
 }
 
-export function getKioskRouteName(pathname: string): string | null {
-  const match = pathname.match(/^\/api\/kiosk\/([^/]+)$/);
-  return match?.[1] ?? null;
-}
+export { parseKioskRouteSegment as getKioskRouteName } from "@/lib/api/paths";
 
 function getRateLimitIdentifier(request: NextRequest, route: string): string {
   const tabletToken =

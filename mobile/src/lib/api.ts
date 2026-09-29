@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isKioskApiUrl, isKioskAuthUrl } from "@/lib/apiPaths";
 import { getTabletToken } from "@/lib/storage";
 
 /** Production web app — used when EXPO_PUBLIC_API_URL is missing (common after OTA). */
@@ -57,7 +58,7 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   async (response) => {
     const url = response.config?.url ?? "";
-    if (url.includes("/api/kiosk/")) {
+    if (isKioskApiUrl(url)) {
       const { noteTabletAuthSuccess } = await import("@/lib/tabletSession");
       noteTabletAuthSuccess();
     }
@@ -65,8 +66,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     const url = axios.isAxiosError(error) ? (error.config?.url ?? "") : "";
-    const isKioskRoute =
-      url.includes("/api/kiosk/") && !url.includes("/register-tablet");
+    const isKioskRoute = isKioskAuthUrl(url);
 
     if (isKioskRoute) {
       const { handleTabletAuthFailure } = await import("@/lib/tabletSession");

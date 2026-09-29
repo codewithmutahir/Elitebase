@@ -134,10 +134,24 @@ Hero budget: brand, one headline, one sentence, CTA group, one mockup. No stat s
 
 ---
 
+## HTTP API (versioning & boundaries)
+
+- **Canonical public REST prefix:** `/api/v1/…` — kiosk + timesheets handlers live in `Web/lib/api/v1/`; Next routes under `Web/app/api/v1/`.
+- **Legacy aliases:** unversioned `/api/kiosk/*` and `/api/timesheets/*` re-export the same v1 handlers via `Web/lib/api/define-route.ts` and send `Deprecation` + `Link: successor-version` headers. Do not remove legacy paths until all shipped clients use v1.
+- **Path constants:** `Web/lib/api/paths.ts` (`API_V1`) for web; `mobile/src/lib/apiPaths.ts` (`MOBILE_API`) — keep in sync when adding endpoints.
+- **Auth:** Better Auth stays at `/api/auth` (session cookies + `authClient`); not URL-versioned yet.
+- **Internal ops:** Vercel Cron and similar stay under `/api/cron/*` (not part of the public v1 contract).
+- **Rate limits / proxy:** `Web/proxy.ts` and `Web/lib/kiosk/rate-limit.ts` match both `/api/kiosk/…` and `/api/v1/kiosk/…` via `parseKioskRouteSegment`.
+
+When adding a new HTTP endpoint: implement handler in `lib/api/v1/…`, wire `app/api/v1/…/route.ts`, add optional legacy alias, update `API_V1` + mobile paths, extend proxy matcher if needed.
+
+---
+
 ## Implementation map
 
 | Area | Path |
 |------|------|
+| Versioned API handlers | `Web/lib/api/v1/`, `Web/lib/api/paths.ts` |
 | Landing page | `Web/app/(public)/page.tsx` |
 | Navbar | `Web/components/landing/landing-navbar.tsx` |
 | Footer | `Web/components/landing/landing-footer.tsx` |

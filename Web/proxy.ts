@@ -91,6 +91,8 @@ export const config = {
   matcher: [
     "/api/auth/:path*",
     "/api/kiosk/:path*",
+    "/api/v1/kiosk/:path*",
+    "/api/v1/timesheets/:path*",
     "/dashboard/:path*",
     "/employees/:path*",
     "/timesheets/:path*",

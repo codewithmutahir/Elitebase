@@ -11,6 +11,7 @@ import type { KioskScanState } from "@/components/kiosk/types";
 import { T } from "@/constants/tokens";
 import type { ApiPhase } from "@/components/face-id/types";
 import { api } from "@/lib/api";
+import { MOBILE_API } from "@/lib/apiPaths";
 import { avatarColor, employeeInitials } from "@/lib/format";
 import { getKioskApiErrorMessage } from "@/lib/kiosk";
 import { detectAndCropFace, faceQualityMessage } from "@/lib/faceDetection";
@@ -50,7 +51,7 @@ async function logClientFaceFailure(
 ) {
   try {
     await api.post(
-      "/api/kiosk/face-verify-log",
+      MOBILE_API.kiosk.faceVerifyLog,
       {
         employee_id: employeeId,
         failure_reason: failureReason,

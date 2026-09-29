@@ -1,5 +1,6 @@
 import axios from "axios";
 import { api, getApiBaseUrl } from "@/lib/api";
+import { MOBILE_API } from "@/lib/apiPaths";
 import type { KioskEmployee, TabletConfig } from "@/types";
 
 export type RegisterTabletResponse = {
@@ -24,7 +25,7 @@ export async function registerTablet(
   setupCode: string
 ): Promise<RegisterTabletResponse> {
   const { data } = await api.post<RegisterTabletResponse>(
-    "/api/kiosk/register-tablet",
+    MOBILE_API.kiosk.registerTablet,
     { setup_code: setupCode.trim().toUpperCase() }
   );
   return data;
@@ -47,7 +48,7 @@ export async function getEmployeeByPin(
   pin: string
 ): Promise<GetEmployeeResponse> {
   const { data } = await api.post<GetEmployeeResponse>(
-    "/api/kiosk/get-employee",
+    MOBILE_API.kiosk.getEmployee,
     { pin: pin.trim() }
   );
   return data;
@@ -140,7 +141,7 @@ export async function getEmployeeStatus(
   employeeId: string
 ): Promise<EmployeeStatusResponse> {
   const { data } = await api.post<EmployeeStatusResponse>(
-    "/api/kiosk/employee-status",
+    MOBILE_API.kiosk.employeeStatus,
     { employee_id: employeeId }
   );
   return data;
@@ -167,7 +168,7 @@ export async function clockAction(
   faceMatchScore?: number
 ): Promise<ClockActionResponse> {
   const { data } = await api.post<ClockActionResponse>(
-    "/api/kiosk/clock-action",
+    MOBILE_API.kiosk.clockAction,
     {
       employee_id: employeeId,
       type,
@@ -211,7 +212,7 @@ export async function submitLeaveRequest(
   reason?: string
 ): Promise<LeaveRequestResponse> {
   const { data } = await api.post<LeaveRequestResponse>(
-    "/api/kiosk/leave-request",
+    MOBILE_API.kiosk.leaveRequest,
     {
       employee_id: employeeId,
       leave_type: leaveType,

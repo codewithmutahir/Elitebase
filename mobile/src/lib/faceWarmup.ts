@@ -1,4 +1,5 @@
 import { api, getApiBaseUrl } from "@/lib/api";
+import { MOBILE_API } from "@/lib/apiPaths";
 import { getTabletToken } from "@/lib/storage";
 
 /** Face verify/register can wait on Render cold start + model load. */
@@ -30,7 +31,7 @@ export async function warmupFaceService(): Promise<FaceWarmupResult> {
       model_loaded?: boolean | null;
       status?: string | number;
     }>(
-      "/api/kiosk/face-warmup",
+      MOBILE_API.kiosk.faceWarmup,
       {},
       {
         headers: { "x-tablet-token": tabletToken },
@@ -94,7 +95,7 @@ export async function registerFaceMultipart(options: {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${base}/api/kiosk/register-face`, {
+    const response = await fetch(`${base}${MOBILE_API.kiosk.registerFace}`, {
       method: "POST",
       headers: {
         "x-tablet-token": tabletToken,
@@ -187,7 +188,7 @@ export async function verifyFaceMultipart(options: {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(`${base}/api/kiosk/verify-face`, {
+    const response = await fetch(`${base}${MOBILE_API.kiosk.verifyFace}`, {
       method: "POST",
       headers: {
         "x-tablet-token": tabletToken,
