@@ -2,6 +2,7 @@
 
 import { LatticeLoader } from "@/components/ui/lattice-loader";
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { dashboardPrimaryButtonClass } from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 
 type PendingButtonProps = ButtonProps & {
@@ -15,16 +16,23 @@ export function PendingButton({
   disabled,
   children,
   className,
+  variant,
   ...props
 }: PendingButtonProps) {
   const isDisabled = disabled || pending;
+  const useAccentPrimary = !variant || variant === "default";
 
   return (
     <Button
       {...props}
+      variant={variant}
       disabled={isDisabled}
       aria-busy={pending || undefined}
-      className={cn(pending && "relative", className)}
+      className={cn(
+        useAccentPrimary && dashboardPrimaryButtonClass,
+        pending && "relative",
+        className
+      )}
     >
       {pending ? (
         <span className="inline-flex items-center gap-2">

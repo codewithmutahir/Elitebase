@@ -45,6 +45,18 @@ export const dashboardDropdownMetaClass =
 export const dashboardSheetContentClass =
   "shadow-[0_0_80px_rgba(0,0,0,0.5)]";
 
+/** Portaled dialogs (timesheet edit, schedule, etc.) — pair with `.dashboard-dialog` in globals.css */
+export const dashboardDialogContentClass =
+  "dashboard-dialog ring-[var(--eb-border)] shadow-[0_0_80px_rgba(0,0,0,0.45)]";
+
+/** Portaled popovers (availability hours, shift edit) — pair with `.dashboard-popover` in globals.css */
+export const dashboardPopoverContentClass =
+  "dashboard-popover ring-[var(--eb-border)] shadow-lg";
+
+/** Solid primary actions in dashboard (portaled or in-shell — avoids root blue `primary`). */
+export const dashboardPrimaryButtonClass =
+  "border-transparent bg-[var(--eb-accent)] text-[#060a12] hover:bg-[var(--eb-accent-dark,#1FA89C)] focus-visible:ring-[var(--eb-accent)]/35";
+
 export const dashboardSheetOverlayClass =
   "dashboard-sheet-overlay bg-[var(--eb-ink)]/75 backdrop-blur-sm";
 

@@ -201,6 +201,7 @@ export async function getLatestAttendanceType(
     .select("type")
     .eq("company_id", companyId)
     .eq("employee_id", employeeId)
+    .is("voided_at", null)
     .order("timestamp", { ascending: false })
     .limit(1)
     .maybeSingle();

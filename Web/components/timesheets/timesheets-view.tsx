@@ -31,6 +31,10 @@ import {
   formatTimesheetMonthLabel,
   formatTimesheetRangeLabel,
 } from "@/lib/timesheets/labels";
+import {
+  isMissingClockIn,
+  isMissingClockOut,
+} from "@/lib/timesheets/missing-punches";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
 import type { TimesheetsViewParams } from "@/lib/timesheets/view-params";
 
@@ -54,20 +58,34 @@ function rowStatusBadge(row: TimesheetRow, theme: "light" | "dark") {
   if (row.status === "complete") {
     return (
       <StatusBadge tone="success" theme={theme}>
-        On time
+        Complete
       </StatusBadge>
     );
   }
-  if (row.status === "open") {
+  if (isMissingClockIn(row) && isMissingClockOut(row)) {
+    return (
+      <StatusBadge tone="error" theme={theme}>
+        No punches
+      </StatusBadge>
+    );
+  }
+  if (isMissingClockIn(row)) {
+    return (
+      <StatusBadge tone="error" theme={theme}>
+        Missing clock-in
+      </StatusBadge>
+    );
+  }
+  if (isMissingClockOut(row)) {
     return (
       <StatusBadge tone="warning" theme={theme}>
-        Open shift
+        Missing clock-out
       </StatusBadge>
     );
   }
   return (
     <StatusBadge tone="error" theme={theme}>
-      Missing
+      Incomplete
     </StatusBadge>
   );
 }
@@ -232,7 +250,14 @@ export function TimesheetsView({
                           : "—"}
                       </DataTableCell>
                       <DataTableCell>
-                        {rowStatusBadge(row, dashboardTheme)}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {rowStatusBadge(row, dashboardTheme)}
+                          {row.needsReview ? (
+                            <StatusBadge tone="warning" theme={dashboardTheme}>
+                              Needs review
+                            </StatusBadge>
+                          ) : null}
+                        </div>
                       </DataTableCell>
                       <DataTableCell onClick={(e) => e.stopPropagation()}>
                         <EditTimesheetDialog row={row} timezone={timezone} />

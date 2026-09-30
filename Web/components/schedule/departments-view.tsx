@@ -384,7 +384,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
                         type="button"
                         onClick={() => run(() => deleteDepartment(dept.id))}
                         disabled={pending}
-                        className="text-xs font-semibold text-slate-400 hover:text-red-600"
+                        className="text-xs font-semibold text-[var(--eb-muted)] hover:text-red-400"
                       >
                         Delete
                       </button>

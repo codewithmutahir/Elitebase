@@ -15,8 +15,13 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  dashboardFieldInputClass,
+  dashboardPopoverContentClass,
+} from "@/lib/dashboard/styles";
 import { toInputTime } from "@/lib/schedules/format";
 import type { ScheduleShift } from "@/lib/schedules/queries";
+import { cn } from "@/lib/utils";
 
 type ShiftEditPopoverProps = {
   shift: ScheduleShift;
@@ -80,7 +85,10 @@ export function ShiftEditPopover({
       }}
     >
       <PopoverTrigger render={children} />
-      <PopoverContent className="w-72 p-3" align="start">
+      <PopoverContent
+        className={cn("w-72 p-3", dashboardPopoverContentClass)}
+        align="start"
+      >
         <PopoverHeader>
           <PopoverTitle className="text-sm">Edit shift</PopoverTitle>
         </PopoverHeader>
@@ -97,7 +105,10 @@ export function ShiftEditPopover({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className={cn(
+                "flex h-9 w-full px-2 text-sm",
+                dashboardFieldInputClass
+              )}
             />
           </div>
           <div className="space-y-1">
@@ -109,7 +120,10 @@ export function ShiftEditPopover({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className={cn(
+                "flex h-9 w-full px-2 text-sm",
+                dashboardFieldInputClass
+              )}
             />
           </div>
         </div>
@@ -123,7 +137,10 @@ export function ShiftEditPopover({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className={cn(
+              "w-full px-2 py-1.5 text-sm",
+              dashboardFieldInputClass
+            )}
           />
         </div>
 

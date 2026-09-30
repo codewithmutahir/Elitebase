@@ -5,6 +5,7 @@ import {
   type AttendanceEvent,
   type TimesheetRow,
 } from "@/lib/timesheets/pairing";
+import { mergeTimesheetRowsWithScheduledAbsences } from "@/lib/timesheets/scheduled-absent";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -13,6 +14,8 @@ type RawAttendanceRow = {
   employee_id: string;
   type: string;
   timestamp: string;
+  attendance_status: string | null;
+  review_flag: string | null;
   employees: { full_name: string } | { full_name: string }[] | null;
 };
 
@@ -79,8 +82,11 @@ export async function fetchAttendanceEvents(
 
   let query = admin
     .from("attendance")
-    .select("id, employee_id, type, timestamp, employees ( full_name )")
+    .select(
+      "id, employee_id, type, timestamp, attendance_status, review_flag, employees ( full_name )"
+    )
     .eq("company_id", companyId)
+    .is("voided_at", null)
     .gte("timestamp", startIso)
     .lte("timestamp", endIso);
 
@@ -101,6 +107,9 @@ export async function fetchAttendanceEvents(
     employee_name: employeeName(row.employees),
     type: row.type,
     timestamp: row.timestamp,
+    attendance_status:
+      row.type === "clock_in" ? row.attendance_status ?? null : null,
+    review_flag: row.review_flag ?? null,
   }));
 }
 
@@ -127,7 +136,14 @@ export async function getTimesheetsPage(
     to,
     employeeId
   );
-  const allRows = buildTimesheetRows(events, timezone, from, to);
+  const baseRows = buildTimesheetRows(events, timezone, from, to);
+  const allRows = await mergeTimesheetRowsWithScheduledAbsences(
+    companyId,
+    from,
+    to,
+    baseRows,
+    employeeId
+  );
   const total = allRows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -151,7 +167,14 @@ export async function getAllTimesheetRows(
   employeeId?: string
 ) {
   const events = await fetchAttendanceEvents(companyId, from, to, employeeId);
-  return buildTimesheetRows(events, timezone, from, to);
+  const baseRows = buildTimesheetRows(events, timezone, from, to);
+  return mergeTimesheetRowsWithScheduledAbsences(
+    companyId,
+    from,
+    to,
+    baseRows,
+    employeeId
+  );
 }
 
 export type TimesheetEmployeeOption = {

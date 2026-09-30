@@ -159,20 +159,73 @@ export type ClockActionResponse = {
     employee_id: string;
     type: ClockActionType;
     timestamp: string;
+    attendance_status?: string | null;
   };
 };
+
+export type ClockActionRequestOptions = {
+  idempotencyKey: string;
+  faceMatchScore?: number;
+};
+
+export type ClockActionErrorBody = {
+  code?: string;
+  state?: string;
+  message?: string;
+  error?: string;
+};
+
+export function isInvalidTransitionError(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || error.response?.status !== 409) {
+    return false;
+  }
+  const data = error.response.data as ClockActionErrorBody | undefined;
+  return data?.code === "INVALID_TRANSITION";
+}
+
+export function getClockActionErrorMessage(
+  error: unknown,
+  fallback: string
+): string {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) {
+      return "Connection error. Check network and try again.";
+    }
+    const data = error.response.data as ClockActionErrorBody | undefined;
+    if (error.response.status === 409 && data?.code === "INVALID_TRANSITION") {
+      return (
+        data.message?.trim() ||
+        data.error?.trim() ||
+        "That action is not allowed right now."
+      );
+    }
+    if (data?.error && typeof data.error === "string") {
+      return data.error;
+    }
+  }
+  return getKioskApiErrorMessage(error, fallback);
+}
 
 export async function clockAction(
   employeeId: string,
   type: ClockActionType,
-  faceMatchScore?: number
+  options: ClockActionRequestOptions
 ): Promise<ClockActionResponse> {
   const { data } = await api.post<ClockActionResponse>(
     MOBILE_API.kiosk.clockAction,
     {
       employee_id: employeeId,
       type,
-      ...(faceMatchScore != null ? { face_match_score: faceMatchScore } : {}),
+      idempotency_key: options.idempotencyKey,
+      client_timestamp: new Date().toISOString(),
+      ...(options.faceMatchScore != null
+        ? { face_match_score: options.faceMatchScore }
+        : {}),
+    },
+    {
+      headers: {
+        "Idempotency-Key": options.idempotencyKey,
+      },
     }
   );
   return data;

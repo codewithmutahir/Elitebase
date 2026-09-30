@@ -1,3 +1,4 @@
+import type { TimesheetExportRow } from "@/lib/timesheets/export-rows";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
 
 export type CsvExportFormat = "standard" | "quickbooks";
@@ -26,7 +27,7 @@ function formatStatus(status: TimesheetRow["status"]) {
   }
 }
 
-function sortRowsByEmployee(rows: TimesheetRow[]): TimesheetRow[] {
+function sortRowsByEmployee(rows: TimesheetExportRow[]): TimesheetExportRow[] {
   return [...rows].sort((a, b) => {
     const nameCmp = a.employeeName.localeCompare(b.employeeName, "en", {
       sensitivity: "base",
@@ -36,10 +37,10 @@ function sortRowsByEmployee(rows: TimesheetRow[]): TimesheetRow[] {
   });
 }
 
-function groupRowsByEmployee(rows: TimesheetRow[]): TimesheetRow[][] {
+function groupRowsByEmployee(rows: TimesheetExportRow[]): TimesheetExportRow[][] {
   const sorted = sortRowsByEmployee(rows);
-  const groups: TimesheetRow[][] = [];
-  let current: TimesheetRow[] = [];
+  const groups: TimesheetExportRow[][] = [];
+  let current: TimesheetExportRow[] = [];
 
   for (const row of sorted) {
     const prevName = current[0]?.employeeName;
@@ -61,19 +62,26 @@ function roundHours(hours: number) {
   return Math.round(hours * 100) / 100;
 }
 
-function sumHours(rows: TimesheetRow[]) {
+function sumHours(rows: TimesheetExportRow[]) {
   return roundHours(
     rows.reduce((sum, row) => sum + (row.totalHours ?? 0), 0)
   );
 }
 
-function sumBreakHours(rows: TimesheetRow[]) {
+function sumBreakHours(rows: TimesheetExportRow[]) {
   return roundHours(
     rows.reduce((sum, row) => sum + (row.breakHours ?? 0), 0)
   );
 }
 
-function standardRowLine(row: TimesheetRow, formatTime: (iso: string) => string) {
+function yesNo(value: boolean) {
+  return value ? "Yes" : "No";
+}
+
+function standardRowLine(
+  row: TimesheetExportRow,
+  formatTime: (iso: string) => string
+) {
   return [
     escapeCsv(row.employeeName),
     row.date,
@@ -83,10 +91,18 @@ function standardRowLine(row: TimesheetRow, formatTime: (iso: string) => string)
     row.breakHours != null ? String(row.breakHours) : "",
     row.totalHours != null ? String(row.totalHours) : "",
     formatStatus(row.status),
+    escapeCsv(row.scheduledTime),
+    yesNo(row.onTime),
+    yesNo(row.late),
+    yesNo(row.absent),
+    yesNo(row.missingClockIn),
+    yesNo(row.missingClockOut),
+    yesNo(row.unpaidLeave),
+    row.bonusAmount > 0 ? String(row.bonusAmount) : "",
   ].join(",");
 }
 
-function quickbooksRowsForShift(row: TimesheetRow): string[][] {
+function quickbooksRowsForShift(row: TimesheetExportRow): string[][] {
   if (row.totalHours == null || row.totalHours <= 0) return [];
 
   const regularHours = Math.min(row.totalHours, 8);
@@ -122,7 +138,7 @@ function quickbooksRowsForShift(row: TimesheetRow): string[][] {
 }
 
 export function timesheetsToCsv(
-  rows: TimesheetRow[],
+  rows: TimesheetExportRow[],
   formatTime: (iso: string) => string,
   options: TimesheetsCsvOptions = {}
 ) {
@@ -197,7 +213,17 @@ export function timesheetsToCsv(
     "Break hours",
     "Total hours",
     "Status",
+    "Scheduled time",
+    "On time",
+    "Late",
+    "Absent",
+    "Missing clock in",
+    "Missing clock out",
+    "Unpaid leave",
+    "Bonus",
   ];
+
+  const emptyGroupCells = () => Array(header.length - 1).fill("");
 
   const lines = [header.join(",")];
 
@@ -210,13 +236,7 @@ export function timesheetsToCsv(
       lines.push(
         [
           escapeCsv(`${employeeName} — ${group.length} shift(s)`),
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
+          ...emptyGroupCells(),
         ].join(",")
       );
 
@@ -234,6 +254,12 @@ export function timesheetsToCsv(
           "",
           String(sumHours(group)),
           `Subtotal (${group.length} shift(s))`,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
         ].join(",")
       );
     }

@@ -26,10 +26,13 @@ import {
   employeeInitials,
   formatClockTime,
 } from "@/lib/format";
+import { createIdempotencyKey } from "@/lib/idempotency";
 import {
   clockAction,
+  getClockActionErrorMessage,
   getEmployeeStatus,
   getKioskApiErrorMessage,
+  isInvalidTransitionError,
 } from "@/lib/kiosk";
 import { hapticMedium, onPressHaptic } from "@/lib/kioskUi";
 import type { AttendanceActionType, RootStackParamList } from "@/types";
@@ -133,19 +136,37 @@ export function ActionScreen() {
       setSubmitting(type);
       setError(null);
 
+      const idempotencyKey = createIdempotencyKey();
+
       try {
-        const result = await clockAction(employee.id, type, matchScore);
+        const result = await clockAction(employee.id, type, {
+          idempotencyKey,
+          faceMatchScore: matchScore,
+        });
         navigation.replace("Success", {
           employee,
           actionType: type,
           timestamp: result.attendance.timestamp,
         });
       } catch (err) {
-        setError(getKioskApiErrorMessage(err, "Could not record attendance."));
+        if (isInvalidTransitionError(err)) {
+          setError(
+            getClockActionErrorMessage(
+              err,
+              "That action is not allowed right now."
+            )
+          );
+          await loadStatus();
+          setSubmitting(null);
+          return;
+        }
+        setError(
+          getClockActionErrorMessage(err, "Could not record attendance.")
+        );
         setSubmitting(null);
       }
     },
-    [employee, matchScore, navigation, submitting]
+    [employee, loadStatus, matchScore, navigation, submitting]
   );
 
   const breakAction: AttendanceActionType = onBreak

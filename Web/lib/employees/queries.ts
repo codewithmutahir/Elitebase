@@ -92,6 +92,7 @@ export async function listEmployees(companyId: string) {
       .select("employee_id, attendance_status")
       .eq("company_id", companyId)
       .eq("type", "clock_in")
+      .is("voided_at", null)
       .gte("timestamp", todayStart)
       .lte("timestamp", todayEnd)
       .in("employee_id", employeeIds)

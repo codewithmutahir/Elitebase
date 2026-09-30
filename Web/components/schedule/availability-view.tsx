@@ -43,8 +43,10 @@ import type { DepartmentOption } from "@/lib/departments/queries";
 import { fadeIn, staggerContainer } from "@/lib/animations";
 import {
   dashboardCardClass,
+  dashboardFieldInputClass,
   dashboardNativeSelectClass,
   dashboardPageIntroClass,
+  dashboardPopoverContentClass,
   dashboardStickyTableCellClass,
   dashboardTableHeadRowClass,
 } from "@/lib/dashboard/styles";
@@ -166,7 +168,10 @@ function AvailabilityCellEditor({
                 type="time"
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                className={cn(
+                  "flex h-9 w-full px-2 text-sm",
+                  dashboardFieldInputClass
+                )}
               />
             </div>
             <div className="space-y-1">
@@ -178,7 +183,10 @@ function AvailabilityCellEditor({
                 type="time"
                 value={endTime}
                 onChange={(event) => setEndTime(event.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                className={cn(
+                  "flex h-9 w-full px-2 text-sm",
+                  dashboardFieldInputClass
+                )}
               />
             </div>
           </div>
@@ -250,7 +258,10 @@ function AvailabilityCell({
           </button>
         }
       />
-      <PopoverContent align="center" className="w-64 p-3">
+      <PopoverContent
+        align="center"
+        className={cn("w-64 p-3", dashboardPopoverContentClass)}
+      >
         <AvailabilityCellEditor
           employeeId={employee.id}
           employeeName={employee.full_name}

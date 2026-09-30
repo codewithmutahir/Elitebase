@@ -17,6 +17,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { companyTimezone } from "@/lib/dashboard/format";
+import {
+  dashboardDialogContentClass,
+  dashboardFieldInputClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 import { isoToLocalTimeHm } from "@/lib/timesheets/dates";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
 
@@ -86,7 +92,7 @@ export function EditTimesheetDialog({
         Edit
       </DialogTrigger>
       <DialogContent
-        className="sm:max-w-md"
+        className={cn("sm:max-w-md", dashboardDialogContentClass)}
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
@@ -115,6 +121,7 @@ export function EditTimesheetDialog({
             <Input
               id={`clock-in-${row.id}`}
               type="time"
+              className={dashboardFieldInputClass}
               value={clockInTime}
               onChange={(e) => setClockInTime(e.target.value)}
             />
@@ -124,13 +131,14 @@ export function EditTimesheetDialog({
             <Input
               id={`clock-out-${row.id}`}
               type="time"
+              className={dashboardFieldInputClass}
               value={clockOutTime}
               onChange={(e) => setClockOutTime(e.target.value)}
             />
           </div>
         </div>
 
-        <p className="text-xs text-slate-500">
+        <p className={cn("text-xs", dashboardPageIntroClass)}>
           Leave a field empty to remove that punch. Add a missing time to
           create it. For overnight shifts, clock out earlier than clock in
           (e.g. 5:21 AM after 9:01 PM) is saved on the next day automatically.

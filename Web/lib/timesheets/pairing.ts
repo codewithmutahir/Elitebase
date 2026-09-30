@@ -7,6 +7,9 @@ export type AttendanceEvent = {
   employee_name: string;
   type: string;
   timestamp: string;
+  /** Set on clock_in rows when stored by kiosk/API. */
+  attendance_status?: string | null;
+  review_flag?: string | null;
 };
 
 export type TimesheetRow = {
@@ -25,6 +28,9 @@ export type TimesheetRow = {
   breakHours: number | null;
   breakCount: number;
   status: "open" | "complete" | "incomplete";
+  clockInAttendanceStatus: string | null;
+  /** True when any punch in this shift has review_flag = needs_review. */
+  needsReview: boolean;
 };
 
 function computeBreakMs(events: AttendanceEvent[]) {
@@ -181,6 +187,10 @@ function shiftRowFromEvents(
     breakHours: open ? null : breakHours,
     breakCount,
     status,
+    clockInAttendanceStatus: clockInEvent?.attendance_status ?? null,
+    needsReview: shiftEvents.some(
+      (event) => event.review_flag === "needs_review"
+    ),
   };
 }
 

@@ -181,7 +181,7 @@ function NavigationProgressBar() {
     >
       <div
         ref={barRef}
-        className="h-full origin-left bg-[var(--elite-primary,#2563eb)] will-change-transform"
+        className="h-full origin-left bg-[var(--eb-accent,#2ec4b6)] will-change-transform"
         style={{
           transform: "scaleX(0)",
           opacity: 0,

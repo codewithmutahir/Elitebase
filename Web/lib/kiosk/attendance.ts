@@ -15,6 +15,8 @@ export function isAttendanceType(value: string): value is AttendanceType {
   return ATTENDANCE_TYPES.includes(value as AttendanceType);
 }
 
+import { isClockedInForStatus } from "@/lib/attendance/attendance-state";
+
 export function isEmployeeClockedIn(latestType: string | null | undefined) {
-  return latestType === "clock_in" || latestType === "break_end";
+  return isClockedInForStatus(latestType);
 }

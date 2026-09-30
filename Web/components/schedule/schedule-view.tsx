@@ -63,7 +63,9 @@ import {
   dashboardGridRowLabelCellMutedClass,
   dashboardGridTheadClass,
   dashboardGridTfootClass,
+  dashboardDialogContentClass,
   dashboardNativeSelectClass,
+  dashboardPageIntroClass,
 } from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 
@@ -431,7 +433,9 @@ export function ScheduleView({
       />
 
       <Dialog open={overtimeOpen} onOpenChange={setOvertimeOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className={cn("sm:max-w-md", dashboardDialogContentClass)}
+        >
           <DialogHeader>
             <DialogTitle>Overtime warnings</DialogTitle>
             <DialogDescription>
@@ -439,7 +443,12 @@ export function ScheduleView({
               still publish if this is intentional.
             </DialogDescription>
           </DialogHeader>
-          <ul className="max-h-48 space-y-2 overflow-y-auto text-sm text-slate-700">
+          <ul
+            className={cn(
+              "max-h-48 space-y-2 overflow-y-auto text-sm",
+              dashboardPageIntroClass
+            )}
+          >
             {overtimeWarnings.map((warning) => (
               <li key={`${warning.kind}-${warning.employeeId}-${warning.date ?? "week"}`}>
                 {formatOvertimeWarning(warning)}

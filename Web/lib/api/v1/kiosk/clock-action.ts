@@ -1,5 +1,7 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { computeAttendanceStatus } from "@/lib/attendance/status";
+import { companyTimezone } from "@/lib/dashboard/format";
 import {
   isErrorResponse,
   jsonError,
@@ -8,8 +10,11 @@ import {
   requireKioskTablet,
 } from "@/lib/kiosk/api";
 import { isAttendanceType } from "@/lib/kiosk/attendance";
-import { computeAttendanceStatus } from "@/lib/attendance/status";
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
+import {
+  invokeRecordPunch,
+  readIdempotencyKey,
+} from "@/lib/kiosk/record-punch";
 
 export const runtime = "nodejs";
 
@@ -17,7 +22,16 @@ type ClockActionBody = {
   employee_id?: string;
   type?: string;
   face_match_score?: number;
+  idempotency_key?: string;
+  client_timestamp?: string;
 };
+
+function parseClientTimestamp(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed).toISOString();
+}
 
 export async function POST(request: NextRequest) {
   const tablet = await requireKioskTablet(request);
@@ -51,7 +65,14 @@ export async function POST(request: NextRequest) {
       ? body.face_match_score
       : null;
 
-  const timestamp = new Date().toISOString();
+  const idempotencyKey = readIdempotencyKey(
+    request.headers.get("Idempotency-Key") ??
+      request.headers.get("idempotency-key"),
+    body.idempotency_key
+  );
+
+  const clientTimestamp = parseClientTimestamp(body.client_timestamp);
+
   const admin = createClient();
 
   let attendanceStatus: string | null = null;
@@ -69,38 +90,49 @@ export async function POST(request: NextRequest) {
       .eq("id", tablet.company_id)
       .maybeSingle();
 
-    const scheduleStart = (empSchedule?.schedule_start_time as string) ?? "09:00";
-    const tz = companyRow?.timezone ?? "America/New_York";
+    const scheduleStart =
+      (empSchedule?.schedule_start_time as string) ?? "09:00:00";
+    const scheduleHm = scheduleStart.trim().slice(0, 5);
+    const tz = companyTimezone(companyRow?.timezone);
 
-    attendanceStatus = computeAttendanceStatus(timestamp, scheduleStart, tz);
+    attendanceStatus = computeAttendanceStatus(
+      new Date().toISOString(),
+      scheduleHm,
+      tz
+    );
   }
 
-  const { data, error } = await admin
-    .from("attendance")
-    .insert({
-      employee_id: employeeId,
-      company_id: tablet.company_id,
-      tablet_id: tablet.id,
-      type,
-      timestamp,
-      face_match_score: faceMatchScore,
-      attendance_status: attendanceStatus,
-    })
-    .select("id, type, timestamp, attendance_status")
-    .single();
+  const result = await invokeRecordPunch(admin, {
+    companyId: tablet.company_id,
+    employeeId,
+    tabletId: tablet.id,
+    type,
+    idempotencyKey,
+    clientTimestamp,
+    faceMatchScore,
+    attendanceStatus,
+  });
 
-  if (error || !data) {
-    console.error("clock-action failed:", error?.message);
-    return jsonError("Could not record attendance.", 500);
+  if ("kind" in result) {
+    if (result.kind === "invalid_transition") {
+      return NextResponse.json(
+        {
+          code: result.code,
+          state: result.state,
+          message: result.message,
+          error: result.message,
+        },
+        { status: 409 }
+      );
+    }
+    if (result.kind === "invalid_type") {
+      return jsonError(result.message, 400);
+    }
+    return jsonError(result.message, 500);
   }
 
   return jsonOk({
-    attendance: {
-      id: data.id,
-      employee_id: employeeId,
-      type: data.type,
-      timestamp: data.timestamp,
-      attendance_status: data.attendance_status,
-    },
+    attendance: result.attendance,
+    ...(result.staleShiftDetected ? { stale_shift_detected: true } : {}),
   });
 }

@@ -237,6 +237,9 @@ html.landing-scroll-lock {
   --eb-accent-glow: rgba(46, 196, 182, 0.35);
   --eb-cta-secondary: #f4f5f7;
   --eb-cta-secondary-fg: #0b1220;
+  --primary: #2ec4b6;
+  --primary-foreground: #060a12;
+  --ring: rgba(46, 196, 182, 0.45);
   font-family: "Aeonik", "Satoshi", ui-sans-serif, system-ui, sans-serif !important;
   color: var(--eb-text);
   background: var(--eb-ink);
@@ -465,7 +468,11 @@ html[data-dashboard-theme="light"] .dashboard-dropdown [data-slot="dropdown-menu
 
 /* Portaled sheets (add employee, shifts, etc.) */
 html[data-dashboard-theme="dark"] .dashboard-sheet,
-html[data-dashboard-theme="light"] .dashboard-sheet {
+html[data-dashboard-theme="light"] .dashboard-sheet,
+html[data-dashboard-theme="dark"] .dashboard-dialog,
+html[data-dashboard-theme="light"] .dashboard-dialog,
+html[data-dashboard-theme="dark"] .dashboard-popover,
+html[data-dashboard-theme="light"] .dashboard-popover {
   --eb-accent: #2ec4b6;
   --eb-accent-dark: #1fa89c;
   --popover: var(--eb-surface);
@@ -480,12 +487,18 @@ html[data-dashboard-theme="light"] .dashboard-sheet {
 }
 
 html[data-dashboard-theme="dark"] [data-slot="sheet-content"].dashboard-sheet,
-html[data-dashboard-theme="light"] [data-slot="sheet-content"].dashboard-sheet {
+html[data-dashboard-theme="light"] [data-slot="sheet-content"].dashboard-sheet,
+html[data-dashboard-theme="dark"] [data-slot="dialog-content"].dashboard-dialog,
+html[data-dashboard-theme="light"] [data-slot="dialog-content"].dashboard-dialog,
+html[data-dashboard-theme="dark"] [data-slot="popover-content"].dashboard-popover,
+html[data-dashboard-theme="light"] [data-slot="popover-content"].dashboard-popover {
   background-color: var(--eb-surface);
   color: var(--eb-text);
 }
 
-html[data-dashboard-theme="dark"] .dashboard-sheet {
+html[data-dashboard-theme="dark"] .dashboard-sheet,
+html[data-dashboard-theme="dark"] .dashboard-dialog,
+html[data-dashboard-theme="dark"] .dashboard-popover {
   --eb-surface: #0e1524;
   --eb-elevated: #151d2e;
   --eb-border: rgba(255, 255, 255, 0.08);
@@ -497,7 +510,9 @@ html[data-dashboard-theme="dark"] .dashboard-sheet {
   color-scheme: dark;
 }
 
-html[data-dashboard-theme="light"] .dashboard-sheet {
+html[data-dashboard-theme="light"] .dashboard-sheet,
+html[data-dashboard-theme="light"] .dashboard-dialog,
+html[data-dashboard-theme="light"] .dashboard-popover {
   --eb-surface: #ffffff;
   --eb-elevated: #f4f6f9;
   --eb-border: rgba(15, 23, 42, 0.1);
@@ -509,14 +524,26 @@ html[data-dashboard-theme="light"] .dashboard-sheet {
 }
 
 html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"],
-html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"] {
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"],
+html[data-dashboard-theme="dark"] .dashboard-dialog [data-slot="input"],
+html[data-dashboard-theme="light"] .dashboard-dialog [data-slot="input"],
+html[data-dashboard-theme="dark"] .dashboard-popover input[type="time"],
+html[data-dashboard-theme="light"] .dashboard-popover input[type="time"],
+html[data-dashboard-theme="dark"] .dashboard-popover textarea,
+html[data-dashboard-theme="light"] .dashboard-popover textarea {
   background-color: color-mix(in srgb, var(--eb-elevated) 70%, transparent);
   border-color: var(--eb-border);
   color: var(--eb-text);
 }
 
 html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"]:focus-visible,
-html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"]:focus-visible {
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"]:focus-visible,
+html[data-dashboard-theme="dark"] .dashboard-dialog [data-slot="input"]:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-dialog [data-slot="input"]:focus-visible,
+html[data-dashboard-theme="dark"] .dashboard-popover input[type="time"]:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-popover input[type="time"]:focus-visible,
+html[data-dashboard-theme="dark"] .dashboard-popover textarea:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-popover textarea:focus-visible {
   border-color: var(--eb-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--eb-accent) 25%, transparent);
 }

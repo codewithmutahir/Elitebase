@@ -95,6 +95,41 @@ export async function listApprovedTimeOffForRange(
   return data ?? [];
 }
 
+export async function listApprovedUnpaidLeaveForRange(
+  companyId: string,
+  from: string,
+  to: string
+): Promise<
+  {
+    employee_id: string;
+    start_date: string;
+    end_date: string;
+    request_type: TimeOffRequestType;
+  }[]
+> {
+  const admin = createClient();
+  const { data, error } = await admin
+    .from("time_off_requests")
+    .select("employee_id, start_date, end_date, request_type")
+    .eq("company_id", companyId)
+    .eq("status", "approved")
+    .in("request_type", ["unpaid", "unpaid_leave"])
+    .lte("start_date", to)
+    .gte("end_date", from);
+
+  if (error) {
+    console.error("listApprovedUnpaidLeaveForRange failed:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as {
+    employee_id: string;
+    start_date: string;
+    end_date: string;
+    request_type: TimeOffRequestType;
+  }[];
+}
+
 export function isDateOnApprovedTimeOff(
   date: string,
   employeeId: string,

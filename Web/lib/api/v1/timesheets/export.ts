@@ -3,10 +3,8 @@ import {
   companyTimezone,
   formatTime,
 } from "@/lib/dashboard/format";
-import {
-  getAllTimesheetRows,
-  validateEmployeeForCompany,
-} from "@/lib/timesheets/data";
+import { validateEmployeeForCompany } from "@/lib/timesheets/data";
+import { getTimesheetExportRows } from "@/lib/timesheets/export-rows";
 import { parseExportRange } from "@/lib/timesheets/dates";
 import { timesheetsToCsv, type CsvExportFormat } from "@/lib/timesheets/csv";
 import { requireTimesheetsSession } from "@/lib/timesheets/session";
@@ -42,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   const range = parseExportRange(timezone, { month, from, to });
 
-  const rows = await getAllTimesheetRows(
+  const rows = await getTimesheetExportRows(
     company.id,
     timezone,
     range.from,

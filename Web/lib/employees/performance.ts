@@ -39,6 +39,7 @@ export async function getEmployeePerformanceStats(
     .select("type, timestamp")
     .eq("company_id", companyId)
     .eq("employee_id", employeeId)
+    .is("voided_at", null)
     .gte("timestamp", start)
     .lte("timestamp", end)
     .order("timestamp", { ascending: true });

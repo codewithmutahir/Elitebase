@@ -71,6 +71,7 @@ export async function getDashboardData(
     .from("attendance")
     .select("id, type, timestamp")
     .eq("company_id", companyId)
+    .is("voided_at", null)
     .gte("timestamp", lookbackStart);
 
   if (todayError) {
@@ -90,6 +91,7 @@ export async function getDashboardData(
       "id, employee_id, type, timestamp, employees ( full_name )"
     )
     .eq("company_id", companyId)
+    .is("voided_at", null)
     .gte("timestamp", weekAgo)
     .order("timestamp", { ascending: false });
 
@@ -120,6 +122,7 @@ export async function getDashboardData(
     .from("attendance")
     .select("id, type, timestamp, employees ( full_name )")
     .eq("company_id", companyId)
+    .is("voided_at", null)
     .order("timestamp", { ascending: false })
     .limit(10);
 

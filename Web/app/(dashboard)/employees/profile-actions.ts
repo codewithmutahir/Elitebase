@@ -179,7 +179,8 @@ export async function getEmployeeAttendanceCount(employeeId: string) {
     .from("attendance")
     .select("id", { count: "exact", head: true })
     .eq("employee_id", employeeId)
-    .eq("company_id", company.id);
+    .eq("company_id", company.id)
+    .is("voided_at", null);
 
   if (error) {
     console.error("getEmployeeAttendanceCount:", error.message);

@@ -11,7 +11,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "backfill:missing-punches": "npx tsx scripts/backfill-missing-punches.mjs",
+    "test:attendance-state": "npx tsx lib/attendance/attendance-state.test.ts",
+    "test:record-punch": "npx tsx lib/kiosk/record-punch.test.ts",
+    "test:record-punch:integration": "npx tsx lib/kiosk/record-punch.integration.test.ts",
+    "test:stale-shift": "npx tsx lib/attendance/stale-shift.test.ts",
+    "test:attendance-dedupe": "npx tsx lib/attendance/dedupe-plan.test.ts",
+    "attendance:dedupe": "npx tsx scripts/attendance-dedupe.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

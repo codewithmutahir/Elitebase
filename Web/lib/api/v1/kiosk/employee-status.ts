@@ -7,7 +7,10 @@ import {
   parseJsonBody,
   requireKioskTablet,
 } from "@/lib/kiosk/api";
-import { isEmployeeClockedIn } from "@/lib/kiosk/attendance";
+import {
+  isClockedInForStatus,
+  isOnBreakForStatus,
+} from "@/lib/attendance/attendance-state";
 import {
   getEmployeeForTablet,
   getLatestAttendanceType,
@@ -41,8 +44,8 @@ export async function POST(request: NextRequest) {
     employeeId
   );
 
-  const clockedIn = isEmployeeClockedIn(latestType);
-  const onBreak = latestType === "break_start";
+  const clockedIn = isClockedInForStatus(latestType);
+  const onBreak = isOnBreakForStatus(latestType);
 
   let clockedInAt: string | null = null;
   if (clockedIn) {
@@ -52,6 +55,7 @@ export async function POST(request: NextRequest) {
       .select("timestamp")
       .eq("company_id", tablet.company_id)
       .eq("employee_id", employeeId)
+      .is("voided_at", null)
       .in("type", ["clock_in", "break_end"])
       .order("timestamp", { ascending: false })
       .limit(1)

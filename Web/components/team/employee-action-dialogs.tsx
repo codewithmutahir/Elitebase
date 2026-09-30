@@ -19,7 +19,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import type { EmployeeStatus } from "@/lib/employees/profile-queries";
+import {
+  dashboardDialogContentClass,
+  dashboardFieldInputClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 
 export type EmployeeActionTarget = {
   id: string;
@@ -124,7 +131,7 @@ export function EmployeeActionDialogs({
   return (
     <>
       <Dialog open={action === "deactivate"} onOpenChange={(open) => !open && close()}>
-        <DialogContent>
+        <DialogContent className={dashboardDialogContentClass}>
           <DialogHeader>
             <DialogTitle>Deactivate {employee?.full_name}?</DialogTitle>
             <DialogDescription>
@@ -137,7 +144,10 @@ export function EmployeeActionDialogs({
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (optional)"
             rows={3}
-            className="w-full rounded-lg border border-input px-3 py-2 text-sm"
+            className={cn(
+              "w-full rounded-lg border px-3 py-2 text-sm",
+              dashboardFieldInputClass
+            )}
           />
           <DialogFooter>
             <Button variant="outline" onClick={close}>
@@ -151,7 +161,7 @@ export function EmployeeActionDialogs({
       </Dialog>
 
       <Dialog open={action === "reactivate"} onOpenChange={(open) => !open && close()}>
-        <DialogContent>
+        <DialogContent className={dashboardDialogContentClass}>
           <DialogHeader>
             <DialogTitle>Reactivate {employee?.full_name}?</DialogTitle>
             <DialogDescription>
@@ -162,15 +172,19 @@ export function EmployeeActionDialogs({
             <Button variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button disabled={pending} onClick={handleReactivate}>
-              {pending ? "Reactivating…" : "Reactivate employee"}
-            </Button>
+            <PendingButton
+              pending={pending}
+              pendingLabel="Reactivating…"
+              onClick={handleReactivate}
+            >
+              Reactivate employee
+            </PendingButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={action === "delete"} onOpenChange={(open) => !open && close()}>
-        <DialogContent>
+        <DialogContent className={dashboardDialogContentClass}>
           <DialogHeader>
             <DialogTitle>Permanently delete {employee?.full_name}?</DialogTitle>
             <DialogDescription>
@@ -186,14 +200,15 @@ export function EmployeeActionDialogs({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <p className="text-sm text-slate-600">
-              Type <span className="font-semibold">{employee?.full_name}</span> to confirm:
+            <p className={cn("text-sm", dashboardPageIntroClass)}>
+              Type <span className="font-semibold text-[var(--eb-text)]">{employee?.full_name}</span> to confirm:
             </p>
             <Input
               value={confirmName}
               onChange={(e) => setConfirmName(e.target.value)}
               placeholder={employee?.full_name}
               autoComplete="off"
+              className={dashboardFieldInputClass}
             />
           </div>
           <DialogFooter>

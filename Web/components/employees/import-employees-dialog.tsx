@@ -26,7 +26,13 @@ import {
 } from "@/lib/employees/csv-import-limits";
 import { employeeImportPinsToCsv } from "@/lib/employees/import-csv";
 import { getUserFacingError } from "@/lib/errors/user-facing";
+import {
+  dashboardDialogContentClass,
+  dashboardFieldInputClass,
+  dashboardPageIntroClass,
+} from "@/lib/dashboard/styles";
 import { formatHourlyRate, formatMonthlySalary } from "@/lib/money/format";
+import { cn } from "@/lib/utils";
 
 type Step = "upload" | "preview" | "result";
 
@@ -159,7 +165,12 @@ export function ImportEmployeesDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent
+        className={cn(
+          "max-h-[85vh] overflow-y-auto sm:max-w-lg",
+          dashboardDialogContentClass
+        )}
+      >
         <DialogHeader>
           <DialogTitle>Import employees from CSV</DialogTitle>
           <DialogDescription>

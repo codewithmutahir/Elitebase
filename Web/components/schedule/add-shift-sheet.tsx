@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createScheduleShift } from "@/app/(dashboard)/schedule/schedule/actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,6 +15,14 @@ import {
 } from "@/components/ui/sheet";
 import type { DepartmentWithRoles } from "@/lib/departments/queries";
 import type { ScheduleEmployeeRow } from "@/lib/schedules/queries";
+import {
+  dashboardFieldInputClass,
+  dashboardNativeSelectClass,
+  dashboardPageIntroClass,
+  dashboardSectionTitleClass,
+  dashboardSheetContentClass,
+  dashboardSheetOverlayClass,
+} from "@/lib/dashboard/styles";
 import { SHIFT_PRESET_COLORS } from "@/lib/schedules/format";
 import { cn } from "@/lib/utils";
 
@@ -122,10 +131,18 @@ export function AddShiftSheet({
         else onClose();
       }}
     >
-      <SheetContent side="right" className="w-full max-w-md sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Add shift</SheetTitle>
-          <SheetDescription>
+      <SheetContent
+        variant="dashboard"
+        side="right"
+        overlayClassName={dashboardSheetOverlayClass}
+        className={cn(
+          dashboardSheetContentClass,
+          "w-full max-w-md gap-0 p-0 sm:max-w-md"
+        )}
+      >
+        <SheetHeader className="border-b border-[var(--eb-border)] px-6 py-5 pr-14">
+          <SheetTitle className={dashboardSectionTitleClass}>Add shift</SheetTitle>
+          <SheetDescription className={dashboardPageIntroClass}>
             {isOpenShift
               ? "Open shift — assign an employee later."
               : context?.employeeName
@@ -136,7 +153,7 @@ export function AddShiftSheet({
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4">
           {error ? (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
               {error}
             </p>
           ) : null}
@@ -148,7 +165,7 @@ export function AddShiftSheet({
                 id="shiftEmployee"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={dashboardNativeSelectClass}
               >
                 <option value="">Select employee</option>
                 {employees.map((emp) => (
@@ -162,7 +179,7 @@ export function AddShiftSheet({
 
           <div className="space-y-1.5">
             <Label>Date</Label>
-            <p className="text-sm font-medium text-slate-900">{dateLabel}</p>
+            <p className="text-sm font-medium text-[var(--eb-text)]">{dateLabel}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -173,7 +190,7 @@ export function AddShiftSheet({
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={cn("flex h-10 w-full px-3 text-sm", dashboardFieldInputClass)}
               />
             </div>
             <div className="space-y-1.5">
@@ -183,7 +200,7 @@ export function AddShiftSheet({
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={cn("flex h-10 w-full px-3 text-sm", dashboardFieldInputClass)}
               />
             </div>
           </div>
@@ -198,7 +215,7 @@ export function AddShiftSheet({
                   setDepartmentId(e.target.value);
                   setRoleId("");
                 }}
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className={dashboardNativeSelectClass}
               >
                 <option value="">None</option>
                 {departments.map((dept) => (
@@ -215,7 +232,7 @@ export function AddShiftSheet({
                 value={roleId}
                 onChange={(e) => setRoleId(e.target.value)}
                 disabled={!departmentId}
-                className="flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+                className={cn(dashboardNativeSelectClass, "disabled:opacity-50")}
               >
                 <option value="">None</option>
                 {rolesForDepartment.map((role) => (
@@ -234,7 +251,7 @@ export function AddShiftSheet({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              className={cn("w-full px-3 py-2 text-sm", dashboardFieldInputClass)}
             />
           </div>
 
@@ -247,7 +264,7 @@ export function AddShiftSheet({
                   type="button"
                   className={cn(
                     "size-8 rounded-full ring-2 ring-offset-2 transition",
-                    color === preset ? "ring-blue-600" : "ring-transparent"
+                    color === preset ? "ring-[var(--eb-accent)]" : "ring-transparent"
                   )}
                   style={{ backgroundColor: preset }}
                   onClick={() => setColor(preset)}
@@ -258,7 +275,7 @@ export function AddShiftSheet({
           </div>
         </div>
 
-        <SheetFooter className="flex-row gap-2 sm:flex-row">
+        <SheetFooter className="flex-row gap-2 border-t border-[var(--eb-border)] px-6 py-4 sm:flex-row">
           <Button
             type="button"
             variant="outline"
@@ -268,14 +285,15 @@ export function AddShiftSheet({
           >
             Save as Draft
           </Button>
-          <Button
+          <PendingButton
             type="button"
             className="flex-1"
-            disabled={pending}
+            pending={pending}
+            pendingLabel="Saving…"
             onClick={() => submit("published")}
           >
             Publish now
-          </Button>
+          </PendingButton>
         </SheetFooter>
       </SheetContent>
     </Sheet>

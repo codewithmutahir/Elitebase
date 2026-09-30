@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { LatticeLoader } from "@/components/ui/lattice-loader";
 import { cn } from "@/lib/utils";
 
 type AuthSubmitButtonProps = {
@@ -33,8 +34,15 @@ export function AuthSubmitButton({
       )}
     >
       <span className="eb-btn__content eb-btn__content--accent relative flex w-full items-center justify-center overflow-hidden rounded-full px-7 py-3.5 text-[15px] font-medium text-white">
-        <span className="relative z-[1]">
-          {pending ? pendingLabel : idleLabel}
+        <span className="relative z-[1] inline-flex items-center justify-center gap-2">
+          {pending ? (
+            <>
+              <LatticeLoader size="sm" className="text-white/90" />
+              {pendingLabel}
+            </>
+          ) : (
+            idleLabel
+          )}
         </span>
         <span
           className="eb-btn__bg eb-btn__bg--accent absolute inset-0 rounded-full opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-disabled:opacity-0"
