@@ -1,3 +1,6 @@
+import { unstable_cache } from "next/cache";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import { companyDepartmentsTag } from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 
 export type JobRole = {
@@ -19,7 +22,7 @@ export type DepartmentOption = {
   color: string;
 };
 
-export async function listDepartmentsWithRoles(companyId: string) {
+async function loadDepartmentsWithRoles(companyId: string) {
   const admin = createClient();
 
   const { data: departments, error: deptError } = await admin
@@ -63,7 +66,7 @@ export async function listDepartmentsWithRoles(companyId: string) {
   })) satisfies DepartmentWithRoles[];
 }
 
-export async function listDepartmentOptions(companyId: string) {
+async function loadDepartmentOptions(companyId: string) {
   const admin = createClient();
   const { data, error } = await admin
     .from("departments")
@@ -77,4 +80,26 @@ export async function listDepartmentOptions(companyId: string) {
   }
 
   return (data ?? []) as DepartmentOption[];
+}
+
+export async function listDepartmentsWithRoles(companyId: string) {
+  return unstable_cache(
+    () => loadDepartmentsWithRoles(companyId),
+    ["departments-with-roles", companyId],
+    {
+      revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+      tags: [companyDepartmentsTag(companyId)],
+    }
+  )();
+}
+
+export async function listDepartmentOptions(companyId: string) {
+  return unstable_cache(
+    () => loadDepartmentOptions(companyId),
+    ["department-options", companyId],
+    {
+      revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+      tags: [companyDepartmentsTag(companyId)],
+    }
+  )();
 }

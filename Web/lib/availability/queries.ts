@@ -1,3 +1,6 @@
+import { unstable_cache } from "next/cache";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import { companyEmployeeListsTag } from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 
 export type EmployeeAvailabilityRow = {
@@ -29,7 +32,7 @@ function departmentName(join: DepartmentJoin): string | null {
   return join.name ?? null;
 }
 
-export async function listEmployeesForAvailability(companyId: string) {
+async function loadEmployeesForAvailability(companyId: string) {
   const admin = createClient();
   const { data, error } = await admin
     .from("employees")
@@ -49,6 +52,17 @@ export async function listEmployeesForAvailability(companyId: string) {
     department_id: row.department_id,
     department: departmentName(row.departments as DepartmentJoin),
   })) satisfies EmployeeAvailabilityRow[];
+}
+
+export async function listEmployeesForAvailability(companyId: string) {
+  return unstable_cache(
+    () => loadEmployeesForAvailability(companyId),
+    ["availability-employees", companyId],
+    {
+      revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+      tags: [companyEmployeeListsTag(companyId)],
+    }
+  )();
 }
 
 export async function listAvailabilityByCompany(

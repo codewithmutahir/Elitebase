@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateAttendanceMonthsCache } from "@/lib/cache/invalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireCompanySession } from "@/lib/employees/session";
 import { companyTimezone } from "@/lib/dashboard/format";
@@ -164,6 +165,7 @@ export async function updateTimesheetShift(
   );
   if (outError) return { ok: false, error: outError };
 
+  invalidateAttendanceMonthsCache(company.id);
   revalidatePath("/timesheets");
   return { ok: true };
 }

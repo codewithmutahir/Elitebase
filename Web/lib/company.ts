@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type CompanyRow = {
@@ -8,7 +9,7 @@ export type CompanyRow = {
   currency: string | null;
 };
 
-export async function getCompanyByOwnerId(ownerUid: string) {
+async function fetchCompanyByOwnerId(ownerUid: string) {
   const admin = createClient();
   const { data, error } = await admin
     .from("companies")
@@ -23,6 +24,9 @@ export async function getCompanyByOwnerId(ownerUid: string) {
 
   return data as CompanyRow | null;
 }
+
+/** Deduped within a single server request (layout + page). */
+export const getCompanyByOwnerId = cache(fetchCompanyByOwnerId);
 
 /** Server-only: create company row after Better Auth signup (service role). */
 export async function createCompanyForOwner(

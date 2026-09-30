@@ -12,7 +12,12 @@ import {
   CSV_FILE_TOO_LARGE_MESSAGE,
   MAX_EMPLOYEE_CSV_BYTES,
 } from "@/lib/employees/csv-import-limits";
+import { invalidateEmployeeListsCache } from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
+
+function bumpEmployeeListCache(companyId: string) {
+  invalidateEmployeeListsCache(companyId);
+}
 
 type NewEmployeeInput = {
   fullName: string;
@@ -166,6 +171,7 @@ export async function addEmployee(
     return { error: "Could not create employee. Please try again." };
   }
 
+  bumpEmployeeListCache(company.id);
   revalidatePath("/employees");
   revalidatePath(`/employees/${created.id}`);
 
@@ -338,6 +344,7 @@ export async function importEmployeesFromCsv(
   }
 
   if (created.length > 0) {
+    bumpEmployeeListCache(company.id);
     revalidatePath("/employees");
     for (const row of created) {
       revalidatePath(`/employees/${row.id}`);
@@ -401,6 +408,7 @@ export async function regenerateEmployeePin(
     return { error: "Could not reset PIN. Please try again." };
   }
 
+  bumpEmployeeListCache(company.id);
   revalidatePath("/employees");
   revalidatePath(`/employees/${employeeId}`);
 
@@ -441,6 +449,7 @@ export async function updateEmployee(employeeId: string, formData: FormData) {
     redirect(`/employees/${employeeId}?error=save_failed`);
   }
 
+  bumpEmployeeListCache(company.id);
   revalidatePath("/employees");
   revalidatePath(`/employees/${employeeId}`);
   redirect(`/employees/${employeeId}?saved=1`);

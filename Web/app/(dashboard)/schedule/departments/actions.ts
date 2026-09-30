@@ -1,14 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateDepartmentsCache } from "@/lib/cache/invalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireCompanySession } from "@/lib/employees/session";
 
 const DEPARTMENTS_PATH = "/schedule/departments";
 
-function revalidateDepartments() {
+function revalidateDepartments(companyId: string) {
+  invalidateDepartmentsCache(companyId);
   revalidatePath(DEPARTMENTS_PATH);
   revalidatePath("/employees");
+  revalidatePath("/schedule/schedule");
+  revalidatePath("/schedule/availability");
 }
 
 export async function createDepartment(name: string, color: string) {
@@ -35,7 +39,7 @@ export async function createDepartment(name: string, color: string) {
     return { error: "Could not create department." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { id: data.id };
 }
 
@@ -70,7 +74,7 @@ export async function updateDepartment(
     return { error: "Could not update department." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { ok: true };
 }
 
@@ -89,7 +93,7 @@ export async function deleteDepartment(departmentId: string) {
     return { error: "Could not delete department." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { ok: true };
 }
 
@@ -117,7 +121,7 @@ export async function createRole(departmentId: string, name: string) {
     return { error: "Could not create role." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { id: data.id };
 }
 
@@ -141,7 +145,7 @@ export async function updateRole(roleId: string, name: string) {
     return { error: "Could not update role." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { ok: true };
 }
 
@@ -160,6 +164,6 @@ export async function deleteRole(roleId: string) {
     return { error: "Could not delete role." };
   }
 
-  revalidateDepartments();
+  revalidateDepartments(company.id);
   return { ok: true };
 }

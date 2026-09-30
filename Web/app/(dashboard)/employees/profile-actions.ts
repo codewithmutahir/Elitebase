@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidateEmployeeListsCache } from "@/lib/cache/invalidate";
 import { createClient } from "@/lib/supabase/server";
 import { requireCompanySession } from "@/lib/employees/session";
 import type { EmploymentType, PayType } from "@/lib/employees/profile-queries";
@@ -9,7 +10,8 @@ import {
   syncWorkingDaysToAvailability,
 } from "@/lib/employees/working-days";
 
-function revalidateEmployee(employeeId: string) {
+function revalidateEmployee(companyId: string, employeeId: string) {
+  invalidateEmployeeListsCache(companyId);
   revalidatePath("/employees");
   revalidatePath(`/employees/${employeeId}`);
 }
@@ -72,7 +74,7 @@ export async function updateEmployeeJobDetails(
     return { error: "Could not sync working days to availability." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   revalidatePath("/schedule/schedule");
   revalidatePath("/schedule/availability");
   return { ok: true };
@@ -118,7 +120,7 @@ export async function updateEmployeePersonalInfo(
     return { error: "Could not save personal information." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -144,7 +146,7 @@ export async function terminateEmployee(
     return { error: "Could not terminate employee." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -167,7 +169,7 @@ export async function reactivateEmployee(employeeId: string) {
     return { error: "Could not reactivate employee." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -223,6 +225,7 @@ export async function deleteEmployeePermanently(
     return { error: "Could not delete employee." };
   }
 
+  invalidateEmployeeListsCache(company.id);
   revalidatePath("/employees");
   return { ok: true };
 }
@@ -263,7 +266,7 @@ export async function addEmployeeNote(employeeId: string, content: string) {
     return { error: "Could not add note." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -282,7 +285,7 @@ export async function deleteEmployeeNote(noteId: string, employeeId: string) {
     return { error: "Could not delete note." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -308,7 +311,7 @@ export async function addEmployeeCertificate(
     return { error: "Could not add certificate." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }
 
@@ -370,6 +373,6 @@ export async function uploadEmployeeDocument(
     return { error: "Could not update document record." };
   }
 
-  revalidateEmployee(employeeId);
+  revalidateEmployee(company.id, employeeId);
   return { ok: true };
 }

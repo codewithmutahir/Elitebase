@@ -1,7 +1,6 @@
 import { SettingsPageContent } from "@/components/settings/settings-page-content";
 import { settingsErrorMessage } from "@/lib/settings/messages";
 import { requireCompanySession } from "@/lib/employees/session";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function SettingsPage({
   searchParams,
@@ -11,13 +10,6 @@ export default async function SettingsPage({
   const { company } = await requireCompanySession();
   const params = await searchParams;
 
-  const admin = createClient();
-  const { data: fullCompany } = await admin
-    .from("companies")
-    .select("name, timezone, currency, logo_url")
-    .eq("id", company.id)
-    .single();
-
   return (
     <div className="space-y-8">
       <p className="text-sm text-slate-500">
@@ -25,10 +17,10 @@ export default async function SettingsPage({
       </p>
 
       <SettingsPageContent
-        companyName={fullCompany?.name ?? company.name}
-        timezone={fullCompany?.timezone ?? company.timezone}
-        currency={fullCompany?.currency ?? company.currency}
-        logoUrl={fullCompany?.logo_url ?? company.logo_url}
+        companyName={company.name}
+        timezone={company.timezone}
+        currency={company.currency}
+        logoUrl={company.logo_url}
         saved={params.saved === "1"}
         errorMessage={settingsErrorMessage(params.error)}
       />

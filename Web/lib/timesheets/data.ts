@@ -1,3 +1,9 @@
+import { unstable_cache } from "next/cache";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  companyAttendanceMonthsTag,
+  companyEmployeeListsTag,
+} from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import { queryWindowIso } from "@/lib/timesheets/dates";
 import {
@@ -49,10 +55,10 @@ export async function validateEmployeeForCompany(
   return Boolean(data);
 }
 
-export async function listAttendanceMonths(
+async function loadAttendanceMonths(
   companyId: string,
   timezone: string,
-  limit = 24
+  limit: number
 ): Promise<string[]> {
   const admin = createClient();
   const { data, error } = await admin.rpc("get_attendance_months", {
@@ -69,6 +75,22 @@ export async function listAttendanceMonths(
   return (data ?? [])
     .map((row: { month: string }) => row.month)
     .filter((month: string) => /^\d{4}-\d{2}$/.test(month));
+}
+
+/** Shared by timesheets page and `/api/v1/timesheets/months` (HTTP cache on API). */
+export async function listAttendanceMonths(
+  companyId: string,
+  timezone: string,
+  limit = 24
+): Promise<string[]> {
+  return unstable_cache(
+    () => loadAttendanceMonths(companyId, timezone, limit),
+    ["attendance-months", companyId, timezone, String(limit)],
+    {
+      revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+      tags: [companyAttendanceMonthsTag(companyId)],
+    }
+  )();
 }
 
 export async function fetchAttendanceEvents(
@@ -182,7 +204,7 @@ export type TimesheetEmployeeOption = {
   full_name: string;
 };
 
-export async function listTimesheetEmployeeOptions(
+async function loadTimesheetEmployeeOptions(
   companyId: string
 ): Promise<TimesheetEmployeeOption[]> {
   const admin = createClient();
@@ -198,6 +220,19 @@ export async function listTimesheetEmployeeOptions(
   }
 
   return (data ?? []) as TimesheetEmployeeOption[];
+}
+
+export async function listTimesheetEmployeeOptions(
+  companyId: string
+): Promise<TimesheetEmployeeOption[]> {
+  return unstable_cache(
+    () => loadTimesheetEmployeeOptions(companyId),
+    ["timesheet-employee-options", companyId],
+    {
+      revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+      tags: [companyEmployeeListsTag(companyId)],
+    }
+  )();
 }
 
 export { DEFAULT_PAGE_SIZE };

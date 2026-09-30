@@ -1,24 +1,10 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getCompanyByOwnerId, type CompanyRow } from "@/lib/company";
+import { cache } from "react";
+import { requireCompanySession, type CompanySession } from "@/lib/employees/session";
+import type { CompanyRow } from "@/lib/company";
 
-export async function requireTimesheetsSession(): Promise<{
+export const requireTimesheetsSession = cache(async (): Promise<{
   company: CompanyRow;
-}> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const company = await getCompanyByOwnerId(session.user.id);
-
-  if (!company) {
-    redirect("/onboarding");
-  }
-
+}> => {
+  const { company }: CompanySession = await requireCompanySession();
   return { company };
-}
+});
