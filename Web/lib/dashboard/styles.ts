@@ -57,6 +57,13 @@ export const dashboardPopoverContentClass =
 export const dashboardPrimaryButtonClass =
   "border-transparent bg-[var(--eb-accent)] text-[#060a12] hover:bg-[var(--eb-accent-dark,#1FA89C)] focus-visible:ring-[var(--eb-accent)]/35";
 
+/** Secondary / cancel in portaled dashboard UI (outline variant inherits root `--background` without these). */
+export const dashboardOutlineButtonClass =
+  "border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-text)] shadow-none hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]";
+
+export const dashboardGhostItemButtonClass =
+  "justify-start font-normal text-[var(--eb-text)] hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]";
+
 export const dashboardSheetOverlayClass =
   "dashboard-sheet-overlay bg-[var(--eb-ink)]/75 backdrop-blur-sm";
 
@@ -119,7 +126,7 @@ export const profileTimelineDotMutedClass =
   "absolute -left-[21px] top-1.5 size-2.5 rounded-full bg-[var(--eb-muted)]/45";
 
 export const dashboardFieldInputClass =
-  "rounded-[10px] border-[var(--eb-border)] bg-[var(--eb-elevated)]/70 focus-visible:border-[var(--eb-accent)] focus-visible:ring-[var(--eb-accent)]/25";
+  "rounded-[10px] border-[var(--eb-border)] bg-[var(--eb-elevated)]/70 text-[var(--eb-text)] focus-visible:border-[var(--eb-accent)] focus-visible:ring-[var(--eb-accent)]/25";
 
 export const dashboardMetricValueClass =
   "mt-1 text-2xl font-bold tracking-tight text-[var(--eb-text)]";

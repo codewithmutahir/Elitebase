@@ -477,8 +477,14 @@ html[data-dashboard-theme="light"] .dashboard-popover {
   --eb-accent-dark: #1fa89c;
   --popover: var(--eb-surface);
   --popover-foreground: var(--eb-text);
+  --background: var(--eb-surface);
   --foreground: var(--eb-text);
+  --muted: var(--eb-hover-overlay);
   --muted-foreground: var(--eb-muted);
+  --secondary: var(--eb-elevated);
+  --secondary-foreground: var(--eb-text);
+  --accent: var(--eb-accent);
+  --accent-foreground: #060a12;
   --border: var(--eb-border);
   --input: var(--eb-border);
   --ring: rgba(46, 196, 182, 0.45);

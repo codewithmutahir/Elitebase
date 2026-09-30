@@ -18,6 +18,7 @@ import {
 import {
   dashboardFieldInputClass,
   dashboardPopoverContentClass,
+  dashboardPrimaryButtonClass,
 } from "@/lib/dashboard/styles";
 import { toInputTime } from "@/lib/schedules/format";
 import type { ScheduleShift } from "@/lib/schedules/queries";
@@ -158,7 +159,7 @@ export function ShiftEditPopover({
           <Button
             type="button"
             size="sm"
-            className="flex-1"
+            className={cn("flex-1", dashboardPrimaryButtonClass)}
             disabled={pending}
             onClick={save}
           >

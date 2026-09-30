@@ -44,9 +44,12 @@ import { fadeIn, staggerContainer } from "@/lib/animations";
 import {
   dashboardCardClass,
   dashboardFieldInputClass,
+  dashboardGhostItemButtonClass,
   dashboardNativeSelectClass,
+  dashboardOutlineButtonClass,
   dashboardPageIntroClass,
   dashboardPopoverContentClass,
+  dashboardPrimaryButtonClass,
   dashboardStickyTableCellClass,
   dashboardTableHeadRowClass,
 } from "@/lib/dashboard/styles";
@@ -127,7 +130,7 @@ function AvailabilityCellEditor({
           <Button
             type="button"
             variant="ghost"
-            className="justify-start font-normal"
+            className={dashboardGhostItemButtonClass}
             disabled={pending}
             onClick={() => save("all_day")}
           >
@@ -136,7 +139,7 @@ function AvailabilityCellEditor({
           <Button
             type="button"
             variant="ghost"
-            className="justify-start font-normal"
+            className={dashboardGhostItemButtonClass}
             disabled={pending}
             onClick={() => {
               setStartTime(toInputTime(slot?.start_time ?? "09:00:00"));
@@ -160,7 +163,10 @@ function AvailabilityCellEditor({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label htmlFor={`start-${employeeId}-${dayOfWeek}`} className="text-xs">
+              <Label
+                htmlFor={`start-${employeeId}-${dayOfWeek}`}
+                className="text-xs text-[var(--eb-muted)]"
+              >
                 Start
               </Label>
               <input
@@ -175,7 +181,10 @@ function AvailabilityCellEditor({
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor={`end-${employeeId}-${dayOfWeek}`} className="text-xs">
+              <Label
+                htmlFor={`end-${employeeId}-${dayOfWeek}`}
+                className="text-xs text-[var(--eb-muted)]"
+              >
                 End
               </Label>
               <input
@@ -195,7 +204,7 @@ function AvailabilityCellEditor({
               type="button"
               variant="outline"
               size="sm"
-              className="flex-1"
+              className={cn("flex-1", dashboardOutlineButtonClass)}
               disabled={pending}
               onClick={() => setView("menu")}
             >
@@ -204,7 +213,7 @@ function AvailabilityCellEditor({
             <Button
               type="button"
               size="sm"
-              className="flex-1"
+              className={cn("flex-1", dashboardPrimaryButtonClass)}
               disabled={pending}
               onClick={() => save("hours", { startTime, endTime })}
             >
