@@ -397,9 +397,10 @@ async def verify_face(
     }
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     # Always return ok so Render health checks pass before first face request.
+    # HEAD is included for UptimeRobot / external keep-alive probes.
     return {
         "status": "ok",
         "model_loaded": model is not None,
