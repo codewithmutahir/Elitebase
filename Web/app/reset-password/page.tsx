@@ -1,21 +1,12 @@
-import Link from "next/link";
-
 import { headers } from "next/headers";
-
 import { redirect } from "next/navigation";
-
 import { APIError } from "better-auth/api";
-
 import { AuthAlert } from "@/components/auth/auth-alert";
-
+import { AuthFooterText } from "@/components/auth/auth-footer-text";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
-
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
-
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-
 import { auth } from "@/lib/auth";
-
 import {
   authRateLimitErrorCode,
   resolveAuthRateLimitQueryMessage,
@@ -158,28 +149,12 @@ export default async function ResetPasswordPage({
         <AuthFormCard title="Reset password">
 
           <AuthAlert variant="error">
-
             {errorMessage ??
-
               "Missing reset token. Use the link from your email or request a new one."}
-
           </AuthAlert>
-
-          <p className="mt-6 text-center text-sm text-[var(--eb-muted)]">
-
-            <Link
-
-              href="/forgot-password"
-
-              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
-
-            >
-
-              Request reset link
-
-            </Link>
-
-          </p>
+          <div style={{ marginTop: 24 }}>
+            <AuthFooterText href="/forgot-password" label="Request reset link" />
+          </div>
 
         </AuthFormCard>
 
@@ -204,23 +179,7 @@ export default async function ResetPasswordPage({
         subtitle="Enter and confirm your new password below."
 
         footer={
-
-          <p className="text-center text-sm text-[var(--eb-muted)]">
-
-            <Link
-
-              href="/login"
-
-              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
-
-            >
-
-              Back to sign in
-
-            </Link>
-
-          </p>
-
+          <AuthFooterText href="/login" label="Back to sign in" />
         }
 
       >

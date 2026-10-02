@@ -1,8 +1,8 @@
 "use client";
 
+import Button from "@mui/material/Button";
 import { useFormStatus } from "react-dom";
-import { LatticeLoader } from "@/components/ui/lattice-loader";
-import { cn } from "@/lib/utils";
+import { muiAlpha } from "@/lib/mui/alpha";
 
 type AuthSubmitButtonProps = {
   idleLabel: string;
@@ -12,7 +12,7 @@ type AuthSubmitButtonProps = {
   onClick?: () => void;
 };
 
-/** Pill CTA matching landing `eb-btn` — for auth forms (not links). */
+/** Full-width primary CTA for auth forms — teal accent on dark canvas. */
 export function AuthSubmitButton({
   idleLabel,
   pendingLabel,
@@ -21,34 +21,43 @@ export function AuthSubmitButton({
   onClick,
 }: AuthSubmitButtonProps) {
   const { pending } = useFormStatus();
+  const isLoading = pending;
   const isDisabled = Boolean(disabled || pending);
 
   return (
-    <button
+    <Button
       type="submit"
-      disabled={isDisabled ? true : undefined}
+      fullWidth
+      variant="contained"
+      color="primary"
+      loading={isLoading}
+      loadingPosition="start"
+      disabled={isDisabled}
       onClick={onClick}
-      className={cn(
-        "eb-btn group relative w-full rounded-full p-px disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
+      className={className}
+      sx={{
+        borderRadius: 999,
+        py: 1.5,
+        px: 3.5,
+        fontSize: "0.9375rem",
+        fontWeight: 500,
+        bgcolor: "primary.main",
+        color: "primary.contrastText",
+        boxShadow: (theme) =>
+          `0 0 24px ${muiAlpha(theme, (p) => p.primary.main, 0.35)}`,
+        "&:hover": {
+          bgcolor: "primary.dark",
+          boxShadow: (theme) =>
+            `0 0 28px ${muiAlpha(theme, (p) => p.primary.main, 0.45)}`,
+        },
+        "&.Mui-disabled": {
+          bgcolor: "primary.main",
+          color: "primary.contrastText",
+          opacity: 0.45,
+        },
+      }}
     >
-      <span className="eb-btn__content eb-btn__content--accent relative flex w-full items-center justify-center overflow-hidden rounded-full px-7 py-3.5 text-[15px] font-medium text-white">
-        <span className="relative z-[1] inline-flex items-center justify-center gap-2">
-          {pending ? (
-            <>
-              <LatticeLoader size="sm" className="text-white/90" />
-              {pendingLabel}
-            </>
-          ) : (
-            idleLabel
-          )}
-        </span>
-        <span
-          className="eb-btn__bg eb-btn__bg--accent absolute inset-0 rounded-full opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-disabled:opacity-0"
-          aria-hidden
-        />
-      </span>
-    </button>
+      {isLoading ? pendingLabel : idleLabel}
+    </Button>
   );
 }

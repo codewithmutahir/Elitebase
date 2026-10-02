@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { APIError } from "better-auth/api";
+import { AuthFooterText } from "@/components/auth/auth-footer-text";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { EmployerRegisterForm } from "@/components/auth/employer-register-form";
@@ -154,15 +154,11 @@ export default async function EmployerRegisterPage({
         title="Create your company"
         subtitle="Tell us about your business to get started with Elitebase."
         footer={
-          <p className="text-center text-sm text-[var(--eb-muted)]">
-            Already registered?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
-            >
-              Sign in
-            </Link>
-          </p>
+          <AuthFooterText
+            prompt="Already registered?"
+            href="/login"
+            label="Sign in"
+          />
         }
       >
         <EmployerRegisterForm

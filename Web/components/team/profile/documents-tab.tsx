@@ -1,7 +1,10 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useRef, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import {
   addEmployeeCertificate,
   uploadEmployeeDocument,
@@ -11,22 +14,21 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
 import {
-  profileCardClass,
-  profileInputClass,
-  profileLinkClass,
-  profileMutedClass,
-  profileSectionTitleClass,
-  profileTableHeadClass,
-  profileTableRowClass,
-  profileValueClass,
-} from "@/lib/dashboard/styles";
+  dashboardAccentLinkSx,
+  dashboardCardSx,
+  dashboardPageIntroSx,
+  dashboardSectionTitleSx,
+  profileInputSx,
+  profileTableHeadSx,
+  profileTableRowSx,
+  profileValueSx,
+} from "@/lib/dashboard/sx";
 import { formatDateShort } from "@/lib/employees/format";
 import type { EmployeeDocument } from "@/lib/employees/profile-queries";
-import { cn } from "@/lib/utils";
 
 function docStatusBadge(
   status: EmployeeDocument["status"],
-  theme: "light" | "dark"
+  theme: "light" | "dark",
 ) {
   if (status === "completed")
     return (
@@ -46,6 +48,23 @@ function docStatusBadge(
     </StatusBadge>
   );
 }
+
+const cardHeaderRowSx = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+} as const;
+
+const accentLinkSx = {
+  ...dashboardAccentLinkSx,
+  fontSize: "0.875rem",
+  border: "none",
+  bgcolor: "transparent",
+  cursor: "pointer",
+  p: 0,
+  fontFamily: "inherit",
+} as const;
 
 type DocumentsTabProps = {
   employeeId: string;
@@ -72,7 +91,11 @@ export function DocumentsTab({
     const formData = new FormData();
     formData.append("file", file);
     startTransition(async () => {
-      const result = await uploadEmployeeDocument(employeeId, documentId, formData);
+      const result = await uploadEmployeeDocument(
+        employeeId,
+        documentId,
+        formData,
+      );
       if (result.error) {
         toast.error(result.error);
         return;
@@ -97,14 +120,13 @@ export function DocumentsTab({
     });
   }
 
-  const linkClass = cn(profileLinkClass, "text-sm font-semibold");
-
   return (
-    <div className="space-y-8">
-      <input
+    <Stack spacing={4}>
+      <Box
+        component="input"
         ref={uploadRef}
         type="file"
-        className="hidden"
+        sx={{ display: "none" }}
         accept=".pdf,image/jpeg,image/png,image/webp"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -114,23 +136,33 @@ export function DocumentsTab({
         }}
       />
 
-      <Card className={profileCardClass}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className={profileSectionTitleClass}>
+      <Card sx={dashboardCardSx}>
+        <CardHeader sx={cardHeaderRowSx}>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
             Certificates ({certificates.length})
-          </h3>
-          <button type="button" className={linkClass} onClick={() => setShowCertForm(true)}>
+          </Typography>
+          <Box
+            component="button"
+            type="button"
+            sx={accentLinkSx}
+            onClick={() => setShowCertForm(true)}
+          >
             Add a certificate
-          </button>
+          </Box>
         </CardHeader>
         <CardContent>
           {showCertForm ? (
-            <div className="mb-4 flex flex-wrap gap-2">
-              <input
+            <Stack
+              direction="row"
+              useFlexGap
+              sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}
+            >
+              <Box
+                component="input"
                 value={certName}
                 onChange={(e) => setCertName(e.target.value)}
                 placeholder="Certificate name"
-                className={cn(profileInputClass, "min-w-[200px] flex-1")}
+                sx={{ ...profileInputSx, minWidth: 200, flex: 1 }}
               />
               <Button type="button" disabled={pending} onClick={addCertificate}>
                 Add
@@ -142,45 +174,63 @@ export function DocumentsTab({
               >
                 Cancel
               </Button>
-            </div>
+            </Stack>
           ) : null}
 
           {certificates.length === 0 ? (
-            <p className={cn("py-8 text-center text-sm", profileMutedClass)}>
+            <Typography
+              sx={{ ...dashboardPageIntroSx, py: 4, textAlign: "center" }}
+            >
               No certificates added yet.
-            </p>
+            </Typography>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className={profileTableHeadClass}>
-                  <th className="pb-2">Name</th>
-                  <th className="pb-2">Uploaded date</th>
-                  <th className="pb-2">File</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Box component="table" sx={{ width: "100%", fontSize: "0.875rem" }}>
+              <Box component="thead">
+                <Box component="tr" sx={profileTableHeadSx}>
+                  <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                    Name
+                  </Box>
+                  <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                    Uploaded date
+                  </Box>
+                  <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                    File
+                  </Box>
+                </Box>
+              </Box>
+              <Box component="tbody">
                 {certificates.map((doc) => (
-                  <tr key={doc.id} className={profileTableRowClass}>
-                    <td className={cn("py-3", profileValueClass)}>{doc.name}</td>
-                    <td className={cn("py-3", profileMutedClass)}>
+                  <Box component="tr" key={doc.id} sx={profileTableRowSx}>
+                    <Box
+                      component="td"
+                      sx={{ py: 1.5, ...(profileValueSx as object) }}
+                    >
+                      {doc.name}
+                    </Box>
+                    <Box
+                      component="td"
+                      sx={{ py: 1.5, ...(dashboardPageIntroSx as object) }}
+                    >
                       {doc.file_url
                         ? formatDateShort(doc.created_at.slice(0, 10))
                         : "—"}
-                    </td>
-                    <td className="py-3">
+                    </Box>
+                    <Box component="td" sx={{ py: 1.5 }}>
                       {doc.file_url ? (
-                        <a
+                        <Box
+                          component="a"
                           href={doc.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className={linkClass}
+                          sx={accentLinkSx}
                         >
                           Download
-                        </a>
+                        </Box>
                       ) : (
-                        <button
+                        <Box
+                          component="button"
                           type="button"
-                          className={linkClass}
+                          sx={accentLinkSx}
                           disabled={pending}
                           onClick={() => {
                             setUploadDocId(doc.id);
@@ -188,45 +238,60 @@ export function DocumentsTab({
                           }}
                         >
                           Upload file
-                        </button>
+                        </Box>
                       )}
-                    </td>
-                  </tr>
+                    </Box>
+                  </Box>
                 ))}
-              </tbody>
-            </table>
+              </Box>
+            </Box>
           )}
         </CardContent>
       </Card>
 
-      <Card className={profileCardClass}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className={profileSectionTitleClass}>
+      <Card sx={dashboardCardSx}>
+        <CardHeader sx={cardHeaderRowSx}>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
             Onboarding Documents ({onboarding.length})
-          </h3>
-          <span className={cn("text-sm", profileMutedClass)}>Add a document</span>
+          </Typography>
+          <Typography sx={dashboardPageIntroSx}>Add a document</Typography>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className={profileTableHeadClass}>
-                <th className="pb-2">Name</th>
-                <th className="pb-2">Versions</th>
-                <th className="pb-2">File/Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Box component="table" sx={{ width: "100%", fontSize: "0.875rem" }}>
+            <Box component="thead">
+              <Box component="tr" sx={profileTableHeadSx}>
+                <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                  Name
+                </Box>
+                <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                  Versions
+                </Box>
+                <Box component="th" sx={{ pb: 1, textAlign: "left" }}>
+                  File/Status
+                </Box>
+              </Box>
+            </Box>
+            <Box component="tbody">
               {onboarding.map((doc) => (
-                <tr key={doc.id} className={profileTableRowClass}>
-                  <td className={cn("py-3", profileValueClass)}>{doc.name}</td>
-                  <td className={cn("py-3", profileMutedClass)}>{doc.versions}</td>
-                  <td className="py-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                <Box component="tr" key={doc.id} sx={profileTableRowSx}>
+                  <Box component="td" sx={{ py: 1.5, ...profileValueSx }}>
+                    {doc.name}
+                  </Box>
+                  <Box component="td" sx={{ py: 1.5, ...dashboardPageIntroSx }}>
+                    {doc.versions}
+                  </Box>
+                  <Box component="td" sx={{ py: 1.5 }}>
+                    <Stack
+                      direction="row"
+                      useFlexGap
+                      sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}
+                    >
                       {docStatusBadge(doc.status, dashboardTheme)}
                       {doc.status !== "completed" ? (
-                        <button
+                        <Box
+                          component="button"
                           type="button"
-                          className={linkClass}
+                          sx={accentLinkSx}
                           disabled={pending}
                           onClick={() => {
                             setUploadDocId(doc.id);
@@ -234,25 +299,26 @@ export function DocumentsTab({
                           }}
                         >
                           Upload file
-                        </button>
+                        </Box>
                       ) : doc.file_url ? (
-                        <a
+                        <Box
+                          component="a"
                           href={doc.file_url}
                           target="_blank"
                           rel="noreferrer"
-                          className={linkClass}
+                          sx={accentLinkSx}
                         >
                           View
-                        </a>
+                        </Box>
                       ) : null}
-                    </div>
-                  </td>
-                </tr>
+                    </Stack>
+                  </Box>
+                </Box>
               ))}
-            </tbody>
-          </table>
+            </Box>
+          </Box>
         </CardContent>
       </Card>
-    </div>
+    </Stack>
   );
 }

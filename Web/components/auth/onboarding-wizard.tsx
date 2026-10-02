@@ -1,8 +1,18 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import Stepper from "@mui/material/Stepper";
+import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { muiAlpha } from "@/lib/mui/alpha";
+
+const STEPS = ["Timezone", "Brand"] as const;
 
 type OnboardingWizardProps = {
   companyName?: string | null;
@@ -23,89 +33,160 @@ export function OnboardingWizard({
   logoStep,
   submitButton,
 }: OnboardingWizardProps) {
+  const activeStep = Math.max(0, step - 1);
+
   return (
-    <div>
-      <div className="mb-8 flex items-center justify-center gap-3">
-        {[1, 2].map((value) => (
-          <div key={value} className="flex items-center gap-3">
-            <div
-              className={cn(
-                "flex size-8 items-center justify-center rounded-full text-sm font-semibold transition",
-                step >= value
-                  ? "bg-[var(--eb-accent)] text-[var(--eb-ink)]"
-                  : "border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-muted)]"
-              )}
-            >
-              {value}
-            </div>
-            <span
-              className={cn(
-                "hidden text-sm font-medium sm:inline",
-                step >= value ? "text-[var(--eb-text)]" : "text-[var(--eb-muted)]"
-              )}
-            >
-              {value === 1 ? "Timezone" : "Brand"}
-            </span>
-            {value === 1 ? (
-              <div
-                className="h-px w-8 bg-[var(--eb-border)] sm:w-12"
-                aria-hidden
-              />
-            ) : null}
-          </div>
+    <Box>
+      <Stepper
+        activeStep={activeStep}
+        alternativeLabel
+        sx={{
+          mb: 4,
+          "& .MuiStepLabel-label": {
+            mt: 1,
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            color: "text.secondary",
+            "&.Mui-active, &.Mui-completed": {
+              color: "text.primary",
+            },
+          },
+          "& .MuiStepIcon-root": {
+            color: (theme) =>
+              muiAlpha(theme, (p) => p.text.secondary, 0.25),
+            "&.Mui-active, &.Mui-completed": {
+              color: "primary.main",
+            },
+          },
+          "& .MuiStepIcon-text": {
+            fill: (theme) => theme.palette.primary.contrastText,
+            fontWeight: 600,
+          },
+        }}
+      >
+        {STEPS.map((label) => (
+          <Step key={label}>
+            <StepLabel>{label}</StepLabel>
+          </Step>
         ))}
-      </div>
+      </Stepper>
 
       {companyName ? (
-        <p className="mb-6 text-center text-sm font-medium text-[var(--eb-muted)]">
+        <Typography
+          sx={{
+            mb: 3,
+            textAlign: "center",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            color: "text.secondary",
+          }}
+        >
           Setting up{" "}
-          <span className="text-[var(--eb-text)]">{companyName}</span>
-        </p>
+          <Box component="span" sx={{ color: "text.primary" }}>
+            {companyName}
+          </Box>
+        </Typography>
       ) : null}
 
-      <div className={step === 1 ? "block" : "hidden"}>{timezoneStep}</div>
-      <div className={step === 2 ? "block" : "hidden"}>{logoStep}</div>
+      <Box sx={{ display: step === 1 ? "block" : "none" }}>{timezoneStep}</Box>
+      <Box sx={{ display: step === 2 ? "block" : "none" }}>{logoStep}</Box>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--eb-border)] pt-6">
+      <Divider sx={{ mt: 4, mb: 3, borderColor: "divider" }} />
+
+      <Stack
+        direction="row"
+        spacing={1.5}
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         {step === 1 ? (
           <>
-            <Link
+            <Typography
+              component={Link}
               href="/dashboard"
-              className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-accent)]"
+              sx={{
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                color: "text.secondary",
+                textDecoration: "none",
+                "&:hover": { color: "primary.main" },
+              }}
             >
               Skip for now
-            </Link>
-            <button
+            </Typography>
+            <Button
               type="button"
+              variant="contained"
+              color="primary"
               onClick={onNext}
-              className="eb-btn group relative rounded-full p-px"
+              sx={{
+                borderRadius: 999,
+                px: 3,
+                py: 1.25,
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                color: "primary.contrastText",
+              }}
             >
-              <span className="eb-btn__content eb-btn__content--accent relative flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium text-white">
-                Next
-              </span>
-            </button>
+              Next
+            </Button>
           </>
         ) : (
           <>
-            <button
+            <Button
               type="button"
+              variant="text"
               onClick={onBack}
-              className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-text)]"
+              sx={{
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                color: "text.secondary",
+                "&:hover": { color: "text.primary", bgcolor: "transparent" },
+              }}
             >
               Back
-            </button>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 sm:flex-none">
-              <Link
+            </Button>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              useFlexGap
+              sx={{
+                flexWrap: "wrap",
+                minWidth: 0,
+                flex: { xs: "1 1 100%", sm: "0 0 auto" },
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Typography
+                component={Link}
                 href="/dashboard"
-                className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-accent)]"
+                sx={{
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  color: "text.secondary",
+                  textDecoration: "none",
+                  "&:hover": { color: "primary.main" },
+                }}
               >
                 Skip
-              </Link>
-              <div className="w-full min-w-[10rem] sm:w-auto">{submitButton}</div>
-            </div>
+              </Typography>
+              <Box
+                sx={{
+                  width: { xs: "100%", sm: "auto" },
+                  minWidth: { sm: "10rem" },
+                }}
+              >
+                {submitButton}
+              </Box>
+            </Stack>
           </>
         )}
-      </div>
-    </div>
+      </Stack>
+    </Box>
   );
 }

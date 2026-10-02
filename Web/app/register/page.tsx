@@ -1,61 +1,110 @@
+"use client";
+
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Briefcase, Tablet } from "lucide-react";
-import Link from "next/link";
+import NextLink from "next/link";
 import { AuthRegisterShell } from "@/components/auth/auth-register-shell";
 import { RegisterRoleCard } from "@/components/auth/register-role-card";
 
 export default function RegisterPage() {
   return (
     <AuthRegisterShell>
-      <div className="mx-auto w-full max-w-[920px]">
-        <div className="mx-auto max-w-xl text-center">
-          <p className="text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-[var(--eb-accent)]">
+      <Box sx={{ mx: "auto", width: "100%", maxWidth: 920 }}>
+        <Box sx={{ mx: "auto", maxWidth: 560, textAlign: "center" }}>
+          <Typography
+            sx={{
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "var(--eb-accent)",
+            }}
+          >
             Get started
-          </p>
-          <h1 className="mt-3 text-[clamp(1.75rem,4.5vw,2.5rem)] font-normal tracking-[-0.03em] text-[var(--eb-text)]">
+          </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              mt: 1.5,
+              fontSize: "clamp(1.75rem, 4.5vw, 2.5rem)",
+              fontWeight: 400,
+              letterSpacing: "-0.03em",
+              color: "var(--eb-text)",
+            }}
+          >
             How will you use Elitebase?
-          </h1>
-          <p className="mt-4 text-pretty text-[0.9375rem] leading-relaxed text-[var(--eb-muted)] sm:text-base">
+          </Typography>
+          <Typography
+            sx={{
+              mt: 2,
+              fontSize: { xs: "0.9375rem", sm: "1rem" },
+              lineHeight: 1.6,
+              color: "var(--eb-muted)",
+              textWrap: "pretty",
+            }}
+          >
             Employers set up the company, kiosks, and timesheets. Employees clock
             in on the tablet at work—no app signup required.
-          </p>
-        </div>
+          </Typography>
+        </Box>
 
-        <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2 md:gap-6">
-          <RegisterRoleCard
-            href="/register/employer"
-            title="I'm an employer"
-            description="Create your company workspace and invite your team."
-            icon={Briefcase}
-            featured
-            bullets={[
-              "Register your business in minutes",
-              "Pair kiosks and manage locations",
-              "Live attendance and payroll exports",
-            ]}
-          />
-          <RegisterRoleCard
-            href="/register/employee"
-            title="I'm an employee"
-            description="Your manager adds you—you punch in at the kiosk."
-            icon={Tablet}
-            bullets={[
-              "PIN clock-in at your workplace tablet",
-              "Optional face verification on site",
-              "Schedules and hours from your employer",
-            ]}
-          />
-        </div>
+        <Grid container spacing={{ xs: 2.5, md: 3 }} sx={{ mt: { xs: 5, sm: 6 } }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <RegisterRoleCard
+              href="/register/employer"
+              title="I'm an employer"
+              description="Create your company workspace and invite your team."
+              icon={Briefcase}
+              featured
+              bullets={[
+                "Register your business in minutes",
+                "Pair kiosks and manage locations",
+                "Live attendance and payroll exports",
+              ]}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <RegisterRoleCard
+              href="/register/employee"
+              title="I'm an employee"
+              description="Your manager adds you—you punch in at the kiosk."
+              icon={Tablet}
+              bullets={[
+                "PIN clock-in at your workplace tablet",
+                "Optional face verification on site",
+                "Schedules and hours from your employer",
+              ]}
+            />
+          </Grid>
+        </Grid>
 
-        <p className="mt-10 text-center text-sm text-[var(--eb-muted)]">
+        <Typography
+          sx={{
+            mt: 5,
+            textAlign: "center",
+            fontSize: "0.875rem",
+            color: "var(--eb-muted)",
+          }}
+        >
           Already have an account?{" "}
           <Link
+            component={NextLink}
             href="/login"
-            className="font-medium text-[var(--eb-accent)] transition-colors hover:text-[var(--eb-text)]"
+            underline="hover"
+            sx={{
+              fontWeight: 500,
+              color: "var(--eb-accent)",
+              "&:hover": { color: "var(--eb-text)" },
+            }}
           >
             Sign in
           </Link>
-        </p>
-      </div>
+        </Typography>
+      </Box>
     </AuthRegisterShell>
   );
 }

@@ -1,164 +1,109 @@
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
 
-import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
-
-import { cn } from "@/lib/utils";
-
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
-
-
+import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { dashboardCardSx } from "@/lib/dashboard/sx";
 
 export type StatsCardTrend = {
-
   label: string;
-
   tone?: StatusTone;
-
 };
-
-
 
 export type StatsCardProps = {
-
   icon?: ReactNode;
-
   label: string;
-
   value: string | number;
-
   trend?: StatsCardTrend;
-
   className?: string;
-
   /** `dark` matches dashboard ink/teal shell; default `light` for legacy pages. */
-
   variant?: "light" | "dark";
-
 };
 
-
-
 export function StatsCard({
-
   icon,
-
   label,
-
   value,
-
   trend,
-
   className,
-
   variant = "light",
-
 }: StatsCardProps) {
-
   const isDark = variant === "dark";
 
-
-
   return (
-
     <Card
-
-      className={cn(
-
-        isDark &&
-
-          "border-[var(--eb-border)] bg-[var(--eb-surface)]/80 ring-[var(--eb-border)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm",
-
-        className
-
-      )}
-
+      className={className}
+      sx={
+        isDark
+          ? {
+              ...dashboardCardSx,
+              backdropFilter: "blur(4px)",
+            }
+          : undefined
+      }
     >
-
-      <CardContent className="py-5">
-
-        <div className="flex items-start justify-between gap-3">
-
-          <div className="flex min-w-0 items-start gap-3">
-
+      <CardContent sx={{ py: 2.5 }}>
+        <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between", gap: 1.5 }}>
+          <Stack direction="row" sx={{ minWidth: 0, alignItems: "flex-start", gap: 1.5 }}>
             {icon ? (
-
-              <div
-
-                className={cn(
-
-                  "flex size-10 shrink-0 items-center justify-center rounded-[10px]",
-
-                  isDark
-
-                    ? "border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-accent)]"
-
-                    : "rounded-lg bg-blue-50 text-blue-600"
-
-                )}
-
+              <Box
+                sx={{
+                  display: "flex",
+                  width: 40,
+                  height: 40,
+                  flexShrink: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "10px",
+                  ...(isDark
+                    ? {
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "secondary.main",
+                        color: "primary.main",
+                      }
+                    : {
+                        bgcolor: "rgba(37, 99, 235, 0.08)",
+                        color: "rgb(37, 99, 235)",
+                      }),
+                }}
               >
-
                 {icon}
-
-              </div>
-
+              </Box>
             ) : null}
-
-            <div className="min-w-0">
-
-              <p
-
-                className={cn(
-
-                  "text-sm font-medium",
-
-                  isDark ? "text-[var(--eb-muted)]" : "text-slate-500"
-
-                )}
-
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 500,
+                  color: isDark ? "text.secondary" : "text.secondary",
+                }}
               >
-
                 {label}
-
-              </p>
-
-              <p
-
-                className={cn(
-
-                  "mt-1 text-3xl font-semibold tracking-tight",
-
-                  isDark ? "text-[var(--eb-text)]" : "text-slate-900"
-
-                )}
-
+              </Typography>
+              <Typography
+                sx={{
+                  mt: 0.5,
+                  fontSize: "1.875rem",
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                  color: "text.primary",
+                }}
               >
-
                 {value}
-
-              </p>
-
-            </div>
-
-          </div>
-
+              </Typography>
+            </Box>
+          </Stack>
           {trend ? (
-
             <StatusBadge tone={trend.tone ?? "neutral"} theme={isDark ? "dark" : "light"}>
-
               {trend.label}
-
             </StatusBadge>
-
           ) : null}
-
-        </div>
-
+        </Stack>
       </CardContent>
-
     </Card>
-
   );
-
 }
-

@@ -1,5 +1,8 @@
 "use client";
 
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -18,10 +21,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { companyTimezone } from "@/lib/dashboard/format";
 import {
-  dashboardDialogContentClass,
-  dashboardFieldInputClass,
-  dashboardPageIntroClass,
-} from "@/lib/dashboard/styles";
+  dashboardAlertErrorSx,
+  dashboardPageIntroSx,
+} from "@/lib/dashboard/sx";
+import { dashboardDialogContentClass } from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
 import { isoToLocalTimeHm } from "@/lib/timesheets/dates";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
@@ -110,39 +113,41 @@ export function EditTimesheetDialog({
         </DialogHeader>
 
         {error ? (
-          <p className="text-sm text-red-600" role="alert">
+          <Typography component="p" role="alert" sx={dashboardAlertErrorSx}>
             {error}
-          </p>
+          </Typography>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor={`clock-in-${row.id}`}>Clock in</Label>
-            <Input
-              id={`clock-in-${row.id}`}
-              type="time"
-              className={dashboardFieldInputClass}
-              value={clockInTime}
-              onChange={(e) => setClockInTime(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor={`clock-out-${row.id}`}>Clock out</Label>
-            <Input
-              id={`clock-out-${row.id}`}
-              type="time"
-              className={dashboardFieldInputClass}
-              value={clockOutTime}
-              onChange={(e) => setClockOutTime(e.target.value)}
-            />
-          </div>
-        </div>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Stack spacing={0.75}>
+              <Label htmlFor={`clock-in-${row.id}`}>Clock in</Label>
+              <Input
+                id={`clock-in-${row.id}`}
+                type="time"
+                value={clockInTime}
+                onChange={(e) => setClockInTime(e.target.value)}
+              />
+            </Stack>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Stack spacing={0.75}>
+              <Label htmlFor={`clock-out-${row.id}`}>Clock out</Label>
+              <Input
+                id={`clock-out-${row.id}`}
+                type="time"
+                value={clockOutTime}
+                onChange={(e) => setClockOutTime(e.target.value)}
+              />
+            </Stack>
+          </Grid>
+        </Grid>
 
-        <p className={cn("text-xs", dashboardPageIntroClass)}>
+        <Typography sx={{ ...dashboardPageIntroSx, fontSize: "0.75rem" }}>
           Leave a field empty to remove that punch. Add a missing time to
           create it. For overnight shifts, clock out earlier than clock in
           (e.g. 5:21 AM after 9:01 PM) is saved on the next day automatically.
-        </p>
+        </Typography>
 
         <DialogFooter>
           <Button

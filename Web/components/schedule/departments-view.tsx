@@ -1,5 +1,8 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -16,12 +19,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { DepartmentWithRoles } from "@/lib/departments/queries";
+import { dashboardFocusRingClass } from "@/lib/dashboard/styles";
 import {
-  dashboardAccentLinkClass,
-  dashboardCardClass,
-  dashboardFocusRingClass,
-  dashboardPageIntroClass,
-} from "@/lib/dashboard/styles";
+  dashboardAccentLinkSx,
+  dashboardCardSx,
+  dashboardPageIntroSx,
+} from "@/lib/dashboard/sx";
 import { cn } from "@/lib/utils";
 
 const PRESET_COLORS = [
@@ -167,11 +170,20 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <p className={dashboardPageIntroClass}>
+    <Stack spacing={3}>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Typography sx={dashboardPageIntroSx}>
           Organize your team by department and define job roles for scheduling.
-        </p>
+        </Typography>
         <Button
           type="button"
           onClick={() => setShowAddDept((value) => !value)}
@@ -180,15 +192,26 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
           <Plus className="size-4" aria-hidden />
           Add department
         </Button>
-      </div>
+      </Stack>
 
       {error ? (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <Typography
+          sx={{
+            borderRadius: "8px",
+            border: "1px solid",
+            borderColor: "rgba(239, 68, 68, 0.3)",
+            bgcolor: "rgba(239, 68, 68, 0.1)",
+            px: 2,
+            py: 1.5,
+            fontSize: "0.875rem",
+            color: "#f87171",
+          }}
+        >
           {error}
-        </p>
+        </Typography>
       ) : null}
 
-      <Card className={cn("overflow-hidden", dashboardCardClass)}>
+      <Card sx={{ ...(dashboardCardSx as object), overflow: "hidden" }}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-[var(--eb-border)] bg-[var(--eb-elevated)]/90 text-xs font-semibold uppercase tracking-wide text-[var(--eb-muted)]">
@@ -466,17 +489,31 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
         </div>
 
         {!showAddDept && departments.length > 0 ? (
-          <div className="border-t border-[var(--eb-border)] px-6 py-3">
-            <button
+          <Box
+            sx={{
+              borderTop: "1px solid var(--eb-border)",
+              px: 3,
+              py: 1.5,
+            }}
+          >
+            <Box
+              component="button"
               type="button"
               onClick={() => setShowAddDept(true)}
-              className={cn("text-sm", dashboardAccentLinkClass)}
+              sx={{
+                ...(dashboardAccentLinkSx as object),
+                border: "none",
+                bgcolor: "transparent",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                p: 0,
+              }}
             >
               + Add another department
-            </button>
-          </div>
+            </Box>
+          </Box>
         ) : null}
       </Card>
-    </div>
+    </Stack>
   );
 }

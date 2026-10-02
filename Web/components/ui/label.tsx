@@ -1,22 +1,27 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import FormLabel from "@mui/material/FormLabel";
+import { forwardRef, type LabelHTMLAttributes, type ReactNode } from "react";
 
-import { cn } from "@/lib/utils"
+export type LabelProps = LabelHTMLAttributes<HTMLLabelElement>;
 
-function Label({ className, ...props }: React.ComponentProps<"label">) {
+const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
+  { className, style, children, htmlFor, color: _color, ...props },
+  ref
+) {
+  void _color;
   return (
-    <label
+    <FormLabel
+      ref={ref}
       data-slot="label"
-      className={cn(
-        "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-        className
-      )}
+      className={className}
+      style={style}
+      htmlFor={htmlFor}
       {...props}
-    />
-  )
-}
-
-export type LabelProps = React.ComponentProps<"label">;
+    >
+      {children as ReactNode}
+    </FormLabel>
+  );
+});
 
 export { Label };

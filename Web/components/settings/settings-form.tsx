@@ -1,6 +1,15 @@
+"use client";
+
+import Box from "@mui/material/Box";
+import FormLabel from "@mui/material/FormLabel";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import { updateCompanySettings } from "@/app/(dashboard)/settings/actions";
 import { SettingsSubmitButton } from "@/components/settings/settings-submit-button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { dashboardFileInputSx } from "@/lib/dashboard/sx";
 import { DEFAULT_TIMEZONE, US_TIMEZONES } from "@/lib/timezones";
 
 type SettingsFormProps = {
@@ -17,73 +26,76 @@ export function SettingsForm({
   const selectedTimezone = timezone ?? DEFAULT_TIMEZONE;
 
   return (
-    <form
+    <Box
+      component="form"
       action={updateCompanySettings}
       encType="multipart/form-data"
-      className="space-y-6"
+      sx={{ display: "flex", flexDirection: "column", gap: 3 }}
     >
-      <div>
-        <label className="mb-1 block text-sm font-semibold" htmlFor="name">
-          Company name
-        </label>
-        <input
+      <Box sx={{ maxWidth: 448 }}>
+        <Input
           id="name"
           name="name"
+          label="Company name"
           required
           defaultValue={companyName}
-          className="w-full max-w-md rounded-lg border border-[#CBD5E1] px-3 py-2 outline-none ring-[#2563EB] focus:ring-2"
         />
-      </div>
+      </Box>
 
-      <div>
-        <label className="mb-1 block text-sm font-semibold" htmlFor="timezone">
-          Timezone
-        </label>
-        <select
-          id="timezone"
-          name="timezone"
-          defaultValue={selectedTimezone}
-          className="w-full max-w-md rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 outline-none ring-[#2563EB] focus:ring-2"
-        >
-          {US_TIMEZONES.map((tz) => (
-            <option key={tz.value} value={tz.value}>
-              {tz.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Select
+        id="timezone"
+        name="timezone"
+        label="Timezone"
+        defaultValue={selectedTimezone}
+        displayEmpty={false}
+        options={US_TIMEZONES.map((tz) => ({
+          value: tz.value,
+          label: tz.label,
+        }))}
+        sx={{ maxWidth: 448 }}
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-semibold" htmlFor="logo">
+      <Stack spacing={1.5}>
+        <FormLabel htmlFor="logo" sx={{ fontWeight: 600, fontSize: "0.875rem" }}>
           Company logo
-        </label>
+        </FormLabel>
         {logoUrl ? (
-          <div className="mb-3 flex items-center gap-4">
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Image
               src={logoUrl}
               alt={`${companyName} logo`}
               width={64}
               height={64}
-              className="h-16 w-16 rounded-lg border border-[#E2E8F0] object-contain"
+              style={{
+                height: 64,
+                width: 64,
+                borderRadius: 8,
+                border: "1px solid",
+                borderColor: "divider",
+                objectFit: "contain",
+              }}
               unoptimized
             />
-            <p className="text-sm text-[#64748B]">
+            <Typography variant="body2" color="text.secondary">
               Upload a new file to replace the current logo.
-            </p>
-          </div>
+            </Typography>
+          </Stack>
         ) : (
-          <p className="mb-2 text-sm text-[#64748B]">No logo uploaded yet.</p>
+          <Typography variant="body2" color="text.secondary">
+            No logo uploaded yet.
+          </Typography>
         )}
-        <input
+        <Box
+          component="input"
           id="logo"
           name="logo"
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          className="w-full max-w-md rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-[#DBEAFE] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[#1D4ED8]"
+          sx={dashboardFileInputSx}
         />
-      </div>
+      </Stack>
 
       <SettingsSubmitButton />
-    </form>
+    </Box>
   );
 }

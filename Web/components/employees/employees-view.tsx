@@ -24,7 +24,7 @@ import {
   DataTableRow,
 } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { DepartmentOption } from "@/lib/departments/queries";
 import type { EmployeeListItem } from "@/lib/employees/queries";
 import { cn } from "@/lib/utils";
@@ -122,27 +122,27 @@ export function EmployeesView({
               />
             </div>
             <div className="w-full sm:w-48">
-              <Label htmlFor="departmentFilter">Department</Label>
-              <select
+              <Select
                 id="departmentFilter"
+                label="Department"
                 value={departmentId}
                 onChange={(event) => setDepartmentId(event.target.value)}
-                className="mt-1.5 flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="all">All departments</option>
-                {departmentOptions.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
+                displayEmpty={false}
+                options={[
+                  { value: "all", label: "All departments" },
+                  ...departmentOptions.map((dept) => ({
+                    value: dept.id,
+                    label: dept.name,
+                  })),
+                ]}
+              />
             </div>
           </div>
 
           <Card className="overflow-hidden">
             <DataTable>
               <DataTableHeader>
-                <tr>
+                <DataTableRow>
                   <DataTableHead>Employee</DataTableHead>
                   <DataTableHead>Department</DataTableHead>
                   <DataTableHead>Position</DataTableHead>
@@ -151,16 +151,16 @@ export function EmployeesView({
                   <DataTableHead>Today</DataTableHead>
                   <DataTableHead>PIN</DataTableHead>
                   <DataTableHead>Face</DataTableHead>
-                  <DataTableHead className="text-right">Actions</DataTableHead>
-                </tr>
+                  <DataTableHead align="right">Actions</DataTableHead>
+                </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
                 {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={9}>
+                  <DataTableRow>
+                    <DataTableCell colSpan={9}>
                       <DataTableEmpty>No employees match your filters.</DataTableEmpty>
-                    </td>
-                  </tr>
+                    </DataTableCell>
+                  </DataTableRow>
                 ) : (
                   filtered.map((employee) => (
                     <DataTableRow key={employee.id}>
@@ -216,7 +216,7 @@ export function EmployeesView({
                         />
                       </DataTableCell>
                       <DataTableCell>{faceBadge(employee)}</DataTableCell>
-                      <DataTableCell className="text-right">
+                      <DataTableCell align="right">
                         <Link
                           href={`/employees/${employee.id}`}
                           className="text-sm font-semibold text-blue-600 hover:text-blue-700"

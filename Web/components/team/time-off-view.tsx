@@ -1,5 +1,8 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useMemo, useState, useTransition } from "react";
 import {
   cancelTimeOffRequest,
@@ -20,22 +23,21 @@ import {
   DataTableRow,
 } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
 import {
-  dashboardCardClass,
-  dashboardHeadingClass,
-  dashboardNativeSelectClass,
-  dashboardPageIntroClass,
-  dashboardSubheadingClass,
-} from "@/lib/dashboard/styles";
+  dashboardAlertErrorSx,
+  dashboardCardSx,
+  dashboardHeadingSx,
+  dashboardPageIntroSx,
+  dashboardSubheadingSx,
+} from "@/lib/dashboard/sx";
 import type { EmployeeListItem } from "@/lib/employees/queries";
 import {
   formatTimeOffType,
   type TimeOffRequestRow,
   type TimeOffRequestStatus,
 } from "@/lib/time-off/queries";
-import { cn } from "@/lib/utils";
 
 type TimeOffViewProps = {
   requests: TimeOffRequestRow[];
@@ -139,101 +141,110 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className={dashboardHeadingClass}>Time Off</h2>
-          <p className={cn("mt-1", dashboardPageIntroClass)}>
+    <Stack spacing={3}>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box>
+          <Typography component="h2" sx={dashboardHeadingSx}>
+            Time Off
+          </Typography>
+          <Typography sx={{ ...dashboardPageIntroSx, mt: 0.5 }}>
             Request and approve leave. Approved days block new shift assignments.
-          </p>
-        </div>
+          </Typography>
+        </Box>
         {pendingCount > 0 ? (
           <StatusBadge tone="warning" theme={dashboardTheme}>
             {pendingCount} pending review
           </StatusBadge>
         ) : null}
-      </div>
+      </Stack>
 
-      <Card className={cn("p-4", dashboardCardClass)}>
-        <h3 className={dashboardSubheadingClass}>New request</h3>
-        <form
+      <Card sx={{ ...dashboardCardSx, p: 2 }}>
+        <Typography component="h3" sx={dashboardSubheadingSx}>
+          New request
+        </Typography>
+        <Box
+          component="form"
           onSubmit={handleCreate}
-          className="mt-4 flex flex-wrap items-end gap-4"
+          sx={{
+            mt: 2,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "flex-end",
+            gap: 2,
+          }}
         >
-          <div>
-            <Label htmlFor="time-off-employee">Employee</Label>
-            <select
-              id="time-off-employee"
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              className={cn(dashboardNativeSelectClass, "min-w-[200px]")}
-              required
-            >
-              {activeEmployees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.full_name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="time-off-type">Type</Label>
-            <select
-              id="time-off-type"
-              value={requestType}
-              onChange={(e) =>
-                setRequestType(
-                  e.target.value as
-                    | "vacation"
-                    | "sick"
-                    | "personal"
-                    | "unpaid"
-                    | "paid_leave"
-                    | "unpaid_leave"
-                )
-              }
-              className={cn(dashboardNativeSelectClass, "min-w-[140px]")}
-            >
-              <option value="paid_leave">Paid Leave</option>
-              <option value="unpaid_leave">Unpaid Leave</option>
-              <option value="vacation">Vacation</option>
-              <option value="sick">Sick</option>
-              <option value="personal">Personal</option>
-              <option value="unpaid">Unpaid</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="time-off-start">Start</Label>
-            <Input
-              id="time-off-start"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="mt-1.5"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="time-off-end">End</Label>
-            <Input
-              id="time-off-end"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="mt-1.5"
-              min={startDate || undefined}
-            />
-          </div>
-          <div className="min-w-[180px] flex-1">
-            <Label htmlFor="time-off-reason">Reason (optional)</Label>
+          <Select
+            id="time-off-employee"
+            label="Employee"
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+            required
+            displayEmpty={false}
+            minWidth={200}
+            options={activeEmployees.map((employee) => ({
+              value: employee.id,
+              label: employee.full_name,
+            }))}
+          />
+          <Select
+            id="time-off-type"
+            label="Type"
+            value={requestType}
+            onChange={(e) =>
+              setRequestType(
+                e.target.value as
+                  | "vacation"
+                  | "sick"
+                  | "personal"
+                  | "unpaid"
+                  | "paid_leave"
+                  | "unpaid_leave"
+              )
+            }
+            displayEmpty={false}
+            minWidth={140}
+            options={[
+              { value: "paid_leave", label: "Paid Leave" },
+              { value: "unpaid_leave", label: "Unpaid Leave" },
+              { value: "vacation", label: "Vacation" },
+              { value: "sick", label: "Sick" },
+              { value: "personal", label: "Personal" },
+              { value: "unpaid", label: "Unpaid" },
+            ]}
+          />
+          <Input
+            id="time-off-start"
+            label="Start"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
+          />
+          <Input
+            id="time-off-end"
+            label="End"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={startDate || undefined}
+          />
+          <Box sx={{ minWidth: 180, flex: 1 }}>
             <Input
               id="time-off-reason"
+              label="Reason (optional)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="mt-1.5"
               placeholder="Doctor visit, family trip…"
             />
-          </div>
+          </Box>
           <PendingButton
             type="submit"
             pending={pending}
@@ -242,38 +253,46 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
           >
             Submit request
           </PendingButton>
-        </form>
+        </Box>
         {error ? (
-          <p className="mt-3 text-sm text-red-400" role="alert">
+          <Typography component="p" role="alert" sx={{ ...dashboardAlertErrorSx, mt: 1.5 }}>
             {error}
-          </p>
+          </Typography>
         ) : null}
       </Card>
 
-      <Card className={cn("overflow-hidden", dashboardCardClass)}>
+      <Card sx={{ ...dashboardCardSx, overflow: "hidden" }}>
         <DataTable>
           <DataTableHeader>
-            <tr>
+            <DataTableRow>
               <DataTableHead>Employee</DataTableHead>
               <DataTableHead>Dates</DataTableHead>
               <DataTableHead>Type</DataTableHead>
               <DataTableHead>By</DataTableHead>
               <DataTableHead>Status</DataTableHead>
               <DataTableHead>Reason</DataTableHead>
-              <DataTableHead className="w-40">Actions</DataTableHead>
-            </tr>
+              <DataTableHead
+                sx={{
+                  minWidth: 220,
+                  width: 220,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Actions
+              </DataTableHead>
+            </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
             {requests.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
+              <DataTableRow>
+                <DataTableCell colSpan={7}>
                   <DataTableEmpty>No time-off requests yet.</DataTableEmpty>
-                </td>
-              </tr>
+                </DataTableCell>
+              </DataTableRow>
             ) : (
               requests.map((request) => (
                 <DataTableRow key={request.id}>
-                  <DataTableCell className="font-semibold text-[var(--eb-text)]">
+                  <DataTableCell sx={{ fontWeight: 600 }}>
                     {request.employee_name}
                   </DataTableCell>
                   <DataTableCell>
@@ -282,22 +301,44 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                   <DataTableCell>
                     {formatTimeOffType(request.request_type)}
                   </DataTableCell>
-                  <DataTableCell className="capitalize text-[var(--eb-muted)]">
+                  <DataTableCell
+                    sx={{ textTransform: "capitalize", color: "text.secondary" }}
+                  >
                     {request.requested_by === "employee" ? "Employee" : "Employer"}
                   </DataTableCell>
                   <DataTableCell>
                     {statusBadge(request.status, dashboardTheme)}
                   </DataTableCell>
-                  <DataTableCell className="max-w-[200px] truncate text-[var(--eb-muted)]">
+                  <DataTableCell
+                    sx={{
+                      maxWidth: 200,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: "text.secondary",
+                    }}
+                  >
                     {request.reason || "—"}
                   </DataTableCell>
-                  <DataTableCell>
+                  <DataTableCell
+                    sx={{
+                      minWidth: 220,
+                      width: 220,
+                      whiteSpace: "nowrap",
+                      verticalAlign: "middle",
+                    }}
+                  >
                     {request.status === "pending" ? (
-                      <div className="flex flex-wrap gap-2">
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        sx={{ flexWrap: "nowrap", alignItems: "center" }}
+                      >
                         <Button
                           type="button"
                           size="sm"
                           disabled={pending}
+                          sx={{ flexShrink: 0 }}
                           onClick={() => handleReview(request.id, "approved")}
                         >
                           Approve
@@ -307,11 +348,12 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
                           size="sm"
                           variant="outline"
                           disabled={pending}
+                          sx={{ flexShrink: 0 }}
                           onClick={() => handleReview(request.id, "denied")}
                         >
                           Deny
                         </Button>
-                      </div>
+                      </Stack>
                     ) : request.status === "approved" ? (
                       <Button
                         type="button"
@@ -332,6 +374,6 @@ export function TimeOffView({ requests, employees }: TimeOffViewProps) {
           </DataTableBody>
         </DataTable>
       </Card>
-    </div>
+    </Stack>
   );
 }

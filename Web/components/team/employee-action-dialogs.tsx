@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import {
   deleteEmployeePermanently,
   getEmployeeAttendanceCount,
@@ -19,11 +19,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import type { EmployeeStatus } from "@/lib/employees/profile-queries";
 import {
   dashboardDialogContentClass,
-  dashboardFieldInputClass,
   dashboardPageIntroClass,
 } from "@/lib/dashboard/styles";
 import { cn } from "@/lib/utils";
@@ -139,15 +139,11 @@ export function EmployeeActionDialogs({
               history is kept and you can reactivate them later.
             </DialogDescription>
           </DialogHeader>
-          <textarea
+          <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason (optional)"
             rows={3}
-            className={cn(
-              "w-full rounded-lg border px-3 py-2 text-sm",
-              dashboardFieldInputClass
-            )}
           />
           <DialogFooter>
             <Button variant="outline" onClick={close}>
@@ -208,7 +204,6 @@ export function EmployeeActionDialogs({
               onChange={(e) => setConfirmName(e.target.value)}
               placeholder={employee?.full_name}
               autoComplete="off"
-              className={dashboardFieldInputClass}
             />
           </div>
           <DialogFooter>

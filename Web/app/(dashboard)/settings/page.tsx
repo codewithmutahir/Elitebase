@@ -1,6 +1,9 @@
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { SettingsPageContent } from "@/components/settings/settings-page-content";
 import { settingsErrorMessage } from "@/lib/settings/messages";
 import { requireCompanySession } from "@/lib/employees/session";
+import { dashboardPageIntroSx } from "@/lib/dashboard/sx";
 
 export default async function SettingsPage({
   searchParams,
@@ -11,10 +14,10 @@ export default async function SettingsPage({
   const params = await searchParams;
 
   return (
-    <div className="space-y-8">
-      <p className="text-sm text-slate-500">
+    <Stack spacing={4}>
+      <Typography sx={dashboardPageIntroSx}>
         Manage your company profile, branding, and preferences.
-      </p>
+      </Typography>
 
       <SettingsPageContent
         companyName={company.name}
@@ -24,6 +27,6 @@ export default async function SettingsPage({
         saved={params.saved === "1"}
         errorMessage={settingsErrorMessage(params.error)}
       />
-    </div>
+    </Stack>
   );
 }

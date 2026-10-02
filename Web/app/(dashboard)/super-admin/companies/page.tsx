@@ -1,6 +1,14 @@
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { SuperAdminCompaniesTable } from "@/components/super-admin/companies-table";
 import { listAllCompaniesForSuperAdmin } from "@/lib/super-admin/companies";
 import { requireSuperAdminSession } from "@/lib/super-admin/session";
+import {
+  dashboardAlertErrorSx,
+  dashboardAlertSuccessSx,
+} from "@/lib/dashboard/sx";
 
 export default async function SuperAdminCompaniesPage({
   searchParams,
@@ -23,30 +31,42 @@ export default async function SuperAdminCompaniesPage({
         : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">All companies</h1>
-        <p className="mt-2 text-[#64748B]">
+    <Stack spacing={3}>
+      <Box>
+        <Typography component="h1" sx={{ fontSize: "1.875rem", fontWeight: 700 }}>
+          All companies
+        </Typography>
+        <Typography sx={{ mt: 1, color: "text.secondary" }}>
           Platform-wide company list. Suspending blocks the company account from
           active use.
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
       {params.suspended === "1" ? (
-        <p className="rounded-lg bg-[#ECFDF5] px-4 py-3 text-sm text-[#047857]">
+        <Typography component="p" sx={dashboardAlertSuccessSx}>
           Company suspended.
-        </p>
+        </Typography>
       ) : null}
 
       {errorMessage ? (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-[#B91C1C]">
+        <Typography component="p" sx={dashboardAlertErrorSx}>
           {errorMessage}
-        </p>
+        </Typography>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+      <Paper
+        elevation={0}
+        sx={{
+          overflow: "hidden",
+          borderRadius: "16px",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          boxShadow: 1,
+        }}
+      >
         <SuperAdminCompaniesTable companies={companies} />
-      </div>
-    </div>
+      </Paper>
+    </Stack>
   );
 }

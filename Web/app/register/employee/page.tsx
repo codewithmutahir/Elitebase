@@ -1,7 +1,13 @@
-import Link from "next/link";
+"use client";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Clock, ScanFace, Tablet } from "lucide-react";
+import NextLink from "next/link";
 import { AuthRegisterShell } from "@/components/auth/auth-register-shell";
-import { LandingButton } from "@/components/landing/landing-button";
 
 const steps = [
   {
@@ -24,56 +30,165 @@ const steps = [
 export default function EmployeeRegisterInfoPage() {
   return (
     <AuthRegisterShell>
-      <div className="mx-auto w-full max-w-160">
-        <div className="overflow-hidden rounded-[1.5rem] border border-(--eb-border) bg-(--eb-surface)/60 p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md sm:p-10">
-          <p className="text-[0.8125rem] font-medium uppercase tracking-[0.08em] text-[var(--eb-accent)]">
+      <Box sx={{ mx: "auto", width: "100%", maxWidth: 640 }}>
+        <Box
+          sx={{
+            overflow: "hidden",
+            borderRadius: "1.5rem",
+            border: "1px solid",
+            borderColor: "var(--eb-border)",
+            bgcolor: "rgba(14, 21, 36, 0.85)",
+            p: { xs: 4, sm: 5 },
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "primary.main",
+            }}
+          >
             For employees
-          </p>
-          <h1 className="mt-3 text-[clamp(1.5rem,4vw,2rem)] font-normal tracking-[-0.02em] text-[var(--eb-text)]">
+          </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              mt: 1.5,
+              fontSize: "clamp(1.5rem, 4vw, 2rem)",
+              fontWeight: 400,
+              letterSpacing: "-0.02em",
+              color: "text.primary",
+            }}
+          >
             You don&apos;t register here
-          </h1>
-          <p className="mt-4 text-[0.9375rem] leading-relaxed text-[var(--eb-muted)] sm:text-base">
+          </Typography>
+          <Typography
+            sx={{
+              mt: 2,
+              fontSize: { xs: "0.9375rem", sm: "1rem" },
+              lineHeight: 1.6,
+              color: "text.secondary",
+            }}
+          >
             Elitebase accounts for are created by your employer. Once
             you&apos;re on the roster, use the kiosk at your job site to clock in
             and out.
-          </p>
+          </Typography>
 
-          <ul className="mt-8 space-y-5">
+          <Stack component="ul" spacing={2.5} sx={{ mt: 4, p: 0, m: 0, listStyle: "none" }}>
             {steps.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-accent)]">
-                  <Icon className="size-5" strokeWidth={1.5} aria-hidden />
-                </div>
-                <div>
-                  <p className="font-medium text-[var(--eb-text)]">{title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--eb-muted)]">
+              <Box
+                component="li"
+                key={title}
+                sx={{ display: "flex", gap: 2 }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    width: 40,
+                    height: 40,
+                    flexShrink: 0,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "8px",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "secondary.main",
+                    color: "primary.main",
+                  }}
+                >
+                  <Icon size={20} strokeWidth={1.5} aria-hidden />
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ fontWeight: 500, color: "text.primary" }}
+                  >
+                    {title}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      mt: 0.5,
+                      fontSize: "0.875rem",
+                      lineHeight: 1.6,
+                      color: "text.secondary",
+                    }}
+                  >
                     {body}
-                  </p>
-                </div>
-              </li>
+                  </Typography>
+                </Box>
+              </Box>
             ))}
-          </ul>
+          </Stack>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <LandingButton href="/register" variant="ghost" size="hero" className="w-full sm:w-auto">
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            sx={{ mt: 5, alignItems: { sm: "center" } }}
+          >
+            <Button
+              component={NextLink}
+              href="/register"
+              variant="outlined"
+              fullWidth
+              sx={{
+                borderRadius: 999,
+                py: 1.5,
+                borderColor: "divider",
+                color: "text.primary",
+                width: { sm: "auto" },
+                "&:hover": {
+                  borderColor: "primary.main",
+                  bgcolor: "transparent",
+                },
+              }}
+            >
               Choose another path
-            </LandingButton>
-            <LandingButton href="/login" variant="accent" size="hero" className="w-full sm:w-auto">
+            </Button>
+            <Button
+              component={NextLink}
+              href="/login"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{
+                borderRadius: 999,
+                py: 1.5,
+                color: "primary.contrastText",
+                width: { sm: "auto" },
+              }}
+            >
               Employer sign in
-            </LandingButton>
-          </div>
-        </div>
+            </Button>
+          </Stack>
+        </Box>
 
-        <p className="mt-8 text-center text-sm text-[var(--eb-muted)]">
+        <Typography
+          sx={{
+            mt: 4,
+            textAlign: "center",
+            fontSize: "0.875rem",
+            color: "text.secondary",
+          }}
+        >
           Manager setting up a new company?{" "}
           <Link
+            component={NextLink}
             href="/register/employer"
-            className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
+            underline="hover"
+            sx={{
+              fontWeight: 500,
+              color: "primary.main",
+              "&:hover": { color: "text.primary" },
+            }}
           >
             Register as an employer
           </Link>
-        </p>
-      </div>
+        </Typography>
+      </Box>
     </AuthRegisterShell>
   );
 }

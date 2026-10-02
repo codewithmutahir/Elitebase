@@ -1,9 +1,12 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import CloudUploadOutlined from "@mui/icons-material/CloudUploadOutlined";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import FormHelperText from "@mui/material/FormHelperText";
+import Typography from "@mui/material/Typography";
 import { useRef, useState } from "react";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { muiAlpha } from "@/lib/mui/alpha";
 
 type LogoDropzoneProps = {
   name?: string;
@@ -34,19 +37,27 @@ export function LogoDropzone({
   }
 
   return (
-    <div>
-      <Label htmlFor={name} className="text-[var(--eb-text)]">
+    <Box>
+      <Typography
+        component="label"
+        htmlFor={name}
+        sx={{ fontSize: "0.875rem", fontWeight: 500, color: "text.primary" }}
+      >
         Company logo{" "}
-        <span className="font-normal text-[var(--eb-muted)]">(optional)</span>
-      </Label>
+        <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>
+          (optional)
+        </Box>
+      </Typography>
 
       {existingLogoUrl ? (
-        <p className="mt-1 text-xs text-[var(--eb-muted)]">
+        <Typography
+          sx={{ mt: 0.5, fontSize: "0.75rem", color: "text.secondary" }}
+        >
           You already have a logo saved. Upload a new file to replace it.
-        </p>
+        </Typography>
       ) : null}
 
-      <div
+      <Box
         onDragOver={(event) => {
           event.preventDefault();
           setDragOver(true);
@@ -57,14 +68,6 @@ export function LogoDropzone({
           setDragOver(false);
           handleFiles(event.dataTransfer.files);
         }}
-        className={cn(
-          "mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition",
-          error
-            ? "border-red-400/60 bg-red-950/20"
-            : dragOver
-              ? "border-[var(--eb-accent)] bg-[var(--eb-accent)]/10"
-              : "border-[var(--eb-border)] bg-[var(--eb-elevated)]/40 hover:border-[var(--eb-accent)]/50"
-        )}
         onClick={() => inputRef.current?.click()}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -74,39 +77,112 @@ export function LogoDropzone({
         }}
         role="button"
         tabIndex={0}
+        sx={{
+          mt: 1,
+          display: "flex",
+          cursor: "pointer",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "12px",
+          border: "2px dashed",
+          borderColor: error
+            ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.6)
+            : dragOver
+              ? "primary.main"
+              : "divider",
+          bgcolor: error
+            ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.08)
+            : dragOver
+              ? (theme) => muiAlpha(theme, (p) => p.primary.main, 0.1)
+              : (theme) =>
+                  muiAlpha(theme, (p) => p.background.paper, 0.4),
+          px: 3,
+          py: 5,
+          textAlign: "center",
+          transition: "border-color 150ms ease, background-color 150ms ease",
+          "&:hover": {
+            borderColor: error
+              ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.6)
+              : (theme) => muiAlpha(theme, (p) => p.primary.main, 0.5),
+          },
+        }}
       >
-        <div className="flex size-12 items-center justify-center rounded-full border border-[var(--eb-border)] bg-[var(--eb-surface)] text-[var(--eb-accent)]">
-          <Upload className="size-5" aria-hidden />
-        </div>
-        <p className="mt-3 text-sm font-semibold text-[var(--eb-text)]">
+        <Box
+          sx={{
+            display: "flex",
+            width: 48,
+            height: 48,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            color: "primary.main",
+          }}
+        >
+          <CloudUploadOutlined fontSize="small" aria-hidden />
+        </Box>
+        <Typography
+          sx={{
+            mt: 1.5,
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            color: "text.primary",
+          }}
+        >
           Drag and drop your logo
-        </p>
-        <p className="mt-1 text-xs text-[var(--eb-muted)]">
+        </Typography>
+        <Typography
+          sx={{ mt: 0.5, fontSize: "0.75rem", color: "text.secondary" }}
+        >
           or click to browse · PNG, JPG, WebP, GIF · max 2 MB
-        </p>
+        </Typography>
         {fileName ? (
-          <p className="mt-3 rounded-full border border-[var(--eb-border)] bg-[var(--eb-surface)] px-3 py-1 text-xs font-medium text-[var(--eb-accent)]">
-            {fileName}
-          </p>
+          <Chip
+            label={fileName}
+            size="small"
+            sx={{
+              mt: 1.5,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "background.paper",
+              color: "primary.main",
+              fontWeight: 500,
+            }}
+          />
         ) : null}
-      </div>
+      </Box>
 
       {error ? (
-        <p className="mt-2 text-xs text-red-400" role="alert">
+        <FormHelperText error role="alert" sx={{ mt: 1, mx: 0 }}>
           {error}
-        </p>
+        </FormHelperText>
       ) : null}
 
-      <input
+      <Box
+        component="input"
         ref={inputRef}
         id={name}
         name={onFileChange ? undefined : name}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
-        className="sr-only"
-        onChange={(event) => handleFiles(event.target.files)}
+        onChange={(event) =>
+          handleFiles((event.target as HTMLInputElement).files)
+        }
+        sx={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          p: 0,
+          m: -1,
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
       />
-    </div>
+    </Box>
   );
 }
-

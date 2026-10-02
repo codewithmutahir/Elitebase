@@ -1,15 +1,17 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
-  dashboardFormPanelClass,
-  dashboardMetricLabelClass,
-  dashboardNativeSelectClass,
-  dashboardSectionTitleClass,
-} from "@/lib/dashboard/styles";
+  dashboardFormPanelSx,
+  dashboardMetricLabelSx,
+  dashboardSectionTitleSx,
+} from "@/lib/dashboard/sx";
 import { getMonthRange } from "@/lib/timesheets/dates";
 import { formatTimesheetMonthLabel } from "@/lib/timesheets/labels";
 import type { TimesheetEmployeeOption } from "@/lib/timesheets/data";
@@ -55,101 +57,109 @@ export function TimesheetsFilters({
   }
 
   return (
-    <form
+    <Box
+      component="form"
       method="get"
-      className={dashboardFormPanelClass}
+      sx={dashboardFormPanelSx}
       onSubmit={() => setSubmitting(true)}
     >
-      <div>
-        <h3 className={dashboardSectionTitleClass}>Filter timesheets</h3>
-        <p className={`mt-0.5 ${dashboardMetricLabelClass}`}>
+      <Box>
+        <Typography component="h3" sx={dashboardSectionTitleSx}>
+          Filter timesheets
+        </Typography>
+        <Typography sx={{ ...dashboardMetricLabelSx, mt: 0.25 }}>
           Browse clock-in, breaks, and hours by month or a custom date range.
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <Label htmlFor="view-month">Month</Label>
-          <select
-            id="view-month"
-            name="month"
-            value={month}
-            onChange={(event) => handleMonthChange(event.target.value)}
-            className={`${dashboardNativeSelectClass} min-w-[200px]`}
-          >
-            {months.length === 0 ? (
-              <option value="custom">Custom date range</option>
-            ) : (
-              <>
-                {months.map((value) => (
-                  <option key={value} value={value}>
-                    {formatTimesheetMonthLabel(value)}
-                  </option>
-                ))}
-                <option value="custom">Custom date range</option>
-              </>
-            )}
-          </select>
-        </div>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{ flexWrap: "wrap", gap: 2, alignItems: "flex-end" }}
+      >
+        <Select
+          id="view-month"
+          name="month"
+          label="Month"
+          value={month}
+          onChange={(event) => handleMonthChange(event.target.value)}
+          displayEmpty={false}
+          minWidth={200}
+          options={
+            months.length === 0
+              ? [{ value: "custom", label: "Custom date range" }]
+              : [
+                  ...months.map((value) => ({
+                    value,
+                    label: formatTimesheetMonthLabel(value),
+                  })),
+                  { value: "custom", label: "Custom date range" },
+                ]
+          }
+        />
 
-        <div>
-          <Label htmlFor="view-employee">Employee</Label>
-          <select
-            id="view-employee"
-            name="employeeId"
-            value={employeeId}
-            onChange={(event) => setEmployeeId(event.target.value)}
-            className={`${dashboardNativeSelectClass} min-w-[200px]`}
-          >
-            <option value="all">All employees</option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.full_name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id="view-employee"
+          name="employeeId"
+          label="Employee"
+          value={employeeId}
+          onChange={(event) => setEmployeeId(event.target.value)}
+          displayEmpty={false}
+          minWidth={200}
+          options={[
+            { value: "all", label: "All employees" },
+            ...employees.map((employee) => ({
+              value: employee.id,
+              label: employee.full_name,
+            })),
+          ]}
+        />
 
         <PendingButton type="submit" pending={submitting} pendingLabel="Applying…">
           Apply
         </PendingButton>
-      </div>
+      </Stack>
 
       {showCustomRange ? (
-        <div className="flex flex-wrap items-end gap-4 border-t border-[var(--eb-border)] pt-4">
-          <div>
-            <Label htmlFor="from">From</Label>
-            <Input
-              id="from"
-              name="from"
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="mt-1.5"
-            />
-          </div>
-          <div>
-            <Label htmlFor="to">To</Label>
-            <Input
-              id="to"
-              name="to"
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="mt-1.5"
-            />
-          </div>
-        </div>
+        <Stack
+          direction="row"
+          useFlexGap
+          sx={{
+            flexWrap: "wrap",
+            gap: 2,
+            alignItems: "flex-end",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            pt: 2,
+          }}
+        >
+          <Input
+            id="from"
+            name="from"
+            label="From"
+            type="date"
+            value={fromDate}
+            onChange={(event) => setFromDate(event.target.value)}
+          />
+          <Input
+            id="to"
+            name="to"
+            label="To"
+            type="date"
+            value={toDate}
+            onChange={(event) => setToDate(event.target.value)}
+          />
+        </Stack>
       ) : monthBounds ? (
         <>
           <input type="hidden" name="from" value={monthBounds.from} />
           <input type="hidden" name="to" value={monthBounds.to} />
-          <p className={`text-xs ${dashboardMetricLabelClass}`}>
+          <Typography sx={{ ...dashboardMetricLabelSx, fontSize: "0.75rem" }}>
             Showing {formatTimesheetMonthLabel(month)} ({monthBounds.from} to{" "}
             {monthBounds.to})
-          </p>
+          </Typography>
         </>
       ) : null}
-    </form>
+    </Box>
   );
 }

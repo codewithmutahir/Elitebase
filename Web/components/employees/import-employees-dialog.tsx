@@ -28,7 +28,6 @@ import { employeeImportPinsToCsv } from "@/lib/employees/import-csv";
 import { getUserFacingError } from "@/lib/errors/user-facing";
 import {
   dashboardDialogContentClass,
-  dashboardFieldInputClass,
   dashboardPageIntroClass,
 } from "@/lib/dashboard/styles";
 import { formatHourlyRate, formatMonthlySalary } from "@/lib/money/format";

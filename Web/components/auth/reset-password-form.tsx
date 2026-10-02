@@ -1,5 +1,7 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -52,43 +54,45 @@ export function ResetPasswordForm({ token, action }: ResetPasswordFormProps) {
   };
 
   return (
-    <form
+    <Box
+      component="form"
       noValidate
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4"
       aria-busy={isPending || isSubmitting}
     >
-      {lockMessage ? (
-        <AuthAlert variant="error">{lockMessage}</AuthAlert>
-      ) : null}
+      <Stack spacing={2}>
+        {lockMessage ? (
+          <AuthAlert variant="error">{lockMessage}</AuthAlert>
+        ) : null}
 
-      <input type="hidden" {...register("token")} />
+        <input type="hidden" {...register("token")} />
 
-      <AuthField
-        id="password"
-        label="New password"
-        type="password"
-        autoComplete="new-password"
-        aria-required
-        error={errors.password?.message}
-        {...register("password")}
-      />
+        <AuthField
+          id="password"
+          label="New password"
+          type="password"
+          autoComplete="new-password"
+          aria-required
+          error={errors.password?.message}
+          {...register("password")}
+        />
 
-      <AuthField
-        id="confirmPassword"
-        label="Confirm password"
-        type="password"
-        autoComplete="new-password"
-        aria-required
-        error={errors.confirmPassword?.message}
-        {...register("confirmPassword")}
-      />
+        <AuthField
+          id="confirmPassword"
+          label="Confirm password"
+          type="password"
+          autoComplete="new-password"
+          aria-required
+          error={errors.confirmPassword?.message}
+          {...register("confirmPassword")}
+        />
 
-      <AuthSubmitButton
-        idleLabel="Update password"
-        pendingLabel="Updating…"
-        disabled={!canSubmit || isPending || isSubmitting}
-      />
-    </form>
+        <AuthSubmitButton
+          idleLabel="Update password"
+          pendingLabel="Updating…"
+          disabled={!canSubmit || isPending || isSubmitting}
+        />
+      </Stack>
+    </Box>
   );
 }

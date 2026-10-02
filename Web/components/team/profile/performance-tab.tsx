@@ -1,51 +1,53 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Star, Trash2, Trophy } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import {
   addEmployeeNote,
   deleteEmployeeNote,
 } from "@/app/(dashboard)/employees/profile-actions";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-  profileCardClass,
-  profileMutedClass,
-  profileNoteCardClass,
-  profileSectionTitleClass,
-  profileStatCardClass,
-  profileTextareaClass,
-  profileValueClass,
-} from "@/lib/dashboard/styles";
-import { employeeInitials, formatDateShort, formatRelativeTime } from "@/lib/employees/format";
+  dashboardCardSx,
+  dashboardPageIntroSx,
+  dashboardSectionTitleSx,
+  profileNoteCardSx,
+  profileStatCardSx,
+  profileStatLabelSx,
+  profileStatValueSx,
+  profileTextareaSx,
+  profileValueSx,
+} from "@/lib/dashboard/sx";
+import {
+  employeeInitials,
+  formatDateShort,
+  formatRelativeTime,
+} from "@/lib/employees/format";
 import type {
   EmployeeMilestone,
   EmployeeNote,
   EmployeeProfile,
 } from "@/lib/employees/profile-queries";
-import { cn } from "@/lib/utils";
 
 type PerformanceTabProps = {
   employee: EmployeeProfile;
   onUpdated: () => void;
 };
 
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
+function StatCard({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className={profileStatCardClass}>
-      <p className="profile-stat-label">{label}</p>
-      <p className="profile-stat-value">{value}</p>
-    </div>
+    <Box sx={profileStatCardSx}>
+      <Typography sx={profileStatLabelSx}>{label}</Typography>
+      <Typography sx={profileStatValueSx}>{value}</Typography>
+    </Box>
   );
 }
 
@@ -81,101 +83,174 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h3 className={profileSectionTitleClass}>
+    <Stack spacing={4}>
+      <Box>
+        <Typography component="h3" sx={dashboardSectionTitleSx}>
           Attendance · {stats.monthLabel}
-        </h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="On time rate" value={stats.onTimeRate} />
-          <StatCard label="Avg hours/week" value={stats.avgHoursPerWeek} />
-          <StatCard label="Missed clock outs" value={stats.missedClockOuts} />
-          <StatCard label="No shows" value={stats.noShows} />
-          <StatCard
-            label="Avg shift rating"
-            value={
-              <span className="inline-flex items-center gap-1">
-                {stats.avgShiftRating}
-                <Star
-                  className="size-4 fill-[var(--eb-accent)] text-[var(--eb-accent)]"
-                  aria-hidden
-                />
-              </span>
-            }
-          />
-          <StatCard label="Shifts worked" value={stats.shiftsWorked} />
-          <StatCard label="Missed breaks" value={stats.missedBreaks} />
-        </div>
-      </div>
+        </Typography>
+        <Grid container spacing={1.5} sx={{ mt: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="On time rate" value={stats.onTimeRate} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="Avg hours/week" value={stats.avgHoursPerWeek} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="Missed clock outs" value={stats.missedClockOuts} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="No shows" value={stats.noShows} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard
+              label="Avg shift rating"
+              value={
+                <Box
+                  component="span"
+                  sx={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                  }}
+                >
+                  {stats.avgShiftRating}
+                  <Star
+                    className="size-4 fill-[var(--eb-accent)] text-[var(--eb-accent)]"
+                    aria-hidden
+                  />
+                </Box>
+              }
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="Shifts worked" value={stats.shiftsWorked} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <StatCard label="Missed breaks" value={stats.missedBreaks} />
+          </Grid>
+        </Grid>
+      </Box>
 
-      <Card className={profileCardClass}>
+      <Card sx={dashboardCardSx}>
         <CardHeader>
-          <h3 className={profileSectionTitleClass}>Role breakdown</h3>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Role breakdown
+          </Typography>
         </CardHeader>
         <CardContent>
           {stats.roleBreakdown.length === 0 ? (
-            <p className={cn("py-6 text-center text-sm", profileMutedClass)}>
+            <Typography
+              sx={{ ...dashboardPageIntroSx, py: 3, textAlign: "center" }}
+            >
               No roles yet
-            </p>
+            </Typography>
           ) : (
-            <ul className="space-y-2">
+            <Stack
+              component="ul"
+              spacing={0}
+              sx={{ listStyle: "none", m: 0, p: 0 }}
+            >
               {stats.roleBreakdown.map((row) => (
-                <li
+                <Box
+                  component="li"
                   key={row.roleName}
-                  className="flex justify-between border-b border-[var(--eb-border)] py-2 text-sm last:border-0"
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                    py: 1,
+                    fontSize: "0.875rem",
+                    "&:last-child": { borderBottom: 0 },
+                  }}
                 >
-                  <span className={profileValueClass}>{row.roleName}</span>
-                  <span className="text-[var(--eb-muted)]">
+                  <Typography sx={profileValueSx}>{row.roleName}</Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
                     {row.hours.toFixed(2)} hrs
-                  </span>
-                </li>
+                  </Typography>
+                </Box>
               ))}
-            </ul>
+            </Stack>
           )}
         </CardContent>
       </Card>
 
-      <div>
-        <h3 className={cn("mb-4", profileSectionTitleClass)}>Milestones</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <Box>
+        <Typography component="h3" sx={{ ...dashboardSectionTitleSx, mb: 2 }}>
+          Milestones
+        </Typography>
+        <Grid container spacing={2}>
           {employee.milestones.map((m: EmployeeMilestone) => (
-            <Card key={m.id} className={profileCardClass}>
-              <CardContent className="flex items-start gap-3 py-4">
-                <div
-                  className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[var(--eb-accent)]/30 bg-[var(--eb-accent)]/10"
-                  aria-hidden
+            <Grid key={m.id} size={{ xs: 12, sm: 6 }}>
+              <Card sx={dashboardCardSx}>
+                <CardContent
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 1.5,
+                    py: 2,
+                  }}
                 >
-                  <Trophy className="size-5 text-[var(--eb-accent)]" />
-                </div>
-                <div>
-                  <p className={cn("font-semibold", profileValueClass)}>{m.title}</p>
-                  <p className={cn("text-sm", profileMutedClass)}>
-                    {formatDateShort(m.milestone_date)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      width: 40,
+                      height: 40,
+                      flexShrink: 0,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: "8px",
+                      border: "1px solid",
+                      borderColor: (theme) => `${theme.palette.primary.main}4D`,
+                      bgcolor: (theme) => `${theme.palette.primary.main}1A`,
+                    }}
+                    aria-hidden
+                  >
+                    <Trophy className="size-5 text-[var(--eb-accent)]" />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ ...profileValueSx, fontWeight: 600 }}>
+                      {m.title}
+                    </Typography>
+                    <Typography
+                      sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                    >
+                      {formatDateShort(m.milestone_date)}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
           {employee.milestones.length === 0 ? (
-            <p className={cn("col-span-2 text-center text-sm", profileMutedClass)}>
-              Milestones appear when a hire date is set.
-            </p>
+            <Grid size={12}>
+              <Typography sx={{ ...dashboardPageIntroSx, textAlign: "center" }}>
+                Milestones appear when a hire date is set.
+              </Typography>
+            </Grid>
           ) : null}
-        </div>
-      </div>
+        </Grid>
+      </Box>
 
-      <Card className={profileCardClass}>
+      <Card sx={dashboardCardSx}>
         <CardHeader>
-          <h3 className={profileSectionTitleClass}>Manager notes</h3>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Manager notes
+          </Typography>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <textarea
+        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            useFlexGap
+            sx={{ gap: 1.5, alignItems: { sm: "flex-end" } }}
+          >
+            <Box
+              component="textarea"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Add a new note…"
               rows={3}
-              className={profileTextareaClass}
+              sx={profileTextareaSx}
             />
             <PendingButton
               type="button"
@@ -187,49 +262,94 @@ export function PerformanceTab({ employee, onUpdated }: PerformanceTabProps) {
             >
               Add note
             </PendingButton>
-          </div>
+          </Stack>
 
-          <ul className="space-y-4">
+          <Stack
+            component="ul"
+            spacing={2}
+            sx={{ listStyle: "none", m: 0, p: 0 }}
+          >
             {employee.notes.map((note) => (
-              <li key={note.id} className={profileNoteCardClass}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex gap-3">
+              <Box
+                component="li"
+                key={note.id}
+                sx={{
+                  ...(profileNoteCardSx as object),
+                  "&:hover .note-delete": { opacity: 1 },
+                }}
+              >
+                <Stack
+                  direction="row"
+                  sx={{
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: 1.5,
+                  }}
+                >
+                  <Stack direction="row" spacing={1.5}>
                     <Avatar className="size-8">
                       <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-accent)]">
                         {employeeInitials(note.author_name || "A")}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className={profileValueClass}>
+                    <Box>
+                      <Typography sx={profileValueSx}>
                         {note.author_name || "Admin"}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--eb-text)]">
+                      </Typography>
+                      <Typography
+                        sx={{
+                          mt: 0.5,
+                          fontSize: "0.875rem",
+                          color: "text.primary",
+                        }}
+                      >
                         {note.content}
-                      </p>
-                      <p className={cn("mt-1 text-xs", profileMutedClass)}>
+                      </Typography>
+                      <Typography
+                        sx={{
+                          ...dashboardPageIntroSx,
+                          mt: 0.5,
+                          fontSize: "0.75rem",
+                        }}
+                      >
                         {formatRelativeTime(note.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                  <button
+                      </Typography>
+                    </Box>
+                  </Stack>
+                  <Box
+                    component="button"
                     type="button"
+                    className="note-delete"
                     onClick={() => removeNote(note)}
-                    className="rounded p-1 text-[var(--eb-muted)] opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                     aria-label="Delete note"
+                    sx={{
+                      opacity: 0,
+                      border: "none",
+                      borderRadius: "4px",
+                      p: 0.5,
+                      bgcolor: "transparent",
+                      color: "text.secondary",
+                      cursor: "pointer",
+                      transition: "background-color 0.15s, color 0.15s",
+                      "&:hover": {
+                        bgcolor: (theme) => `${theme.palette.error.main}1A`,
+                        color: "error.light",
+                      },
+                    }}
                   >
                     <Trash2 className="size-4" />
-                  </button>
-                </div>
-              </li>
+                  </Box>
+                </Stack>
+              </Box>
             ))}
             {employee.notes.length === 0 ? (
-              <p className={cn("text-center text-sm", profileMutedClass)}>
+              <Typography sx={{ ...dashboardPageIntroSx, textAlign: "center" }}>
                 No notes yet.
-              </p>
+              </Typography>
             ) : null}
-          </ul>
+          </Stack>
         </CardContent>
       </Card>
-    </div>
+    </Stack>
   );
 }

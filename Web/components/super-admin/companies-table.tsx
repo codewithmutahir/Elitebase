@@ -1,7 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import type { GridColDef } from "@mui/x-data-grid";
 import { suspendCompany } from "@/app/(dashboard)/super-admin/companies/actions";
+import { DataGridTable } from "@/components/ui/data-table";
 import type { SuperAdminCompanyRow } from "@/lib/super-admin/companies";
 
 function formatDate(iso: string) {
@@ -17,73 +21,95 @@ export function SuperAdminCompaniesTable({
 }) {
   const [pending, startTransition] = useTransition();
 
-  if (companies.length === 0) {
-    return (
-      <p className="px-6 py-12 text-center text-sm text-[#64748B]">
-        No companies registered yet.
-      </p>
-    );
-  }
+  const columns = useMemo<GridColDef<SuperAdminCompanyRow>[]>(
+    () => [
+      {
+        field: "name",
+        headerName: "Company",
+        flex: 1.2,
+        minWidth: 160,
+        rowHeader: true,
+      },
+      {
+        field: "ownerEmail",
+        headerName: "Owner email",
+        flex: 1.2,
+        minWidth: 180,
+      },
+      {
+        field: "employeeCount",
+        headerName: "Employees",
+        width: 120,
+        type: "number",
+        align: "left",
+        headerAlign: "left",
+      },
+      {
+        field: "createdAt",
+        headerName: "Created",
+        width: 140,
+        valueFormatter: (value: string) => formatDate(value),
+      },
+      {
+        field: "isActive",
+        headerName: "Status",
+        width: 130,
+        sortable: false,
+        renderCell: (params) => (
+          <Chip
+            size="small"
+            label={params.value ? "Active" : "Suspended"}
+            color={params.value ? "success" : "error"}
+            variant="soft"
+          />
+        ),
+      },
+      {
+        field: "actions",
+        headerName: "",
+        width: 120,
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        renderCell: (params) =>
+          params.row.isActive ? (
+            <Button
+              type="button"
+              size="small"
+              color="error"
+              variant="text"
+              disabled={pending}
+              onClick={(event) => {
+                event.stopPropagation();
+                startTransition(async () => {
+                  await suspendCompany(params.row.id);
+                });
+              }}
+            >
+              Suspend
+            </Button>
+          ) : (
+            <span>—</span>
+          ),
+      },
+    ],
+    [pending]
+  );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[900px] text-left text-sm">
-        <thead className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold uppercase tracking-wide text-[#64748B]">
-          <tr>
-            <th className="px-6 py-3">Company</th>
-            <th className="px-6 py-3">Owner email</th>
-            <th className="px-6 py-3">Employees</th>
-            <th className="px-6 py-3">Created</th>
-            <th className="px-6 py-3">Status</th>
-            <th className="px-6 py-3" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[#E2E8F0]">
-          {companies.map((company) => (
-            <tr key={company.id} className="hover:bg-[#F8FAFC]">
-              <td className="px-6 py-4 font-semibold text-[#0F172A]">
-                {company.name}
-              </td>
-              <td className="px-6 py-4 text-[#334155]">{company.ownerEmail}</td>
-              <td className="px-6 py-4 text-[#334155]">
-                {company.employeeCount}
-              </td>
-              <td className="px-6 py-4 text-[#334155]">
-                {formatDate(company.createdAt)}
-              </td>
-              <td className="px-6 py-4">
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    company.isActive
-                      ? "bg-[#D1FAE5] text-[#047857]"
-                      : "bg-[#FEE2E2] text-[#B91C1C]"
-                  }`}
-                >
-                  {company.isActive ? "Active" : "Suspended"}
-                </span>
-              </td>
-              <td className="px-6 py-4 text-right">
-                {company.isActive ? (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      startTransition(async () => {
-                        await suspendCompany(company.id);
-                      })
-                    }
-                    className="text-sm font-semibold text-[#B91C1C] hover:text-[#991B1B] disabled:opacity-60"
-                  >
-                    Suspend
-                  </button>
-                ) : (
-                  <span className="text-xs text-[#64748B]">—</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataGridTable
+      columns={columns}
+      rows={companies}
+      getRowId={(row) => row.id}
+      emptyMessage="No companies registered yet."
+      autoHeight
+      hidePagination={companies.length <= 25}
+      pageSize={25}
+      disableColumnFilter
+      disableColumnSelector
+      disableDensitySelector
+    />
   );
 }

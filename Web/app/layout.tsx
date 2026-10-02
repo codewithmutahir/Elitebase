@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { NavigationProgress } from "@/components/navigation/navigation-progress";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui-legacy/tooltip";
 import "./globals.css";
 
 const inter = Inter({

@@ -41,8 +41,9 @@ export async function updateEmployeeJobDetails(
 
   const startTime = data.schedule_start_time || "09:00";
   const endTime = data.schedule_end_time || "17:00";
-  if (endTime <= startTime) {
-    return { error: "Shift end must be after shift start." };
+  // end < start is overnight (next calendar day); only identical times are invalid.
+  if (endTime === startTime) {
+    return { error: "Shift end must differ from shift start." };
   }
 
   const { error } = await admin

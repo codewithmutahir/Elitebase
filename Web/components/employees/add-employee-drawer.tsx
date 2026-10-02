@@ -7,7 +7,7 @@ import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/sheet";
 import type { DepartmentOption } from "@/lib/departments/queries";
 import {
-  dashboardFieldInputClass,
-  dashboardNativeSelectClass,
   dashboardPageIntroClass,
   dashboardPinDisplayClass,
   dashboardSectionTitleClass,
@@ -79,7 +77,7 @@ export function AddEmployeeDrawer({
           "flex h-full w-full max-w-md flex-col gap-0 p-0 sm:max-w-md"
         )}
       >
-        <SheetHeader className="shrink-0 border-b border-[var(--eb-border)] px-6 py-5 pr-14">
+        <SheetHeader className="shrink-0 border-b border-[var(--eb-border)] px-6 pb-5 pt-6 pr-14">
           <SheetTitle className={dashboardSectionTitleClass}>
             {showSuccess ? "Kiosk PIN ready" : "Add employee"}
           </SheetTitle>
@@ -90,7 +88,7 @@ export function AddEmployeeDrawer({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5 pb-8">
           {showSuccess ? (
             <div className="flex flex-1 flex-col">
               <div className={dashboardSheetSuccessPanelClass}>
@@ -139,7 +137,7 @@ export function AddEmployeeDrawer({
           ) : (
             <form action={formAction} className="flex min-h-0 flex-1 flex-col">
               <input type="hidden" name="workingDays" value={JSON.stringify(workingDays)} />
-              <div className="space-y-5">
+              <div className="space-y-6">
                 {state?.error ? (
                   <p
                     className="rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
@@ -155,91 +153,77 @@ export function AddEmployeeDrawer({
                   name="fullName"
                   label="Full name"
                   required
-                  className={dashboardFieldInputClass}
                 />
                 <Input
                   id="email"
                   name="email"
                   label="Email"
                   type="email"
-                  className={dashboardFieldInputClass}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="departmentId">Department</Label>
-                    <select
-                      id="departmentId"
-                      name="departmentId"
-                      defaultValue=""
-                      className={cn(dashboardNativeSelectClass, "mt-1.5")}
-                    >
-                      <option value="">None</option>
-                      {departmentOptions.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <Input
-                    id="position"
-                    name="position"
-                    label="Position"
-                    className={dashboardFieldInputClass}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Select
+                    id="departmentId"
+                    name="departmentId"
+                    label="Department"
+                    defaultValue=""
+                    options={[
+                      { value: "", label: "None" },
+                      ...departmentOptions.map((dept) => ({
+                        value: dept.id,
+                        label: dept.name,
+                      })),
+                    ]}
                   />
+                  <Input id="position" name="position" label="Position" />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor="role">Role</Label>
-                    <select
-                      id="role"
-                      name="role"
-                      defaultValue="employee"
-                      className={cn(dashboardNativeSelectClass, "mt-1.5")}
-                    >
-                      <option value="employee">Employee</option>
-                      <option value="manager">Manager</option>
-                    </select>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Select
+                    id="role"
+                    name="role"
+                    label="Role"
+                    defaultValue="employee"
+                    displayEmpty={false}
+                    options={[
+                      { value: "employee", label: "Employee" },
+                      { value: "manager", label: "Manager" },
+                    ]}
+                  />
                   <Input
                     id="hireDate"
                     name="hireDate"
                     label="Hire date"
                     type="date"
-                    className={dashboardFieldInputClass}
                   />
                 </div>
 
                 {/* — Schedule — */}
-                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                <div className="space-y-4 rounded-lg border border-[var(--eb-border)] p-4">
                   <p className="text-sm font-semibold text-[var(--eb-text)]">Schedule</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor="scheduleStartTime">Shift start</Label>
-                      <input
-                        id="scheduleStartTime"
-                        name="scheduleStartTime"
-                        type="time"
-                        defaultValue="09:00"
-                        className={cn(dashboardFieldInputClass, "mt-1.5")}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="scheduleEndTime">Shift end</Label>
-                      <input
-                        id="scheduleEndTime"
-                        name="scheduleEndTime"
-                        type="time"
-                        defaultValue="17:00"
-                        className={cn(dashboardFieldInputClass, "mt-1.5")}
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Input
+                      id="scheduleStartTime"
+                      name="scheduleStartTime"
+                      label="Shift start"
+                      type="time"
+                      defaultValue="09:00"
+                      className="min-w-0"
+                    />
+                    <Input
+                      id="scheduleEndTime"
+                      name="scheduleEndTime"
+                      label="Shift end"
+                      type="time"
+                      defaultValue="17:00"
+                      className="min-w-0"
+                    />
                   </div>
-                  <div>
-                    <Label>Working days</Label>
-                    <div className="mt-1.5 flex flex-wrap gap-2">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[var(--eb-text)]">
+                      Working days
+                    </p>
+                    <div className="flex flex-wrap gap-2">
                       {ALL_ISO_DAYS.map((day) => (
                         <button
                           key={day}
@@ -263,22 +247,23 @@ export function AddEmployeeDrawer({
                 </div>
 
                 {/* — Pay — */}
-                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                <div className="space-y-4 rounded-lg border border-[var(--eb-border)] p-4">
                   <p className="text-sm font-semibold text-[var(--eb-text)]">Compensation</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor="payType">Pay type</Label>
-                      <select
-                        id="payType"
-                        name="payType"
-                        value={payType}
-                        onChange={(e) => setPayType(e.target.value as "hourly" | "salary")}
-                        className={cn(dashboardNativeSelectClass, "mt-1.5")}
-                      >
-                        <option value="hourly">Hourly</option>
-                        <option value="salary">Monthly salary</option>
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Select
+                      id="payType"
+                      name="payType"
+                      label="Pay type"
+                      value={payType}
+                      onChange={(e) =>
+                        setPayType(e.target.value as "hourly" | "salary")
+                      }
+                      displayEmpty={false}
+                      options={[
+                        { value: "hourly", label: "Hourly" },
+                        { value: "salary", label: "Monthly salary" },
+                      ]}
+                    />
                     {payType === "salary" ? (
                       <Input
                         id="salaryAmount"
@@ -287,16 +272,15 @@ export function AddEmployeeDrawer({
                         type="number"
                         min="0"
                         step="0.01"
-                        className={dashboardFieldInputClass}
                       />
                     ) : null}
                   </div>
                 </div>
 
                 {/* — Bonus — */}
-                <div className="rounded-lg border border-[var(--eb-border)] p-4 space-y-3">
+                <div className="space-y-4 rounded-lg border border-[var(--eb-border)] p-4">
                   <p className="text-sm font-semibold text-[var(--eb-text)]">Bonus</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Input
                       id="bonusAmount"
                       name="bonusAmount"
@@ -305,20 +289,18 @@ export function AddEmployeeDrawer({
                       min="0"
                       step="0.01"
                       placeholder="0.00"
-                      className={dashboardFieldInputClass}
                     />
                     <Input
                       id="bonusNote"
                       name="bonusNote"
                       label="Note"
                       placeholder="Signing bonus, performance…"
-                      className={dashboardFieldInputClass}
                     />
                   </div>
                 </div>
               </div>
 
-              <SheetFooter className="mt-auto flex shrink-0 flex-row gap-3 border-0 px-0 pt-8 pb-0">
+              <SheetFooter className="mt-auto flex shrink-0 flex-row gap-3 border-0 px-0 pt-6 pb-2">
                 <Button
                   type="button"
                   variant="outline"

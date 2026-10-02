@@ -1,9 +1,15 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import NextLink from "next/link";
 import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { AuthAlert } from "@/components/auth/auth-alert";
 import { AuthCheckbox } from "@/components/auth/auth-checkbox";
 import { AuthField } from "@/components/auth/auth-field";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
@@ -67,128 +73,151 @@ export function EmployerRegisterForm({
   const submitDisabled = !canSubmit || busy;
 
   return (
-    <div>
+    <Box>
       {lockMessage ? (
-        <p
-          className="mb-6 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-          role="alert"
-        >
-          {lockMessage}
-        </p>
+        <AuthAlert variant="error">{lockMessage}</AuthAlert>
       ) : null}
 
       {errorMessage ? (
-        <p
-          className="mb-6 rounded-[10px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-          role="alert"
-        >
-          {errorMessage}
-        </p>
+        <AuthAlert variant="error">{errorMessage}</AuthAlert>
       ) : null}
 
-      <form
+      <Box
+        component="form"
         noValidate
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
         aria-busy={busy}
       >
-        <div className="grid gap-4 sm:grid-cols-2">
+        <Stack spacing={2}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <AuthField
+                id="companyName"
+                label="Company name"
+                type="text"
+                autoComplete="organization"
+                aria-required
+                error={errors.companyName?.message}
+                {...register("companyName")}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <AuthField
+                id="ownerName"
+                label="Your name"
+                type="text"
+                autoComplete="name"
+                aria-required
+                error={errors.ownerName?.message}
+                {...register("ownerName")}
+              />
+            </Grid>
+          </Grid>
+
           <AuthField
-            id="companyName"
-            label="Company name"
-            type="text"
-            autoComplete="organization"
+            id="email"
+            label="Work email"
+            type="email"
+            autoComplete="email"
             aria-required
-            error={errors.companyName?.message}
-            {...register("companyName")}
+            error={errors.email?.message}
+            {...register("email")}
           />
-          <AuthField
-            id="ownerName"
-            label="Your name"
-            type="text"
-            autoComplete="name"
-            aria-required
-            error={errors.ownerName?.message}
-            {...register("ownerName")}
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <AuthField
+                id="password"
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                aria-required
+                hint={
+                  errors.password?.message ? undefined : "At least 8 characters"
+                }
+                error={errors.password?.message}
+                {...register("password")}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <AuthField
+                id="confirmPassword"
+                label="Confirm password"
+                type="password"
+                autoComplete="new-password"
+                aria-required
+                error={errors.confirmPassword?.message}
+                {...register("confirmPassword")}
+              />
+            </Grid>
+          </Grid>
+
+          <Controller
+            name="termsAccepted"
+            control={control}
+            render={({ field: { value, onChange, onBlur, ref, name } }) => (
+              <AuthCheckbox
+                id="termsAccepted"
+                name={name}
+                ref={ref}
+                checked={value}
+                onChange={(event) => onChange(event.target.checked)}
+                onBlur={onBlur}
+                error={errors.termsAccepted?.message}
+              >
+                I agree to the{" "}
+                <Link
+                  component={NextLink}
+                  href="/terms-of-service"
+                  target="_blank"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  component={NextLink}
+                  href="/privacy-policy"
+                  target="_blank"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </AuthCheckbox>
+            )}
           />
-        </div>
 
-        <AuthField
-          id="email"
-          label="Work email"
-          type="email"
-          autoComplete="email"
-          aria-required
-          error={errors.email?.message}
-          {...register("email")}
-        />
+          <Box sx={{ pt: 1 }}>
+            <AuthSubmitButton
+              idleLabel="Create account"
+              pendingLabel="Creating account…"
+              disabled={submitDisabled}
+            />
+          </Box>
+        </Stack>
+      </Box>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <AuthField
-            id="password"
-            label="Password"
-            type="password"
-            autoComplete="new-password"
-            aria-required
-            hint={errors.password?.message ? undefined : "At least 8 characters"}
-            error={errors.password?.message}
-            {...register("password")}
-          />
-          <AuthField
-            id="confirmPassword"
-            label="Confirm password"
-            type="password"
-            autoComplete="new-password"
-            aria-required
-            error={errors.confirmPassword?.message}
-            {...register("confirmPassword")}
-          />
-        </div>
-
-        <Controller
-          name="termsAccepted"
-          control={control}
-          render={({ field: { value, onChange, onBlur, ref, name } }) => (
-            <AuthCheckbox
-              id="termsAccepted"
-              name={name}
-              ref={ref}
-              checked={value}
-              onChange={(event) => onChange(event.target.checked)}
-              onBlur={onBlur}
-              error={errors.termsAccepted?.message}
-            >
-              I agree to the{" "}
-              <Link href="/terms-of-service" target="_blank">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy-policy" target="_blank">
-                Privacy Policy
-              </Link>
-              .
-            </AuthCheckbox>
-          )}
-        />
-
-        <div className="pt-2">
-          <AuthSubmitButton
-            idleLabel="Create account"
-            pendingLabel="Creating account…"
-            disabled={submitDisabled}
-          />
-        </div>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-[var(--eb-muted)]">
+      <Typography
+        sx={{
+          mt: 3,
+          textAlign: "center",
+          fontSize: "0.875rem",
+          color: "text.secondary",
+        }}
+      >
         Looking for employee instructions?{" "}
         <Link
+          component={NextLink}
           href="/register/employee"
-          className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
+          underline="hover"
+          sx={{
+            fontWeight: 500,
+            color: "primary.main",
+            "&:hover": { color: "text.primary" },
+          }}
         >
           Go here
         </Link>
-      </p>
-    </div>
+      </Typography>
+    </Box>
   );
 }

@@ -8,8 +8,11 @@ import {
   useLayoutEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
+import Box from "@mui/material/Box";
+import { useColorScheme } from "@mui/material/styles";
 import { cn } from "@/lib/utils";
 
 export type DashboardTheme = "light" | "dark";
@@ -27,20 +30,36 @@ const DashboardThemeContext = createContext<DashboardThemeContextValue | null>(
   null
 );
 
+/** Keeps MUI `palette.mode` aligned with shell tokens (`html[data-dashboard-theme]`). */
+function MuiDashboardColorSchemeSync({ theme }: { theme: DashboardTheme }) {
+  const { mode, setMode } = useColorScheme();
+
+  useLayoutEffect(() => {
+    if (mode !== theme) {
+      setMode(theme);
+    }
+  }, [theme, mode, setMode]);
+
+  return null;
+}
+
 function readStoredTheme(): DashboardTheme {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem(STORAGE_KEY);
   return stored === "light" ? "light" : "dark";
 }
 
-export function DashboardThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<DashboardTheme>("dark");
-  const [mounted, setMounted] = useState(false);
+function subscribeClientMounted() {
+  return () => {};
+}
 
-  useEffect(() => {
-    setThemeState(readStoredTheme());
-    setMounted(true);
-  }, []);
+export function DashboardThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<DashboardTheme>(() => readStoredTheme());
+  const mounted = useSyncExternalStore(
+    subscribeClientMounted,
+    () => true,
+    () => false
+  );
 
   useLayoutEffect(() => {
     document.documentElement.dataset.dashboardTheme = theme;
@@ -72,15 +91,27 @@ export function DashboardThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <DashboardThemeContext.Provider value={value}>
-      <div
+      <Box
         className={cn(
-          "dashboard-shell relative grid min-h-screen grid-cols-[auto_1fr] bg-[var(--eb-ink)] text-[var(--eb-text)]",
+          "dashboard-shell",
           theme === "dark" ? "dashboard-shell--dark" : "dashboard-shell--light"
         )}
         data-dashboard-theme={mounted ? theme : "dark"}
+        sx={{
+          position: "relative",
+          display: "grid",
+          minHeight: "100vh",
+          gridTemplateColumns: {
+            xs: "1fr",
+            md: "auto 1fr",
+          },
+          bgcolor: "background.default",
+          color: "text.primary",
+        }}
       >
+        <MuiDashboardColorSchemeSync theme={theme} />
         {children}
-      </div>
+      </Box>
     </DashboardThemeContext.Provider>
   );
 }

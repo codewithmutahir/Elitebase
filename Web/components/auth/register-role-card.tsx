@@ -1,7 +1,12 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+"use client";
+
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type RegisterRoleCardProps = {
   href: string;
@@ -12,6 +17,10 @@ type RegisterRoleCardProps = {
   featured?: boolean;
 };
 
+/**
+ * Role picker card — always dark ink/teal via `--eb-*` (landing-shell).
+ * Avoids MUI cssVariables alpha resolving to light paper on auth routes.
+ */
 export function RegisterRoleCard({
   href,
   title,
@@ -21,60 +30,175 @@ export function RegisterRoleCard({
   featured,
 }: RegisterRoleCardProps) {
   return (
-    <Link
+    <Box
+      component={Link}
       href={href}
-      className={cn(
-        "group relative flex h-full flex-col rounded-[1.25rem] border p-6 transition-[border-color,box-shadow,transform] duration-200 sm:rounded-[1.5rem] sm:p-8",
-        "border-[var(--eb-border)] bg-[var(--eb-surface)]/50 backdrop-blur-md",
-        "hover:-translate-y-0.5 hover:border-[var(--eb-accent)]/35 hover:shadow-[0_20px_50px_rgba(0,0,0,0.35),0_0_0_1px_rgba(46,196,182,0.08)]",
-        featured &&
-          "border-[var(--eb-accent)]/25 bg-[var(--eb-surface)]/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_40px_rgba(46,196,182,0.08)]"
-      )}
+      sx={{
+        position: "relative",
+        display: "flex",
+        height: "100%",
+        flexDirection: "column",
+        borderRadius: { xs: "1.25rem", sm: "1.5rem" },
+        border: "1px solid",
+        borderColor: featured
+          ? "rgba(46, 196, 182, 0.35)"
+          : "var(--eb-border)",
+        bgcolor: featured
+          ? "rgba(14, 21, 36, 0.92)"
+          : "rgba(14, 21, 36, 0.78)",
+        p: { xs: 3, sm: 4 },
+        textDecoration: "none",
+        backdropFilter: "blur(12px)",
+        boxShadow: featured
+          ? "inset 0 1px 0 rgba(255,255,255,0.06), 0 0 40px rgba(46, 196, 182, 0.1)"
+          : "inset 0 1px 0 rgba(255,255,255,0.04)",
+        transition:
+          "border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          borderColor: "rgba(46, 196, 182, 0.45)",
+          boxShadow:
+            "0 20px 50px rgba(0,0,0,0.35), 0 0 0 1px rgba(46, 196, 182, 0.12)",
+          "& .role-card-continue": {
+            color: "var(--eb-text)",
+          },
+          "& .role-card-arrow": {
+            transform: "translateX(2px)",
+          },
+          "& .role-card-icon": {
+            borderColor: "rgba(46, 196, 182, 0.35)",
+            bgcolor: "rgba(46, 196, 182, 0.12)",
+          },
+        },
+      }}
     >
       {featured ? (
-        <span className="absolute right-5 top-5 rounded-full border border-[var(--eb-accent)]/30 bg-[var(--eb-accent)]/10 px-2.5 py-0.5 text-[0.6875rem] font-medium text-[var(--eb-accent)]">
-          Most teams start here
-        </span>
+        <Chip
+          label="Most teams start here"
+          size="small"
+          sx={{
+            position: "absolute",
+            right: 20,
+            top: 20,
+            height: 22,
+            fontSize: "0.6875rem",
+            fontWeight: 600,
+            border: "1px solid",
+            borderColor: "rgba(46, 196, 182, 0.45)",
+            bgcolor: "rgba(46, 196, 182, 0.14)",
+            color: "var(--eb-accent)",
+          }}
+        />
       ) : null}
 
-      <div
-        className={cn(
-          "flex size-12 items-center justify-center rounded-xl border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-[var(--eb-accent)] transition-colors group-hover:border-[var(--eb-accent)]/30 group-hover:bg-[var(--eb-accent)]/10",
-          featured && "border-[var(--eb-accent)]/25"
-        )}
+      <Box
+        className="role-card-icon"
+        sx={{
+          display: "flex",
+          width: 48,
+          height: 48,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "12px",
+          border: "1px solid",
+          borderColor: featured
+            ? "rgba(46, 196, 182, 0.3)"
+            : "var(--eb-border)",
+          bgcolor: "var(--eb-elevated)",
+          color: "var(--eb-accent)",
+          transition: "border-color 200ms ease, background-color 200ms ease",
+        }}
       >
-        <Icon className="size-6" strokeWidth={1.5} aria-hidden />
-      </div>
+        <Icon size={24} strokeWidth={1.5} aria-hidden />
+      </Box>
 
-      <h2 className="mt-6 text-xl font-medium tracking-[-0.02em] text-[var(--eb-text)] sm:text-[1.35rem]">
+      <Typography
+        component="h2"
+        sx={{
+          mt: 3,
+          fontSize: { xs: "1.25rem", sm: "1.35rem" },
+          fontWeight: 500,
+          letterSpacing: "-0.02em",
+          color: "var(--eb-text)",
+        }}
+      >
         {title}
-      </h2>
-      <p className="mt-2 text-sm leading-relaxed text-[var(--eb-muted)] sm:text-[0.9375rem]">
+      </Typography>
+      <Typography
+        sx={{
+          mt: 1,
+          fontSize: { xs: "0.875rem", sm: "0.9375rem" },
+          lineHeight: 1.6,
+          color: "var(--eb-muted)",
+        }}
+      >
         {description}
-      </p>
+      </Typography>
 
-      <ul className="mt-5 space-y-2.5 border-t border-[var(--eb-border)] pt-5">
+      <Stack
+        component="ul"
+        spacing={1.25}
+        sx={{
+          mt: 2.5,
+          borderTop: "1px solid",
+          borderColor: "var(--eb-border)",
+          pt: 2.5,
+          p: 0,
+          m: 0,
+          listStyle: "none",
+        }}
+      >
         {bullets.map((item) => (
-          <li
+          <Box
+            component="li"
             key={item}
-            className="flex items-start gap-2.5 text-sm text-[var(--eb-text)]/85"
+            sx={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 1.25,
+              fontSize: "0.875rem",
+              color: "var(--eb-muted)",
+            }}
           >
-            <span
-              className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--eb-accent)]"
+            <Box
+              sx={{
+                mt: 0.875,
+                width: 6,
+                height: 6,
+                flexShrink: 0,
+                borderRadius: "50%",
+                bgcolor: "var(--eb-accent)",
+              }}
               aria-hidden
             />
             {item}
-          </li>
+          </Box>
         ))}
-      </ul>
+      </Stack>
 
-      <span className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[var(--eb-accent)] transition-colors group-hover:text-[var(--eb-text)]">
+      <Typography
+        className="role-card-continue"
+        sx={{
+          mt: 3,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 1,
+          fontSize: "0.875rem",
+          fontWeight: 500,
+          color: "var(--eb-accent)",
+          transition: "color 200ms ease",
+        }}
+      >
         Continue
-        <ArrowRight
-          className="size-4 transition-transform group-hover:translate-x-0.5"
+        <ArrowForward
+          className="role-card-arrow"
+          sx={{
+            fontSize: 16,
+            transition: "transform 200ms ease",
+          }}
           aria-hidden
         />
-      </span>
-    </Link>
+      </Typography>
+    </Box>
   );
 }

@@ -1,11 +1,19 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { ChevronDown, Pencil } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { updateEmployeeJobDetails } from "@/app/(dashboard)/employees/profile-actions";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import { CurrencyAmountInput } from "@/components/ui/currency-amount-input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,20 +21,19 @@ import { useCompany } from "@/contexts/company-context";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
 import { resolveCurrency } from "@/lib/currencies";
 import {
-  dashboardNativeSelectClass,
-  profileCardClass,
-  profileEditPanelClass,
-  profileFieldLabelClass,
-  profileInputClass,
-  profileKioskBannerClass,
-  profileLinkClass,
-  profileMutedClass,
-  profileSectionTitleClass,
-  profileTimelineBorderClass,
-  profileTimelineDotClass,
-  profileTimelineDotMutedClass,
-  profileValueClass,
-} from "@/lib/dashboard/styles";
+  dashboardAccentLinkSx,
+  dashboardCardSx,
+  dashboardPageIntroSx,
+  dashboardSectionTitleSx,
+  profileEditPanelSx,
+  profileFieldLabelSx,
+  profileKioskBannerSx,
+  profileTimelineBorderSx,
+  profileTimelineDotMutedSx,
+  profileTimelineDotSx,
+  profileTimelineItemSx,
+  profileValueSx,
+} from "@/lib/dashboard/sx";
 import {
   formatDateShort,
   formatHourlyRate,
@@ -42,13 +49,69 @@ import {
   normalizeWorkingDays,
   type WorkingDayPreset,
 } from "@/lib/employees/working-days";
-import { cn } from "@/lib/utils";
 
 type JobDetailsTabProps = {
   employee: EmployeeProfile;
   companyName: string;
   onUpdated: (patch: Partial<EmployeeProfile>) => void;
 };
+
+const cardHeaderRowSx = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+} as const;
+
+const cardHeaderRowCenterSx = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+} as const;
+
+type LocationSettingKey =
+  | "showInSchedule"
+  | "sendLocationAlerts"
+  | "includeInTimeClock"
+  | "eligibleForOpenShifts"
+  | "canWaiveMissedBreaks";
+
+const LOCATION_SETTINGS: {
+  key: LocationSettingKey;
+  label: string;
+  mutedLabel?: boolean;
+}[] = [
+  { key: "showInSchedule", label: "Show in Schedule" },
+  { key: "sendLocationAlerts", label: "Send Location Alerts" },
+  { key: "includeInTimeClock", label: "Include in Time Clock" },
+  { key: "eligibleForOpenShifts", label: "Eligible for Open Shifts" },
+  {
+    key: "canWaiveMissedBreaks",
+    label: "Can waive missed breaks",
+    mutedLabel: true,
+  },
+];
+
+const defaultLocationSettings: Record<LocationSettingKey, boolean> = {
+  showInSchedule: true,
+  sendLocationAlerts: true,
+  includeInTimeClock: true,
+  eligibleForOpenShifts: true,
+  canWaiveMissedBreaks: false,
+};
+
+const locationSettingLabelSx = (muted?: boolean) =>
+  ({
+    m: 0,
+    py: 0.5,
+    alignItems: "flex-start",
+    "& .MuiFormControlLabel-label": {
+      fontSize: "0.875rem",
+      fontWeight: muted ? 400 : 500,
+      color: muted ? "text.secondary" : "text.primary",
+    },
+  }) as const;
 
 export function JobDetailsTab({
   employee,
@@ -60,22 +123,42 @@ export function JobDetailsTab({
   const currency = resolveCurrency(company.currency);
   const [editing, setEditing] = useState(false);
   const [locationOpen, setLocationOpen] = useState(true);
+  const [locationSettings, setLocationSettings] = useState(
+    defaultLocationSettings,
+  );
   const [pending, startTransition] = useTransition();
-  const [employmentType, setEmploymentType] = useState(employee.employment_type);
+  const [employmentType, setEmploymentType] = useState(
+    employee.employment_type,
+  );
   const [payType, setPayType] = useState<PayType>(employee.pay_type);
   const [hourlyRate, setHourlyRate] = useState(String(employee.hourly_rate));
   const [salaryAmount, setSalaryAmount] = useState(
-    employee.salary_amount != null ? String(employee.salary_amount) : ""
+    employee.salary_amount != null ? String(employee.salary_amount) : "",
   );
-  const [workingDays, setWorkingDays] = useState<number[]>(employee.working_days);
+  const [workingDays, setWorkingDays] = useState<number[]>(
+    employee.working_days,
+  );
   const [hireDate, setHireDate] = useState(employee.hire_date ?? "");
-  const [scheduleStart, setScheduleStart] = useState(employee.schedule_start_time ?? "09:00");
-  const [scheduleEnd, setScheduleEnd] = useState(employee.schedule_end_time ?? "17:00");
-  const [bonusAmount, setBonusAmount] = useState(String(employee.bonus_amount ?? 0));
+  const [scheduleStart, setScheduleStart] = useState(
+    employee.schedule_start_time ?? "09:00",
+  );
+  const [scheduleEnd, setScheduleEnd] = useState(
+    employee.schedule_end_time ?? "17:00",
+  );
+  const [bonusAmount, setBonusAmount] = useState(
+    String(employee.bonus_amount ?? 0),
+  );
   const [bonusNote, setBonusNote] = useState(employee.bonus_note ?? "");
 
   function applyPreset(preset: WorkingDayPreset) {
     setWorkingDays([...WORKING_DAY_PRESETS[preset]]);
+  }
+
+  function toggleLocationSetting(key: LocationSettingKey) {
+    setLocationSettings((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
   }
 
   function toggleWorkingDay(isoDay: number) {
@@ -94,7 +177,7 @@ export function JobDetailsTab({
     setPayType(employee.pay_type);
     setHourlyRate(String(employee.hourly_rate));
     setSalaryAmount(
-      employee.salary_amount != null ? String(employee.salary_amount) : ""
+      employee.salary_amount != null ? String(employee.salary_amount) : "",
     );
     setWorkingDays(employee.working_days);
     setHireDate(employee.hire_date ?? "");
@@ -111,8 +194,7 @@ export function JobDetailsTab({
         hourly_rate: Number(hourlyRate) || 0,
         hire_date: hireDate || null,
         pay_type: payType,
-        salary_amount:
-          payType === "salary" ? Number(salaryAmount) || 0 : null,
+        salary_amount: payType === "salary" ? Number(salaryAmount) || 0 : null,
         working_days: workingDays,
         schedule_start_time: scheduleStart,
         schedule_end_time: scheduleEnd,
@@ -128,8 +210,7 @@ export function JobDetailsTab({
         hourly_rate: Number(hourlyRate) || 0,
         hire_date: hireDate || null,
         pay_type: payType,
-        salary_amount:
-          payType === "salary" ? Number(salaryAmount) || 0 : null,
+        salary_amount: payType === "salary" ? Number(salaryAmount) || 0 : null,
         working_days: normalizeWorkingDays(workingDays),
         schedule_start_time: scheduleStart,
         schedule_end_time: scheduleEnd,
@@ -152,10 +233,12 @@ export function JobDetailsTab({
   const badgeTheme = dashboardTheme;
 
   return (
-    <div className="space-y-6">
-      <Card className={profileCardClass}>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0">
-          <h3 className={profileSectionTitleClass}>Access, Roles & Wages</h3>
+    <Stack spacing={3}>
+      <Card sx={dashboardCardSx}>
+        <CardHeader sx={cardHeaderRowSx}>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Access, Roles & Wages
+          </Typography>
           {!editing ? (
             <Button
               type="button"
@@ -168,9 +251,15 @@ export function JobDetailsTab({
             </Button>
           ) : null}
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className={cn("font-medium", profileValueClass)}>{companyName}</span>
+        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Stack
+            direction="row"
+            useFlexGap
+            sx={{ alignItems: "center", gap: 1 }}
+          >
+            <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
+              {companyName}
+            </Typography>
             {employee.status === "active" ? (
               <StatusBadge tone="success" theme={badgeTheme}>
                 Active
@@ -180,155 +269,177 @@ export function JobDetailsTab({
                 Deactivated
               </StatusBadge>
             )}
-          </div>
+          </Stack>
 
           {editing ? (
-            <div className={profileEditPanelClass}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Access</label>
-                  <select
+            <Box sx={profileEditPanelSx}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                  <Select
+                    label="Access"
                     value={employmentType}
                     onChange={(e) =>
                       setEmploymentType(
-                        e.target.value as EmployeeProfile["employment_type"]
+                        e.target.value as EmployeeProfile["employment_type"],
                       )
                     }
-                    className={cn(dashboardNativeSelectClass, "mt-0")}
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="contractor">Contractor</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Pay type</label>
-                  <select
+                    displayEmpty={false}
+                    options={[
+                      { value: "employee", label: "Employee" },
+                      { value: "manager", label: "Manager" },
+                      { value: "contractor", label: "Contractor" },
+                    ]}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                  <Select
+                    label="Pay type"
                     value={payType}
                     onChange={(e) => setPayType(e.target.value as PayType)}
-                    className={cn(dashboardNativeSelectClass, "mt-0")}
-                  >
-                    <option value="hourly">Hourly</option>
-                    <option value="salary">Fixed salary (monthly)</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Start date</label>
-                  <input
+                    displayEmpty={false}
+                    options={[
+                      { value: "hourly", label: "Hourly" },
+                      { value: "salary", label: "Fixed salary (monthly)" },
+                    ]}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                  <Input
+                    label="Start date"
                     type="date"
                     value={hireDate}
                     onChange={(e) => setHireDate(e.target.value)}
-                    className={profileInputClass}
                   />
-                </div>
-                {payType === "hourly" ? (
-                  <CurrencyAmountInput
-                    id="hourly-rate"
-                    label="Hourly rate"
-                    value={hourlyRate}
-                    onChange={setHourlyRate}
-                    currency={currency}
-                    variant="dashboard"
-                  />
-                ) : (
-                  <CurrencyAmountInput
-                    id="monthly-salary"
-                    label="Monthly salary"
-                    value={salaryAmount}
-                    onChange={setSalaryAmount}
-                    currency={currency}
-                    variant="dashboard"
-                  />
-                )}
-              </div>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+                  {payType === "hourly" ? (
+                    <CurrencyAmountInput
+                      id="hourly-rate"
+                      label="Hourly rate"
+                      value={hourlyRate}
+                      onChange={setHourlyRate}
+                      currency={currency}
+                      variant="dashboard"
+                    />
+                  ) : (
+                    <CurrencyAmountInput
+                      id="monthly-salary"
+                      label="Monthly salary"
+                      value={salaryAmount}
+                      onChange={setSalaryAmount}
+                      currency={currency}
+                      variant="dashboard"
+                    />
+                  )}
+                </Grid>
+              </Grid>
 
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className={profileFieldLabelClass}>Working days</label>
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.keys(WORKING_DAY_PRESETS) as WorkingDayPreset[]).map(
-                      (preset) => (
-                        <Button
-                          key={preset}
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => applyPreset(preset)}
-                        >
-                          {preset.replace("-", " ")}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-3">
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  useFlexGap
+                  sx={{
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                  }}
+                >
+                  <Typography component="label" sx={profileFieldLabelSx}>
+                    Working days
+                  </Typography>
+                  <Stack
+                    direction="row"
+                    useFlexGap
+                    sx={{ flexWrap: "wrap", gap: 1 }}
+                  >
+                    {(
+                      Object.keys(WORKING_DAY_PRESETS) as WorkingDayPreset[]
+                    ).map((preset) => (
+                      <Button
+                        key={preset}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => applyPreset(preset)}
+                      >
+                        {preset.replace("-", " ")}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Stack>
+                <Stack
+                  direction="row"
+                  useFlexGap
+                  sx={{ flexWrap: "wrap", gap: 1.5 }}
+                >
                   {ALL_ISO_DAYS.map((isoDay) => (
-                    <label
+                    <FormControlLabel
                       key={isoDay}
-                      className={cn(
-                        "inline-flex items-center gap-2 text-sm",
-                        profileValueClass
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={normalizeWorkingDays(workingDays).includes(isoDay)}
-                        onChange={() => toggleWorkingDay(isoDay)}
-                        className="rounded"
-                      />
-                      {ISO_DAY_LABELS[isoDay]}
-                    </label>
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={normalizeWorkingDays(workingDays).includes(
+                            isoDay,
+                          )}
+                          onChange={() => toggleWorkingDay(isoDay)}
+                        />
+                      }
+                      label={ISO_DAY_LABELS[isoDay]}
+                      sx={{
+                        m: 0,
+                        "& .MuiFormControlLabel-label": {
+                          fontSize: "0.875rem",
+                          color: "text.primary",
+                        },
+                      }}
+                    />
                   ))}
-                </div>
-              </div>
+                </Stack>
+              </Stack>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Shift start</label>
-                  <input
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Input
+                    label="Shift start"
                     type="time"
                     value={scheduleStart}
                     onChange={(e) => setScheduleStart(e.target.value)}
-                    className={profileInputClass}
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Shift end</label>
-                  <input
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Input
+                    label="Shift end"
                     type="time"
                     value={scheduleEnd}
                     onChange={(e) => setScheduleEnd(e.target.value)}
-                    className={profileInputClass}
                   />
-                </div>
-              </div>
+                </Grid>
+              </Grid>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Bonus amount</label>
-                  <input
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Input
+                    label="Bonus amount"
                     type="number"
                     min="0"
                     step="0.01"
                     value={bonusAmount}
                     onChange={(e) => setBonusAmount(e.target.value)}
-                    className={profileInputClass}
                     placeholder="0.00"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label className={profileFieldLabelClass}>Bonus note</label>
-                  <input
-                    type="text"
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Input
+                    label="Bonus note"
                     value={bonusNote}
                     onChange={(e) => setBonusNote(e.target.value)}
-                    className={profileInputClass}
                     placeholder="Performance, signing…"
                   />
-                </div>
-              </div>
+                </Grid>
+              </Grid>
 
-              <div className="flex gap-2">
+              <Stack direction="row" spacing={1}>
                 <Button
                   type="button"
                   variant="outline"
@@ -342,182 +453,309 @@ export function JobDetailsTab({
                 <Button type="button" disabled={pending} onClick={save}>
                   {pending ? "Saving…" : "Save"}
                 </Button>
-              </div>
-            </div>
+              </Stack>
+            </Box>
           ) : (
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <dt className={profileFieldLabelClass}>Access</dt>
-                <dd className={cn("mt-1 capitalize", profileValueClass)}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Access
+                </Typography>
+                <Typography
+                  component="dd"
+                  sx={{
+                    ...profileValueSx,
+                    mt: 0.5,
+                    textTransform: "capitalize",
+                  }}
+                >
                   {employee.employment_type}
-                </dd>
-              </div>
-              <div>
-                <dt className={profileFieldLabelClass}>PIN</dt>
-                <dd className="mt-1">
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  PIN
+                </Typography>
+                <Box sx={{ mt: 0.5 }}>
                   <RosterPinCell
                     employeeId={employee.id}
                     hasPin={employee.hasPin}
                     pin={employee.pin}
                   />
-                </dd>
-              </div>
-              <div>
-                <dt className={profileFieldLabelClass}>Start Date</dt>
-                <dd className={cn("mt-1", profileValueClass)}>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Start Date
+                </Typography>
+                <Typography component="dd" sx={{ ...profileValueSx, mt: 0.5 }}>
                   {formatDateShort(employee.hire_date)}
-                </dd>
-              </div>
-              <div>
-                <dt className={profileFieldLabelClass}>Role & Wages</dt>
-                <dd className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className={profileValueClass}>
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Role & Wages
+                </Typography>
+                <Stack
+                  component="dd"
+                  direction="row"
+                  useFlexGap
+                  sx={{
+                    mt: 0.5,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 1,
+                    m: 0,
+                  }}
+                >
+                  <Typography sx={profileValueSx}>
                     {roleLabel} · {compensationLabel}
-                  </span>
+                  </Typography>
                   <StatusBadge tone="neutral" theme={badgeTheme}>
                     Primary role
                   </StatusBadge>
-                </dd>
-              </div>
-              <div>
-                <dt className={profileFieldLabelClass}>Working days</dt>
-                <dd className={cn("mt-1", profileValueClass)}>
+                </Stack>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Working days
+                </Typography>
+                <Typography component="dd" sx={{ ...profileValueSx, mt: 0.5 }}>
                   {formatWorkingDaysLabel(employee.working_days)}
-                </dd>
-              </div>
-              <div>
-                <dt className={profileFieldLabelClass}>Schedule</dt>
-                <dd className={cn("mt-1", profileValueClass)}>
-                  {employee.schedule_start_time?.slice(0, 5) ?? "09:00"} – {employee.schedule_end_time?.slice(0, 5) ?? "17:00"}
-                </dd>
-              </div>
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Schedule
+                </Typography>
+                <Typography component="dd" sx={{ ...profileValueSx, mt: 0.5 }}>
+                  {employee.schedule_start_time?.slice(0, 5) ?? "09:00"} –{" "}
+                  {employee.schedule_end_time?.slice(0, 5) ?? "17:00"}
+                </Typography>
+              </Grid>
               {employee.bonus_amount > 0 ? (
-                <div>
-                  <dt className={profileFieldLabelClass}>Bonus</dt>
-                  <dd className={cn("mt-1", profileValueClass)}>
+                <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                  <Typography component="dt" sx={profileFieldLabelSx}>
+                    Bonus
+                  </Typography>
+                  <Typography
+                    component="dd"
+                    sx={{ ...profileValueSx, mt: 0.5 }}
+                  >
                     {formatMoney(employee.bonus_amount, currency)}
                     {employee.bonus_note ? (
-                      <span className="ml-1 text-[var(--eb-muted)]">({employee.bonus_note})</span>
+                      <Typography
+                        component="span"
+                        sx={{ ml: 0.5, color: "text.secondary" }}
+                      >
+                        ({employee.bonus_note})
+                      </Typography>
                     ) : null}
-                  </dd>
-                </div>
+                  </Typography>
+                </Grid>
               ) : null}
-            </dl>
+            </Grid>
           )}
 
-          <div className={profileKioskBannerClass}>
-            <p>
+          <Box sx={profileKioskBannerSx}>
+            <Typography component="p" sx={{ m: 0 }}>
               Kiosk face:{" "}
               {employee.needs_reenrollment ? (
-                <span className="font-medium text-amber-400">Re-scan required at kiosk</span>
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: "warning.light" }}
+                >
+                  Re-scan required at kiosk
+                </Box>
               ) : employee.face_registered_at ? (
-                <span className="font-medium text-emerald-400">Enrolled</span>
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: "success.light" }}
+                >
+                  Enrolled
+                </Box>
               ) : (
-                <span className="font-medium text-amber-400">Pending at kiosk</span>
+                <Box
+                  component="span"
+                  sx={{ fontWeight: 500, color: "warning.light" }}
+                >
+                  Pending at kiosk
+                </Box>
               )}
               {" · "}
               PIN {employee.hasPin ? "configured" : "not set"}
-            </p>
+            </Typography>
             {employee.needs_reenrollment ? (
-              <p className="mt-2 text-xs text-amber-400/90">
-                Their face was enrolled under the previous recognition model. Next
-                clock-in they will be guided to re-scan once.
-              </p>
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: "0.75rem",
+                  color: "warning.light",
+                  opacity: 0.9,
+                }}
+              >
+                Their face was enrolled under the previous recognition model.
+                Next clock-in they will be guided to re-scan once.
+              </Typography>
             ) : null}
-          </div>
+          </Box>
         </CardContent>
       </Card>
 
-      <Card className={profileCardClass}>
-        <button
+      <Card sx={dashboardCardSx}>
+        <Box
+          component="button"
           type="button"
-          className="flex w-full items-center justify-between px-6 py-4 text-left"
           onClick={() => setLocationOpen((o) => !o)}
+          sx={{
+            display: "flex",
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 3,
+            py: 2,
+            textAlign: "left",
+            border: "none",
+            bgcolor: "transparent",
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
         >
-          <h3 className={profileSectionTitleClass}>Location Settings</h3>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Location Settings
+          </Typography>
           <ChevronDown
-            className={cn(
-              "size-5 text-[var(--eb-muted)] transition-transform",
-              locationOpen && "rotate-180"
-            )}
+            className={
+              locationOpen
+                ? "size-5 rotate-180 text-[var(--eb-muted)] transition-transform"
+                : "size-5 text-[var(--eb-muted)] transition-transform"
+            }
+            aria-hidden
           />
-        </button>
+        </Box>
         {locationOpen ? (
-          <CardContent className="space-y-2 border-t border-[var(--eb-border)] pt-4 text-sm">
-            {[
-              "Show in Schedule",
-              "Send Location Alerts",
-              "Include in Time Clock",
-              "Eligible for Open Shifts",
-            ].map((label) => (
-              <label
-                key={label}
-                className={cn("flex items-center gap-2 py-1", profileValueClass)}
-              >
-                <input type="checkbox" checked readOnly className="rounded" />
-                {label}
-              </label>
+          <CardContent
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+              borderTop: "1px solid",
+              borderColor: "divider",
+              pt: 2,
+              fontSize: "0.875rem",
+            }}
+          >
+            {LOCATION_SETTINGS.map(({ key, label, mutedLabel }) => (
+              <FormControlLabel
+                key={key}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={locationSettings[key]}
+                    onChange={() => toggleLocationSetting(key)}
+                  />
+                }
+                label={label}
+                sx={locationSettingLabelSx(mutedLabel)}
+              />
             ))}
-            <label
-              className={cn("flex items-center gap-2 py-1", profileMutedClass)}
-            >
-              <input type="checkbox" readOnly className="rounded" />
-              Can waive missed breaks
-            </label>
           </CardContent>
         ) : null}
       </Card>
 
-      <Card className={profileCardClass}>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <h3 className={profileSectionTitleClass}>Recent Job History</h3>
-          <button type="button" className={cn("text-sm", profileLinkClass)}>
+      <Card sx={dashboardCardSx}>
+        <CardHeader sx={cardHeaderRowCenterSx}>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Recent Job History
+          </Typography>
+          <Box
+            component="button"
+            type="button"
+            sx={{
+              ...dashboardAccentLinkSx,
+              fontSize: "0.875rem",
+              border: "none",
+              bgcolor: "transparent",
+              cursor: "pointer",
+              p: 0,
+              fontFamily: "inherit",
+            }}
+          >
             View all job history
-          </button>
+          </Box>
         </CardHeader>
         <CardContent>
-          <ul className={cn("space-y-4", profileTimelineBorderClass)}>
+          <Stack
+            component="ul"
+            spacing={2}
+            sx={{ ...profileTimelineBorderSx, listStyle: "none", m: 0 }}
+          >
             {employee.hire_date ? (
               <>
-                <li className="relative">
-                  <span className={profileTimelineDotClass} />
-                  <p className={cn("font-medium", profileValueClass)}>
+                <Box component="li" sx={profileTimelineItemSx}>
+                  <Box component="span" sx={profileTimelineDotSx} aria-hidden />
+                  <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
                     Hired at {companyName}
-                  </p>
-                  <p className={cn("text-sm", profileMutedClass)}>
+                  </Typography>
+                  <Typography
+                    sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                  >
                     {formatDateShort(employee.hire_date)}
-                  </p>
-                </li>
-                <li className="relative">
-                  <span className={profileTimelineDotMutedClass} />
-                  <p className={cn("font-medium", profileValueClass)}>
+                  </Typography>
+                </Box>
+                <Box component="li" sx={profileTimelineItemSx}>
+                  <Box component="span" sx={profileTimelineDotMutedSx} aria-hidden />
+                  <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
                     Started as {roleLabel} ({compensationLabel})
-                  </p>
-                  <p className={cn("text-sm", profileMutedClass)}>
+                  </Typography>
+                  <Typography
+                    sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                  >
                     {formatDateShort(employee.hire_date)}
-                  </p>
-                </li>
+                  </Typography>
+                </Box>
               </>
             ) : (
-              <li className={cn("text-sm", profileMutedClass)}>No hire date on file.</li>
+              <Box
+                component="li"
+                sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+              >
+                No hire date on file.
+              </Box>
             )}
-          </ul>
+          </Stack>
         </CardContent>
       </Card>
 
-      <Card className={profileCardClass}>
+      <Card sx={dashboardCardSx}>
         <CardHeader>
-          <h3 className={profileSectionTitleClass}>Time Off Balances</h3>
+          <Typography component="h3" sx={dashboardSectionTitleSx}>
+            Time Off Balances
+          </Typography>
         </CardHeader>
-        <CardContent className="text-center text-sm">
-          <p className={profileMutedClass}>No time off policies added yet.</p>
-          <p className="mt-2">
-            <button type="button" className={profileLinkClass}>
+        <CardContent sx={{ textAlign: "center", fontSize: "0.875rem" }}>
+          <Typography sx={dashboardPageIntroSx}>
+            No time off policies added yet.
+          </Typography>
+          <Typography sx={{ mt: 1 }}>
+            <Box
+              component="button"
+              type="button"
+              sx={{
+                ...dashboardAccentLinkSx,
+                border: "none",
+                bgcolor: "transparent",
+                cursor: "pointer",
+                p: 0,
+                fontFamily: "inherit",
+                fontSize: "inherit",
+              }}
+            >
               View all time off →
-            </button>
-          </p>
+            </Box>
+          </Typography>
         </CardContent>
       </Card>
-    </div>
+    </Stack>
   );
 }

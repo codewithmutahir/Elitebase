@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
 const defaultFeatures = [
   "Kiosk PIN clock-in at every location",
@@ -19,36 +23,97 @@ export function AuthBrandPanel({
   className,
 }: AuthBrandPanelProps) {
   return (
-    <aside
-      className={cn(
-        "relative hidden flex-col justify-center px-8 py-12 lg:flex xl:px-14 xl:py-16",
-        className
-      )}
+    <Box
+      component="aside"
+      className={className}
+      sx={{
+        position: "relative",
+        display: { xs: "none", lg: "flex" },
+        flexDirection: "column",
+        justifyContent: "center",
+        height: "100%",
+        px: { lg: 4, xl: 7 },
+        py: { lg: 6, xl: 8 },
+      }}
     >
-      <p className="max-w-md text-[clamp(1.35rem,2.2vw,1.75rem)] font-normal leading-snug tracking-[-0.02em] text-[var(--eb-text)]">
+      <Typography
+        sx={{
+          maxWidth: 448,
+          fontSize: "clamp(1.35rem, 2.2vw, 1.75rem)",
+          fontWeight: 400,
+          lineHeight: 1.35,
+          letterSpacing: "-0.02em",
+          color: "var(--eb-text)",
+        }}
+      >
         {tagline}
-      </p>
+      </Typography>
 
-      <ul className="mt-10 max-w-md space-y-4">
+      <Stack
+        component="ul"
+        spacing={2}
+        sx={{ mt: 5, maxWidth: 448, p: 0, m: 0, listStyle: "none" }}
+      >
         {features.map((feature) => (
-          <li
+          <Box
+            component="li"
             key={feature}
-            className="flex items-start gap-3 text-sm leading-relaxed text-[var(--eb-text)]/88"
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 1.5,
+            }}
           >
-            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--eb-accent)]/35 bg-[var(--eb-accent)]/10 text-[0.65rem] font-bold text-[var(--eb-accent)]">
+            <Box
+              sx={{
+                mt: 0.25,
+                display: "flex",
+                width: 20,
+                height: 20,
+                flexShrink: 0,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                border: "1px solid",
+                borderColor: "rgba(46, 196, 182, 0.35)",
+                bgcolor: "rgba(46, 196, 182, 0.1)",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                color: "var(--eb-accent)",
+              }}
+            >
               ✓
-            </span>
-            {feature}
-          </li>
+            </Box>
+            <Typography
+              sx={{
+                fontSize: "0.875rem",
+                lineHeight: 1.6,
+                color: "var(--eb-muted)",
+              }}
+            >
+              {feature}
+            </Typography>
+          </Box>
         ))}
-      </ul>
+      </Stack>
 
-      <Link
+      <Typography
+        component={Link}
         href="/register"
-        className="mt-12 inline-flex w-fit text-sm font-medium text-[var(--eb-accent)] transition-colors hover:text-[var(--eb-text)]"
+        sx={{
+          mt: 6,
+          display: "inline-flex",
+          width: "fit-content",
+          fontSize: "0.875rem",
+          fontWeight: 500,
+          color: "var(--eb-accent)",
+          textDecoration: "none",
+          "&:hover": { color: "var(--eb-text)" },
+        }}
       >
         ← Back to role selection
-      </Link>
-    </aside>
+      </Typography>
+    </Box>
   );
 }

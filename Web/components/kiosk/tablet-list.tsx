@@ -1,21 +1,22 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { Tablet } from "lucide-react";
 import { useTransition } from "react";
 import { deactivateTablet } from "@/app/(dashboard)/kiosk-setup/actions";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
 import {
-  dashboardCardClass,
-  dashboardPageIntroClass,
-  dashboardSectionTitleClass,
-} from "@/lib/dashboard/styles";
-import { cn } from "@/lib/utils";
+  dashboardCardSx,
+  dashboardPageIntroSx,
+  dashboardSectionTitleSx,
+} from "@/lib/dashboard/sx";
 import {
   DataTable,
   DataTableBody,
   DataTableCell,
-  DataTableEmpty,
   DataTableHead,
   DataTableHeader,
   DataTableRow,
@@ -46,66 +47,94 @@ export function TabletList({ tablets }: { tablets: KioskTabletRow[] }) {
   if (tablets.length === 0) {
     return (
       <Card
-        className={cn(
-          "flex flex-col items-center py-16 text-center",
-          dashboardCardClass
-        )}
+        sx={{
+          ...dashboardCardSx,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          py: 8,
+          textAlign: "center",
+        }}
       >
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-elevated)]/80 text-[var(--eb-accent)]">
+        <Box
+          sx={{
+            display: "flex",
+            height: 56,
+            width: 56,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "16px",
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: (theme) => `${theme.palette.secondary.main}CC`,
+            color: "primary.main",
+          }}
+        >
           <Tablet className="size-7" aria-hidden />
-        </div>
-        <h3 className={cn("mt-4", dashboardSectionTitleClass)}>No tablets found</h3>
-        <p className={cn("mt-2 max-w-sm", dashboardPageIntroClass)}>
+        </Box>
+        <Typography component="h3" sx={{ ...dashboardSectionTitleSx, mt: 2 }}>
+          No tablets found
+        </Typography>
+        <Typography sx={{ ...dashboardPageIntroSx, mt: 1, maxWidth: 384 }}>
           Generate a setup code above, then enter it in the kiosk app on your
           first tablet.
-        </p>
+        </Typography>
       </Card>
     );
   }
 
   return (
-    <Card className={cn("overflow-hidden", dashboardCardClass)}>
+    <Card sx={{ ...dashboardCardSx, overflow: "hidden" }}>
       <DataTable>
         <DataTableHeader>
-          <tr>
+          <DataTableRow>
             <DataTableHead>Location</DataTableHead>
             <DataTableHead>Status</DataTableHead>
             <DataTableHead>Last seen</DataTableHead>
             <DataTableHead>Setup code</DataTableHead>
-            <DataTableHead className="text-right">Actions</DataTableHead>
-          </tr>
+            <DataTableHead align="right">Actions</DataTableHead>
+          </DataTableRow>
         </DataTableHeader>
         <DataTableBody>
           {tablets.map((tablet) => (
             <DataTableRow key={tablet.id}>
-              <DataTableCell className="font-semibold text-[var(--eb-text)]">
+              <DataTableCell sx={{ fontWeight: 600 }}>
                 {tablet.location_name ?? "Main Location"}
               </DataTableCell>
               <DataTableCell>
                 <TabletStatus tablet={tablet} />
               </DataTableCell>
               <DataTableCell>{formatLastSeen(tablet.last_seen_at)}</DataTableCell>
-              <DataTableCell className="font-mono text-[var(--eb-muted)]">
+              <DataTableCell
+                sx={{
+                  fontFamily: "var(--font-mono), monospace",
+                  color: "text.secondary",
+                }}
+              >
                 {!tablet.tablet_token && tablet.setup_code
                   ? tablet.setup_code
                   : "—"}
               </DataTableCell>
-              <DataTableCell className="text-right">
+              <DataTableCell align="right">
                 {tablet.is_active ? (
-                  <button
+                  <Button
                     type="button"
+                    size="small"
                     disabled={pending}
+                    color="error"
+                    sx={{ fontWeight: 600, textTransform: "none" }}
                     onClick={() =>
                       startTransition(async () => {
                         await deactivateTablet(tablet.id);
                       })
                     }
-                    className="text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
                   >
                     Deactivate
-                  </button>
+                  </Button>
                 ) : (
-                  <span className="text-xs text-slate-400">—</span>
+                  <Typography component="span" variant="caption" color="text.secondary">
+                    —
+                  </Typography>
                 )}
               </DataTableCell>
             </DataTableRow>

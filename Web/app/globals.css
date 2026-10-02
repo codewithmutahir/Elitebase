@@ -1,3 +1,5 @@
+@layer theme, base, mui, components, utilities;
+
 @import "tailwindcss";
 @config "../tailwind.config.mjs";
 @import "tw-animate-css";
@@ -218,9 +220,25 @@ html.landing-scroll-lock {
   scroll-behavior: auto !important;
 }
 
-* {
+/* Transitions — only on interactive elements, not the universal * selector.
+   The old `* { transition: … 200ms }` rule forced the browser to animate
+   color/bg/border/shadow on EVERY DOM node simultaneously, causing severe
+   jank on sidebar/drawer/dropdown open and general sluggishness. */
+a,
+button,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+input,
+textarea,
+select,
+summary,
+[data-slot="input"],
+[data-slot="select"],
+.transition-colors {
   transition-property: color, background-color, border-color, box-shadow;
-  transition-duration: 200ms;
+  transition-duration: 150ms;
   transition-timing-function: ease-in-out;
 }
 
@@ -288,7 +306,7 @@ html.landing-scroll-lock {
   accent-color: var(--eb-accent);
 }
 
-/* Profile / dashboard tokens from lib/dashboard/styles.ts (plain CSS fallback) */
+/* Profile / dashboard tokens (shell-scoped — uses --eb-* from .dashboard-shell--*) */
 .dashboard-shell .profile-stat-card {
   border-radius: 10px;
   border: 1px solid var(--eb-border);
@@ -423,7 +441,8 @@ html.landing-scroll-lock {
 }
 
 /* Portaled dropdowns (account menu, etc.) — outside .dashboard-shell DOM */
-html[data-dashboard-theme="dark"] .dashboard-dropdown {
+html[data-dashboard-theme="dark"] .dashboard-dropdown,
+html[data-dashboard-theme="dark"] .MuiMenu-paper.dashboard-dropdown {
   --eb-surface: #0e1524;
   --eb-elevated: #151d2e;
   --eb-border: rgba(255, 255, 255, 0.08);
@@ -438,7 +457,8 @@ html[data-dashboard-theme="dark"] .dashboard-dropdown {
   color-scheme: dark;
 }
 
-html[data-dashboard-theme="light"] .dashboard-dropdown {
+html[data-dashboard-theme="light"] .dashboard-dropdown,
+html[data-dashboard-theme="light"] .MuiMenu-paper.dashboard-dropdown {
   --eb-surface: #ffffff;
   --eb-elevated: #f4f6f9;
   --eb-border: rgba(15, 23, 42, 0.1);
@@ -466,7 +486,7 @@ html[data-dashboard-theme="light"] .dashboard-dropdown [data-slot="dropdown-menu
   color: var(--eb-text);
 }
 
-/* Portaled sheets (add employee, shifts, etc.) */
+/* Portaled sheets / dialogs / popovers — outside .dashboard-shell DOM */
 html[data-dashboard-theme="dark"] .dashboard-sheet,
 html[data-dashboard-theme="light"] .dashboard-sheet,
 html[data-dashboard-theme="dark"] .dashboard-dialog,
@@ -529,8 +549,10 @@ html[data-dashboard-theme="light"] .dashboard-popover {
   color-scheme: light;
 }
 
-html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"],
-html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"],
+html[data-dashboard-theme="dark"] .dashboard-sheet input[type="time"],
+html[data-dashboard-theme="light"] .dashboard-sheet input[type="time"],
+html[data-dashboard-theme="dark"] .dashboard-sheet select.dashboard-native-select,
+html[data-dashboard-theme="light"] .dashboard-sheet select.dashboard-native-select,
 html[data-dashboard-theme="dark"] .dashboard-dialog [data-slot="input"],
 html[data-dashboard-theme="light"] .dashboard-dialog [data-slot="input"],
 html[data-dashboard-theme="dark"] .dashboard-popover input[type="time"],
@@ -542,8 +564,10 @@ html[data-dashboard-theme="light"] .dashboard-popover textarea {
   color: var(--eb-text);
 }
 
-html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input"]:focus-visible,
-html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input"]:focus-visible,
+html[data-dashboard-theme="dark"] .dashboard-sheet input[type="time"]:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-sheet input[type="time"]:focus-visible,
+html[data-dashboard-theme="dark"] .dashboard-sheet select.dashboard-native-select:focus-visible,
+html[data-dashboard-theme="light"] .dashboard-sheet select.dashboard-native-select:focus-visible,
 html[data-dashboard-theme="dark"] .dashboard-dialog [data-slot="input"]:focus-visible,
 html[data-dashboard-theme="light"] .dashboard-dialog [data-slot="input"]:focus-visible,
 html[data-dashboard-theme="dark"] .dashboard-popover input[type="time"]:focus-visible,
@@ -555,15 +579,63 @@ html[data-dashboard-theme="light"] .dashboard-popover textarea:focus-visible {
 }
 
 .dashboard-shell--dark select.dashboard-native-select option,
-.dashboard-shell--dark .dashboard-native-select option {
+.dashboard-shell--dark .dashboard-native-select option,
+html[data-dashboard-theme="dark"] .dashboard-sheet select.dashboard-native-select option {
   background-color: var(--eb-surface);
   color: var(--eb-text);
 }
 
 .dashboard-shell--light select.dashboard-native-select option,
-.dashboard-shell--light .dashboard-native-select option {
+.dashboard-shell--light .dashboard-native-select option,
+html[data-dashboard-theme="light"] .dashboard-sheet select.dashboard-native-select option {
   background-color: #ffffff;
   color: #0f172a;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="label"],
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="label"] {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="input-field"],
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="input-field"],
+html[data-dashboard-theme="dark"] .dashboard-sheet [data-slot="select-field"],
+html[data-dashboard-theme="light"] .dashboard-sheet [data-slot="select-field"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiFormControl-root,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiFormControl-root,
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiTextField-root,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiTextField-root {
+  margin: 0;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiOutlinedInput-root,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiOutlinedInput-root {
+  background-color: color-mix(in srgb, var(--eb-elevated) 70%, transparent);
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiOutlinedInput-notchedOutline,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiOutlinedInput-notchedOutline {
+  border-color: var(--eb-border);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiSelect-select,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiSelect-select {
+  color: var(--eb-text);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-sheet .MuiSvgIcon-root,
+html[data-dashboard-theme="light"] .dashboard-sheet .MuiSvgIcon-root {
+  color: var(--eb-muted);
 }
 
 @keyframes lattice-pulse {
@@ -667,6 +739,11 @@ html[data-dashboard-theme="light"] .dashboard-popover textarea:focus-visible {
 *:focus-visible {
   outline: 2px solid #2ec4b6;
   outline-offset: 2px;
+}
+
+/* Inputs use border / ring / MUI notched outline — avoid stacking with the global outline */
+:where(input, textarea, select):focus-visible {
+  outline: none;
 }
 
 * {

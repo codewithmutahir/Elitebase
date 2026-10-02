@@ -1,25 +1,39 @@
-import { cn } from "@/lib/utils";
+"use client";
+
+import Alert from "@mui/material/Alert";
+import type { ReactNode } from "react";
 
 type AuthAlertProps = {
   variant: "error" | "success";
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 };
 
 export function AuthAlert({ variant, children, className }: AuthAlertProps) {
+  const isError = variant === "error";
+
   return (
-    <p
-      className={cn(
-        "mb-6 rounded-lg border px-4 py-3 text-sm",
-        variant === "error" &&
-          "border-red-500/30 bg-red-500/10 text-red-200",
-        variant === "success" &&
-          "border-[var(--eb-accent)]/30 bg-[var(--eb-accent)]/10 text-[var(--eb-text)]",
-        className
-      )}
+    <Alert
+      severity={variant === "error" ? "error" : "success"}
+      className={className}
       role="alert"
+      sx={{
+        mb: 3,
+        borderRadius: "10px",
+        border: "1px solid",
+        borderColor: isError
+          ? "rgba(248, 113, 113, 0.3)"
+          : "rgba(46, 196, 182, 0.3)",
+        bgcolor: isError
+          ? "rgba(248, 113, 113, 0.1)"
+          : "rgba(46, 196, 182, 0.1)",
+        color: isError ? "error.light" : "text.primary",
+        "& .MuiAlert-icon": {
+          color: isError ? "error.light" : "primary.main",
+        },
+      }}
     >
       {children}
-    </p>
+    </Alert>
   );
 }

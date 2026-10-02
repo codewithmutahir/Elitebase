@@ -1,26 +1,29 @@
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { GenerateSetupPanel } from "@/components/kiosk/generate-setup-panel";
 import { TabletList } from "@/components/kiosk/tablet-list";
 import { requireCompanySession } from "@/lib/employees/session";
 import { listKioskTablets } from "@/lib/kiosk/queries";
+import { dashboardPageIntroSx, dashboardSectionTitleSx } from "@/lib/dashboard/sx";
 
 export default async function KioskSetupPage() {
   const { company } = await requireCompanySession();
   const tablets = await listKioskTablets(company.id);
 
   return (
-    <div className="space-y-8">
-      <p className="text-sm text-[var(--eb-muted)]">
+    <Stack spacing={4}>
+      <Typography sx={dashboardPageIntroSx}>
         Pair tablets with your company so employees can clock in on-site.
-      </p>
+      </Typography>
 
       <GenerateSetupPanel />
 
-      <section>
-        <h2 className="mb-4 text-lg font-medium tracking-tight text-[var(--eb-text)]">
+      <Stack component="section" spacing={2}>
+        <Typography component="h2" sx={dashboardSectionTitleSx}>
           Registered tablets
-        </h2>
+        </Typography>
         <TabletList tablets={tablets} />
-      </section>
-    </div>
+      </Stack>
+    </Stack>
   );
 }

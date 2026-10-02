@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { APIError } from "better-auth/api";
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { AuthFooterText } from "@/components/auth/auth-footer-text";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
 import { LoginForm } from "@/components/auth/login-form";
@@ -86,15 +86,11 @@ export default async function LoginPage({
         title="Welcome back"
         subtitle="Sign in to your company dashboard and manage attendance."
         footer={
-          <p className="text-center text-sm text-[var(--eb-muted)]">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
-            >
-              Get started
-            </Link>
-          </p>
+          <AuthFooterText
+            prompt="Don't have an account?"
+            href="/register"
+            label="Get started"
+          />
         }
       >
         {successMessage ? (

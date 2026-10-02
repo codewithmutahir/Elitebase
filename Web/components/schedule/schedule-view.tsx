@@ -1,5 +1,8 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import type { DepartmentWithRoles } from "@/lib/departments/queries";
 import {
@@ -42,7 +46,6 @@ import {
   formatWeekRangeLong,
   isSameCalendarDay,
   parseWeekParam,
-  toDateParam,
   weekDateStrings,
 } from "@/lib/availability/week";
 import {
@@ -53,20 +56,19 @@ import { isWorkingDayOnDate } from "@/lib/employees/working-days";
 import { useCompany } from "@/contexts/company-context";
 import { resolveCurrency } from "@/lib/currencies";
 import { fadeIn, staggerContainer } from "@/lib/animations";
+import { dashboardDialogContentClass } from "@/lib/dashboard/styles";
 import {
-  dashboardCardClass,
-  dashboardGridBodyCellClass,
-  dashboardGridCornerHeadClass,
-  dashboardGridDayHeadClass,
-  dashboardGridOffDayCellClass,
-  dashboardGridRowLabelCellClass,
-  dashboardGridRowLabelCellMutedClass,
-  dashboardGridTheadClass,
-  dashboardGridTfootClass,
-  dashboardDialogContentClass,
-  dashboardNativeSelectClass,
-  dashboardPageIntroClass,
-} from "@/lib/dashboard/styles";
+  dashboardCardSx,
+  dashboardGridBodyCellSx,
+  dashboardGridCornerHeadSx,
+  dashboardGridDayHeadSx,
+  dashboardGridOffDayCellSx,
+  dashboardGridRowLabelCellSx,
+  dashboardGridRowLabelCellMutedSx,
+  dashboardGridTheadSx,
+  dashboardGridTfootSx,
+  dashboardPageIntroSx,
+} from "@/lib/dashboard/sx";
 import { cn } from "@/lib/utils";
 
 type ScheduleViewProps = {
@@ -98,34 +100,64 @@ function ScheduleCell({
 }) {
   if (isOffDay) {
     return (
-      <td className={dashboardGridOffDayCellClass}>
-        <div className="flex min-h-[72px] items-center justify-center p-2">
-          <span className="text-xs font-medium text-[var(--eb-muted)]">Off</span>
-        </div>
-      </td>
+      <Box component="td" sx={dashboardGridOffDayCellSx}>
+        <Box
+          sx={{
+            display: "flex",
+            minHeight: 72,
+            alignItems: "center",
+            justifyContent: "center",
+            p: 1,
+          }}
+        >
+          <Typography component="span" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--eb-muted)" }}>
+            Off
+          </Typography>
+        </Box>
+      </Box>
     );
   }
 
   return (
-    <td className={dashboardGridBodyCellClass}>
-      <div className="group relative min-h-[72px] p-1">
-        <div className="relative z-10">
+    <Box component="td" sx={dashboardGridBodyCellSx}>
+      <Box sx={{ position: "relative", minHeight: 72, p: 0.5, "&:hover .schedule-add-btn": { opacity: 1 } }}>
+        <Box sx={{ position: "relative", zIndex: 10 }}>
           {shifts.map((shift) => (
             <ShiftEditPopover key={shift.id} shift={shift} onUpdated={onUpdated}>
               <ShiftCard shift={shift} />
             </ShiftEditPopover>
           ))}
-        </div>
-        <button
+        </Box>
+        <Box
+          component="button"
           type="button"
           onClick={onAdd}
-          className="absolute right-1 top-1 z-20 flex size-7 items-center justify-center rounded-full bg-[var(--eb-accent)] text-[var(--eb-ink,#060A12)] opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+          className="schedule-add-btn"
           aria-label="Add shift"
+          sx={{
+            position: "absolute",
+            right: 4,
+            top: 4,
+            zIndex: 20,
+            display: "flex",
+            width: 28,
+            height: 28,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            border: "none",
+            cursor: "pointer",
+            bgcolor: "var(--eb-accent)",
+            color: "var(--eb-ink,#060A12)",
+            opacity: 0,
+            boxShadow: 2,
+            transition: "opacity 0.15s ease",
+          }}
         >
           <Plus className="size-3.5" aria-hidden />
-        </button>
-      </div>
-    </td>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 
@@ -203,9 +235,22 @@ export function ScheduleView({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+    <Stack spacing={2}>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Stack
+          direction="row"
+          useFlexGap
+          sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}
+        >
           <Button
             type="button"
             variant="outline"
@@ -223,9 +268,18 @@ export function ScheduleView({
           >
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
-          <span className="min-w-[240px] text-center text-sm font-semibold text-[var(--eb-text)]">
+          <Typography
+            component="span"
+            sx={{
+              minWidth: 240,
+              textAlign: "center",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "var(--eb-text)",
+            }}
+          >
             {weekLabel}
-          </span>
+          </Typography>
           <Button
             type="button"
             variant="outline"
@@ -235,15 +289,16 @@ export function ScheduleView({
           >
             <ChevronRight className="size-4" aria-hidden />
           </Button>
-          <select
+          <Select
+            id="schedule-view-mode"
             value="week"
             disabled
-            className={cn(dashboardNativeSelectClass, "ml-2 h-9 w-auto py-0")}
-            aria-label="View"
-          >
-            <option value="week">Week</option>
-          </select>
-        </div>
+            displayEmpty={false}
+            fullWidth={false}
+            options={[{ value: "week", label: "Week" }]}
+            sx={{ ml: 1, width: "auto", minWidth: 96 }}
+          />
+        </Stack>
 
         <Button
           type="button"
@@ -256,42 +311,72 @@ export function ScheduleView({
               ? `Publish (${draftCount})`
               : "Publish"}
         </Button>
-      </div>
+      </Stack>
 
-      <Card className={cn("overflow-hidden", dashboardCardClass)}>
-        <div className="max-h-[calc(100vh-220px)] overflow-auto">
-          <table className="w-full min-w-[960px] border-collapse text-sm">
-            <thead className={dashboardGridTheadClass}>
-              <tr>
-                <th className={dashboardGridCornerHeadClass}>&nbsp;</th>
+      <Card sx={{ ...(dashboardCardSx as object), overflow: "hidden" }}>
+        <Box sx={{ maxHeight: "calc(100vh - 220px)", overflow: "auto" }}>
+          <Box
+            component="table"
+            sx={{
+              width: "100%",
+              minWidth: 960,
+              borderCollapse: "collapse",
+              fontSize: "0.875rem",
+            }}
+          >
+            <Box component="thead" sx={dashboardGridTheadSx}>
+              <Box component="tr">
+                <Box component="th" sx={dashboardGridCornerHeadSx}>
+                  &nbsp;
+                </Box>
                 {GRID_DAYS.map((day) => {
                   const date = dateForDayInWeek(weekMonday, day.dayOfWeek);
                   const isToday = isSameCalendarDay(date, today);
                   return (
-                    <th
+                    <Box
+                      component="th"
                       key={day.dayOfWeek}
-                      className={dashboardGridDayHeadClass}
+                      sx={dashboardGridDayHeadSx}
                     >
-                      <div className="text-xs font-semibold uppercase text-[var(--eb-muted)]">
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          color: "var(--eb-muted)",
+                        }}
+                      >
                         {day.label}
-                      </div>
-                      <div className="mt-1 flex justify-center">
-                        <span
-                          className={cn(
-                            "flex size-7 items-center justify-center rounded-full text-sm font-semibold",
-                            isToday
-                              ? "bg-[var(--eb-accent)] text-[var(--eb-ink,#060A12)]"
-                              : "text-[var(--eb-text)]"
-                          )}
+                      </Typography>
+                      <Box sx={{ mt: 0.5, display: "flex", justifyContent: "center" }}>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: "flex",
+                            width: 28,
+                            height: 28,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            borderRadius: "50%",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            ...(isToday
+                              ? {
+                                  bgcolor: "var(--eb-accent)",
+                                  color: "var(--eb-ink,#060A12)",
+                                }
+                              : { color: "var(--eb-text)" }),
+                          }}
                         >
                           {date.getDate()}
-                        </span>
-                      </div>
-                    </th>
+                        </Box>
+                      </Box>
+                    </Box>
                   );
                 })}
-              </tr>
-            </thead>
+              </Box>
+            </Box>
 
             <motion.tbody
               variants={staggerContainer}
@@ -300,14 +385,16 @@ export function ScheduleView({
             >
               <motion.tr
                 variants={fadeIn}
-                className="border-b border-[var(--eb-border)]"
+                style={{ borderBottom: "1px solid var(--eb-border)" }}
               >
-                <td className={dashboardGridRowLabelCellMutedClass}>
-                  <p className="font-semibold text-[var(--eb-text)]">
+                <Box component="td" sx={dashboardGridRowLabelCellMutedSx}>
+                  <Typography sx={{ fontWeight: 600, color: "var(--eb-text)" }}>
                     Open shifts
-                  </p>
-                  <p className="text-xs text-[var(--eb-muted)]">Unassigned</p>
-                </td>
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.75rem", color: "var(--eb-muted)" }}>
+                    Unassigned
+                  </Typography>
+                </Box>
                 {weekDates.map((dateStr) => (
                   <ScheduleCell
                     key={`open-${dateStr}`}
@@ -336,26 +423,33 @@ export function ScheduleView({
                   <motion.tr
                     key={employee.id}
                     variants={fadeIn}
-                    className="border-b border-[var(--eb-border)]"
+                    style={{ borderBottom: "1px solid var(--eb-border)" }}
                   >
-                    <td className={dashboardGridRowLabelCellClass}>
-                      <div className="flex items-center gap-3">
+                    <Box component="td" sx={dashboardGridRowLabelCellSx}>
+                      <Stack
+                        direction="row"
+                        useFlexGap
+                        sx={{ alignItems: "center", gap: 1.5 }}
+                      >
                         <Avatar className="size-8 shrink-0">
                           <AvatarFallback className="bg-[var(--eb-accent)]/15 text-xs font-bold text-[var(--eb-accent)]">
                             {initials(employee.full_name)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-[var(--eb-text)]">
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            noWrap
+                            sx={{ fontWeight: 600, color: "var(--eb-text)" }}
+                          >
                             {employee.full_name}
-                          </p>
-                          <p className="text-xs text-[var(--eb-muted)]">
+                          </Typography>
+                          <Typography sx={{ fontSize: "0.75rem", color: "var(--eb-muted)" }}>
                             {formatHours(totals.hours)} hrs / {payLabel}:{" "}
                             {formatWages(totals.wages, currency)}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
                     {weekDates.map((dateStr) => {
                       const isOffDay = !isWorkingDayOnDate(
                         employee.working_days,
@@ -383,16 +477,18 @@ export function ScheduleView({
               })}
             </motion.tbody>
 
-            <tfoot className={dashboardGridTfootClass}>
-              <tr>
-                <td
-                  className={cn(
-                    dashboardGridCornerHeadClass,
-                    "py-2 normal-case"
-                  )}
+            <Box component="tfoot" sx={dashboardGridTfootSx}>
+              <Box component="tr">
+                <Box
+                  component="td"
+                  sx={{
+                    ...(dashboardGridCornerHeadSx as object),
+                    py: 1,
+                    textTransform: "none",
+                  }}
                 >
                   Totals
-                </td>
+                </Box>
                 {weekDates.map((dateStr) => {
                   const totals = dayEarnings(
                     employeesById,
@@ -401,23 +497,31 @@ export function ScheduleView({
                     weekMonday
                   );
                   return (
-                    <td
+                    <Box
+                      component="td"
                       key={`total-${dateStr}`}
-                      className="border-l border-[var(--eb-border)] px-2 py-2 text-center text-xs text-[var(--eb-muted)]"
+                      sx={{
+                        borderLeft: "1px solid var(--eb-border)",
+                        px: 1,
+                        py: 1,
+                        textAlign: "center",
+                        fontSize: "0.75rem",
+                        color: "var(--eb-muted)",
+                      }}
                     >
-                      <div className="leading-snug">
+                      <Box sx={{ lineHeight: 1.375 }}>
                         Wages: {formatWages(totals.wages, currency)}
-                      </div>
-                      <div className="leading-snug">
+                      </Box>
+                      <Box sx={{ lineHeight: 1.375 }}>
                         Hours: {formatHours(totals.hours)}
-                      </div>
-                    </td>
+                      </Box>
+                    </Box>
                   );
                 })}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
       </Card>
 
       <AddShiftSheet
@@ -443,18 +547,23 @@ export function ScheduleView({
               still publish if this is intentional.
             </DialogDescription>
           </DialogHeader>
-          <ul
-            className={cn(
-              "max-h-48 space-y-2 overflow-y-auto text-sm",
-              dashboardPageIntroClass
-            )}
+          <Box
+            component="ul"
+            sx={{
+              ...dashboardPageIntroSx,
+              maxHeight: 192,
+              overflowY: "auto",
+              m: 0,
+              pl: 2.5,
+              "& > li + li": { mt: 1 },
+            }}
           >
             {overtimeWarnings.map((warning) => (
-              <li key={`${warning.kind}-${warning.employeeId}-${warning.date ?? "week"}`}>
+              <Box component="li" key={`${warning.kind}-${warning.employeeId}-${warning.date ?? "week"}`}>
                 {formatOvertimeWarning(warning)}
-              </li>
+              </Box>
             ))}
-          </ul>
+          </Box>
           <DialogFooter>
             <Button
               type="button"
@@ -469,6 +578,6 @@ export function ScheduleView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Stack>
   );
 }

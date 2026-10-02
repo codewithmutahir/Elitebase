@@ -7,7 +7,8 @@ import {
   updateScheduleShift,
 } from "@/app/(dashboard)/schedule/schedule/actions";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -16,7 +17,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  dashboardFieldInputClass,
   dashboardPopoverContentClass,
   dashboardPrimaryButtonClass,
 } from "@/lib/dashboard/styles";
@@ -97,53 +97,29 @@ export function ShiftEditPopover({
         {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <Label htmlFor={`edit-start-${shift.id}`} className="text-xs">
-              Start
-            </Label>
-            <input
-              id={`edit-start-${shift.id}`}
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className={cn(
-                "flex h-9 w-full px-2 text-sm",
-                dashboardFieldInputClass
-              )}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`edit-end-${shift.id}`} className="text-xs">
-              End
-            </Label>
-            <input
-              id={`edit-end-${shift.id}`}
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className={cn(
-                "flex h-9 w-full px-2 text-sm",
-                dashboardFieldInputClass
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor={`edit-notes-${shift.id}`} className="text-xs">
-            Notes
-          </Label>
-          <textarea
-            id={`edit-notes-${shift.id}`}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            className={cn(
-              "w-full px-2 py-1.5 text-sm",
-              dashboardFieldInputClass
-            )}
+          <Input
+            id={`edit-start-${shift.id}`}
+            label="Start"
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+          />
+          <Input
+            id={`edit-end-${shift.id}`}
+            label="End"
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
           />
         </div>
+
+        <Textarea
+          id={`edit-notes-${shift.id}`}
+          label="Notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={2}
+        />
 
         <div className="flex gap-2 pt-1">
           <Button

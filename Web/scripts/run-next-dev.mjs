@@ -108,7 +108,8 @@ if (node.major >= 22) {
 
 const child = spawn(
   node.path,
-  ["--max-old-space-size=8192", nextBin, "dev", "-H", "0.0.0.0", ...process.argv.slice(2)],
+  // Cap well below machine RAM: 8192 on ~16GB PCs lets Next + Cursor swap-thrash the IDE.
+  ["--max-old-space-size=4096", nextBin, "dev", "-H", "0.0.0.0", ...process.argv.slice(2)],
   {
     stdio: "inherit",
     cwd: webRoot,

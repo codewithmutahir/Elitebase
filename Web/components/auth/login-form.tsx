@@ -1,7 +1,10 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import NextLink from "next/link";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { AuthAlert } from "@/components/auth/auth-alert";
@@ -44,49 +47,65 @@ export function LoginForm({ action }: LoginFormProps) {
   };
 
   return (
-    <form
+    <Box
+      component="form"
       noValidate
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4"
       aria-busy={isPending || isSubmitting}
     >
-      {lockMessage ? (
-        <AuthAlert variant="error">{lockMessage}</AuthAlert>
-      ) : null}
+      <Stack spacing={2}>
+        {lockMessage ? (
+          <AuthAlert variant="error">{lockMessage}</AuthAlert>
+        ) : null}
 
-      <AuthField
-        id="email"
-        label="Work email"
-        type="email"
-        autoComplete="email"
-        aria-required
-        error={errors.email?.message}
-        {...register("email")}
-      />
-
-      <div>
-        <div className="mb-2 flex items-center justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)] sm:text-sm"
-          >
-            Forgot password?
-          </Link>
-        </div>
         <AuthField
-          id="password"
-          label="Password"
-          type="password"
-          autoComplete="current-password"
+          id="email"
+          label="Work email"
+          type="email"
+          autoComplete="email"
           aria-required
-          error={errors.password?.message}
-          {...register("password")}
+          error={errors.email?.message}
+          {...register("email")}
         />
-      </div>
 
-      <LoginSubmitButton
-        disabled={!canSubmit || isPending || isSubmitting}
-      />
-    </form>
+        <Box>
+          <Box
+            sx={{
+              mb: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Link
+              component={NextLink}
+              href="/forgot-password"
+              underline="hover"
+              sx={{
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                fontWeight: 500,
+                color: "primary.main",
+                "&:hover": { color: "text.primary" },
+              }}
+            >
+              Forgot password?
+            </Link>
+          </Box>
+          <AuthField
+            id="password"
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            aria-required
+            error={errors.password?.message}
+            {...register("password")}
+          />
+        </Box>
+
+        <LoginSubmitButton
+          disabled={!canSubmit || isPending || isSubmitting}
+        />
+      </Stack>
+    </Box>
   );
 }

@@ -1,19 +1,11 @@
-import Link from "next/link";
-
 import { headers } from "next/headers";
-
 import { redirect } from "next/navigation";
-
 import { AuthAlert } from "@/components/auth/auth-alert";
-
+import { AuthFooterText } from "@/components/auth/auth-footer-text";
 import { AuthFormCard } from "@/components/auth/auth-form-card";
-
 import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
-
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
-
 import { auth } from "@/lib/auth";
-
 import {
   enforceAuthRateLimitInAction,
   resolveAuthRateLimitQueryMessage,
@@ -119,25 +111,11 @@ export default async function ForgotPasswordPage({
         subtitle="Enter your work email and we'll send a link to choose a new password."
 
         footer={
-
-          <p className="text-center text-sm text-[var(--eb-muted)]">
-
-            Remember your password?{" "}
-
-            <Link
-
-              href="/login"
-
-              className="font-medium text-[var(--eb-accent)] hover:text-[var(--eb-text)]"
-
-            >
-
-              Sign in
-
-            </Link>
-
-          </p>
-
+          <AuthFooterText
+            prompt="Remember your password?"
+            href="/login"
+            label="Sign in"
+          />
         }
 
       >

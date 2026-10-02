@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import { buttonVariants, type ButtonVariant, type ButtonSize } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  Button,
+  type ButtonVariant,
+  type ButtonSize,
+} from "@/components/ui/button";
 import type { ComponentProps } from "react";
 
 type ButtonLinkProps = {
@@ -20,12 +25,13 @@ export function ButtonLink({
   ...props
 }: ButtonLinkProps) {
   return (
-    <Link
-      href={href}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+    <Button
+      variant={variant}
+      size={size}
+      className={className}
+      render={<Link href={href} {...props} />}
     >
       {children}
-    </Link>
+    </Button>
   );
 }

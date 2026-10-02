@@ -1,3 +1,5 @@
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import { Suspense } from "react";
 import { AvailabilityView } from "@/components/schedule/availability-view";
 import {
@@ -28,9 +30,16 @@ export default async function TeamAvailabilityPage({
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-          Loading availability…
-        </div>
+        <Box
+          sx={{
+            display: "flex",
+            minHeight: "40vh",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography color="text.secondary">Loading availability…</Typography>
+        </Box>
       }
     >
       <AvailabilityView

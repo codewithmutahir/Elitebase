@@ -1,3 +1,5 @@
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import { Suspense } from "react";
 import { ScheduleView } from "@/components/schedule/schedule-view";
 import { listDepartmentsWithRoles } from "@/lib/departments/queries";
@@ -25,9 +27,16 @@ export default async function SchedulePage({
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-          Loading schedule…
-        </div>
+        <Box
+          sx={{
+            display: "flex",
+            minHeight: "40vh",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography color="text.secondary">Loading schedule…</Typography>
+        </Box>
       }
     >
       <ScheduleView

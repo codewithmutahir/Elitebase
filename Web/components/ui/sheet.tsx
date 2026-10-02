@@ -1,39 +1,149 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import MuiDrawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  useContext,
+  useState,
+  type HTMLAttributes,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+type SheetSide = "top" | "right" | "bottom" | "left";
 
-function Sheet({ ...props }: SheetPrimitive.Root.Props) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
+type SheetContextValue = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+};
+
+const SheetContext = createContext<SheetContextValue | null>(null);
+
+function useSheetContext() {
+  const ctx = useContext(SheetContext);
+  if (!ctx) {
+    throw new Error("Sheet components must be used within <Sheet>");
+  }
+  return ctx;
 }
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
-}
+type SheetProps = {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: ReactNode;
+};
 
-function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
-}
+function Sheet({
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+  children,
+}: SheetProps) {
+  const [uncontrolled, setUncontrolled] = useState(defaultOpen);
+  const open = openProp ?? uncontrolled;
 
-function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
-}
+  function setOpen(next: boolean) {
+    if (openProp === undefined) setUncontrolled(next);
+    onOpenChange?.(next);
+  }
 
-function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
-    <SheetPrimitive.Backdrop
-      data-slot="sheet-overlay"
-      className={cn(
-        "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
-        className
-      )}
-      {...props}
-    />
-  )
+    <SheetContext.Provider value={{ open, setOpen }}>
+      {children}
+    </SheetContext.Provider>
+  );
+}
+
+function SheetTrigger({
+  children,
+  render,
+  ...props
+}: {
+  children?: ReactNode;
+  render?: ReactElement;
+} & Record<string, unknown>) {
+  const { setOpen } = useSheetContext();
+
+  function handleClick(event: MouseEvent) {
+    (props.onClick as ((e: MouseEvent) => void) | undefined)?.(event);
+    if (!event.defaultPrevented) setOpen(true);
+  }
+
+  if (isValidElement(render)) {
+    return cloneElement(render, {
+      ...(props as object),
+      children,
+      onClick: handleClick,
+    } as never);
+  }
+
+  return (
+    <button type="button" data-slot="sheet-trigger" {...props} onClick={handleClick}>
+      {children}
+    </button>
+  );
+}
+
+function SheetClose({
+  children,
+  render,
+  ...props
+}: {
+  children?: ReactNode;
+  render?: ReactElement;
+} & Record<string, unknown>) {
+  const { setOpen } = useSheetContext();
+
+  function handleClick(event: MouseEvent) {
+    (props.onClick as ((e: MouseEvent) => void) | undefined)?.(event);
+    if (!event.defaultPrevented) setOpen(false);
+  }
+
+  if (isValidElement(render)) {
+    return cloneElement(render, {
+      ...(props as object),
+      children,
+      onClick: handleClick,
+    } as never);
+  }
+
+  return (
+    <button type="button" data-slot="sheet-close" {...props} onClick={handleClick}>
+      {children}
+    </button>
+  );
+}
+
+function SheetPortal({ children }: { children?: ReactNode }) {
+  return <>{children}</>;
+}
+
+function SheetOverlay(_props?: HTMLAttributes<HTMLDivElement>) {
+  void _props;
+  return null;
+}
+
+function paperSideSx(side: SheetSide) {
+  if (side === "left" || side === "right") {
+    return {
+      width: { xs: "100%", sm: 384 },
+      maxWidth: "100%",
+      height: "100%",
+    };
+  }
+  return {
+    width: "100%",
+    maxHeight: "85vh",
+  };
 }
 
 function SheetContent({
@@ -43,104 +153,180 @@ function SheetContent({
   showCloseButton = true,
   overlayClassName,
   variant = "default",
+  style,
   ...props
-}: SheetPrimitive.Popup.Props & {
-  side?: "top" | "right" | "bottom" | "left"
-  showCloseButton?: boolean
-  overlayClassName?: string
+}: HTMLAttributes<HTMLDivElement> & {
+  side?: SheetSide;
+  showCloseButton?: boolean;
+  overlayClassName?: string;
   /** Dashboard product sheets (portaled — use with dashboard-sheet tokens) */
-  variant?: "default" | "dashboard"
+  variant?: "default" | "dashboard";
 }) {
+  const { open, setOpen } = useSheetContext();
+  void props;
+  const isDashboard = variant === "dashboard";
+
+  const paperAnchorSx =
+    side === "right"
+      ? { left: "auto", right: 0 }
+      : side === "left"
+        ? { left: 0, right: "auto" }
+        : {};
+
   return (
-    <SheetPortal>
-      <SheetOverlay className={overlayClassName} />
-      <SheetPrimitive.Popup
-        data-slot="sheet-content"
-        data-side={side}
-        className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-clip-padding text-sm shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
-          variant === "dashboard"
-            ? "dashboard-sheet border-[var(--eb-border)] bg-[var(--eb-surface)] text-[var(--eb-text)]"
-            : "bg-popover text-popover-foreground",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <SheetPrimitive.Close
-            data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-3 right-3 text-[var(--eb-muted)] hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
-        )}
-      </SheetPrimitive.Popup>
-    </SheetPortal>
-  )
+    <MuiDrawer
+      anchor={side}
+      open={open}
+      onClose={() => setOpen(false)}
+      data-slot="sheet"
+      sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
+      slotProps={{
+        backdrop: {
+          className: overlayClassName,
+        },
+        paper: {
+          "data-slot": "sheet-content",
+          className: cn(
+            isDashboard &&
+              "dashboard-sheet border-[var(--eb-border)] bg-[var(--eb-surface)] text-[var(--eb-text)]",
+            className
+          ),
+          style,
+          sx: {
+            backgroundImage: "none",
+            ...(isDashboard
+              ? {
+                  backgroundColor: "var(--eb-surface)",
+                  color: "var(--eb-text)",
+                  borderColor: "var(--eb-border)",
+                }
+              : {
+                  backgroundColor: "background.paper",
+                  color: "text.primary",
+                  borderColor: "divider",
+                }),
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+            boxSizing: "border-box",
+            borderLeft: side === "right" ? "1px solid" : undefined,
+            borderRight: side === "left" ? "1px solid" : undefined,
+            ...paperAnchorSx,
+            ...paperSideSx(side),
+          },
+        },
+      }}
+    >
+      {showCloseButton ? (
+        <IconButton
+          data-slot="sheet-close"
+          aria-label="Close"
+          onClick={() => setOpen(false)}
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 16,
+            right: 16,
+            zIndex: 1,
+            color: "text.secondary",
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      ) : null}
+      {children}
+    </MuiDrawer>
+  );
 }
 
-function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
+function SheetHeader({
+  className,
+  style,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
+    <Box
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-0.5 p-4", className)}
+      className={className}
+      style={style}
+      sx={{ display: "flex", flexDirection: "column", gap: 1 }}
       {...props}
-    />
-  )
+    >
+      {children}
+    </Box>
+  );
 }
 
-function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
+function SheetFooter({
+  className,
+  style,
+  children,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
+    <Box
       data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={className}
+      style={style}
+      sx={{ mt: "auto", display: "flex", flexDirection: "column", gap: 1 }}
       {...props}
-    />
-  )
+    >
+      {children}
+    </Box>
+  );
 }
 
-function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
+function SheetTitle({
+  className,
+  style,
+  children,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <SheetPrimitive.Title
+    <Typography
       data-slot="sheet-title"
-      className={cn(
-        "font-heading text-base font-medium text-foreground",
-        className
-      )}
+      className={className}
+      style={style}
+      component="h2"
+      variant="subtitle1"
+      sx={{ fontWeight: 500, color: "text.primary" }}
       {...props}
-    />
-  )
+    >
+      {children}
+    </Typography>
+  );
 }
 
 function SheetDescription({
   className,
+  style,
+  children,
   ...props
-}: SheetPrimitive.Description.Props) {
+}: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <SheetPrimitive.Description
+    <Typography
       data-slot="sheet-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={className}
+      style={style}
+      variant="body2"
+      color="text.secondary"
       {...props}
-    />
-  )
+    >
+      {children}
+    </Typography>
+  );
 }
 
 export {
   Sheet,
   SheetTrigger,
   SheetClose,
+  SheetPortal,
+  SheetOverlay,
   SheetContent,
   SheetHeader,
   SheetFooter,
   SheetTitle,
   SheetDescription,
-}
+};

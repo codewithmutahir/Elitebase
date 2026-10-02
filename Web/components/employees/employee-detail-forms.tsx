@@ -8,9 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { DepartmentOption } from "@/lib/departments/queries";
-import { cn } from "@/lib/utils";
 
 function SaveButton() {
   const { pending } = useFormStatus();
@@ -83,24 +82,19 @@ export function EmployeeDetailForms({
               defaultValue={defaultValues.email}
             />
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="departmentId">Department</Label>
-                <select
-                  id="departmentId"
-                  name="departmentId"
-                  defaultValue={defaultValues.departmentId}
-                  className={cn(
-                    "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  )}
-                >
-                  <option value="">None</option>
-                  {departmentOptions.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id="departmentId"
+                name="departmentId"
+                label="Department"
+                defaultValue={defaultValues.departmentId}
+                options={[
+                  { value: "", label: "None" },
+                  ...departmentOptions.map((dept) => ({
+                    value: dept.id,
+                    label: dept.name,
+                  })),
+                ]}
+              />
               <Input
                 id="position"
                 name="position"
@@ -109,20 +103,17 @@ export function EmployeeDetailForms({
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="role">Role</Label>
-                <select
-                  id="role"
-                  name="role"
-                  defaultValue={defaultValues.role}
-                  className={cn(
-                    "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  )}
-                >
-                  <option value="employee">Employee</option>
-                  <option value="manager">Manager</option>
-                </select>
-              </div>
+              <Select
+                id="role"
+                name="role"
+                label="Role"
+                defaultValue={defaultValues.role}
+                displayEmpty={false}
+                options={[
+                  { value: "employee", label: "Employee" },
+                  { value: "manager", label: "Manager" },
+                ]}
+              />
               <Input
                 id="hireDate"
                 name="hireDate"

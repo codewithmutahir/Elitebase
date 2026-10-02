@@ -1,7 +1,14 @@
-import { AuthBrandPanel } from "@/components/auth/auth-brand-panel";
-import { LandingAtmosphere } from "@/components/landing/landing-atmosphere";
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { AuthBrandPanel } from "@/components/auth/auth-brand-panel";
+import { LandingAtmosphere } from "@/components/landing/landing-atmosphere";
 
 type AuthSplitLayoutProps = {
   children: ReactNode;
@@ -20,39 +27,111 @@ export function AuthSplitLayout({
   backLabel = "Change role",
 }: AuthSplitLayoutProps) {
   return (
-    <div className="landing-shell relative flex min-h-screen flex-col bg-[var(--eb-ink)]">
+    <Box
+      className="landing-shell"
+      sx={{
+        position: "relative",
+        display: "flex",
+        minHeight: "100vh",
+        flexDirection: "column",
+        bgcolor: "background.default",
+      }}
+    >
       <LandingAtmosphere />
 
-      <header className="relative z-10 flex items-center justify-between border-b border-[var(--eb-border)]/40 px-5 py-4 sm:px-8 lg:px-10 lg:py-5">
-        <Link
+      <Box
+        component="header"
+        sx={{
+          position: "relative",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          px: { xs: 2.5, sm: 4, lg: 5 },
+          py: { xs: 2, lg: 2.5 },
+        }}
+      >
+        <Typography
+          component={Link}
           href="/"
-          className="text-lg font-semibold tracking-tight text-[var(--eb-text)] lg:text-xl"
+          sx={{
+            fontSize: { xs: "1.125rem", lg: "1.25rem" },
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            color: "text.primary",
+            textDecoration: "none",
+          }}
         >
-          Elite<span className="text-[var(--eb-accent)]">base</span>
-        </Link>
-        <div className="flex items-center gap-4 sm:gap-5">
-          <Link
+          Elite
+          <Box component="span" sx={{ color: "primary.main" }}>
+            base
+          </Box>
+        </Typography>
+        <Stack
+          direction="row"
+          spacing={{ xs: 2, sm: 2.5 }}
+          sx={{ alignItems: "center" }}
+        >
+          <Typography
+            component={Link}
             href={backHref}
-            className="text-sm font-medium text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-text)]"
+            sx={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              color: "text.secondary",
+              textDecoration: "none",
+              "&:hover": { color: "text.primary" },
+            }}
           >
             {backLabel}
-          </Link>
-          <Link
+          </Typography>
+          <Typography
+            component={Link}
             href="/login"
-            className="text-sm font-medium text-[var(--eb-accent)] transition-colors hover:text-[var(--eb-text)]"
+            sx={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              color: "primary.main",
+              textDecoration: "none",
+              "&:hover": { color: "text.primary" },
+            }}
           >
             Sign in
-          </Link>
-        </div>
-      </header>
+          </Typography>
+        </Stack>
+      </Box>
 
-      <div className="relative z-10 grid flex-1 lg:grid-cols-2 lg:items-stretch">
-        <AuthBrandPanel tagline={tagline} features={features} />
-
-        <div className="flex items-center justify-center px-5 py-10 sm:px-8 lg:px-10 lg:py-12 xl:px-14">
-          {children}
-        </div>
-      </div>
-    </div>
+      <Grid
+        container
+        sx={{
+          position: "relative",
+          zIndex: 10,
+          flex: 1,
+          alignItems: { lg: "stretch" },
+        }}
+      >
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <AuthBrandPanel tagline={tagline} features={features} />
+        </Grid>
+        <Grid size={{ xs: 12, lg: 6 }}>
+          <Container
+            maxWidth={false}
+            disableGutters
+            sx={{
+              display: "flex",
+              height: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+              px: { xs: 2.5, sm: 4, lg: 5, xl: 7 },
+              py: { xs: 5, lg: 6 },
+            }}
+          >
+            {children}
+          </Container>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

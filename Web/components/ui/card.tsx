@@ -1,96 +1,199 @@
-import * as React from "react"
+"use client";
 
-import { cn } from "@/lib/utils"
+import MuiCard from "@mui/material/Card";
+import MuiCardActions from "@mui/material/CardActions";
+import MuiCardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import {
+  forwardRef,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 
-function Card({
-  className,
-  size = "default",
-  ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+type DivProps = ComponentProps<"div"> & {
+  size?: "default" | "sm";
+  sx?: ComponentProps<typeof MuiCard>["sx"];
+};
+
+const Card = forwardRef<HTMLDivElement, DivProps>(function Card(
+  { className, size = "default", style, children, sx, ...props },
+  ref
+) {
   return (
-    <div
+    <MuiCard
+      ref={ref}
       data-slot="card"
       data-size={size}
-      className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
-        className
-      )}
+      className={className}
+      style={style}
+      sx={sx}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </MuiCard>
+  );
+});
 
-function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
+const CardHeader = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & { sx?: ComponentProps<typeof Box>["sx"] }
+>(function CardHeader({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <Box
+      ref={ref}
       data-slot="card-header"
-      className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-4 group-data-[size=sm]/card:px-3 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-4 group-data-[size=sm]/card:[.border-b]:pb-3",
-        className
-      )}
+      className={className}
+      style={style}
+      sx={[
+        {
+          display: "grid",
+          autoRows: "min-content",
+          alignItems: "start",
+          gap: 0.5,
+          px: 2,
+          '[data-size="sm"] &': { px: 1.5 },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </Box>
+  );
+});
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+const CardTitle = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & { sx?: ComponentProps<typeof Typography>["sx"] }
+>(function CardTitle({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <Typography
+      ref={ref}
       data-slot="card-title"
-      className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
-        className
-      )}
+      component="div"
+      className={className}
+      style={style}
+      sx={[
+        {
+          fontWeight: 500,
+          fontSize: "1rem",
+          lineHeight: 1.375,
+          '[data-size="sm"] &': { fontSize: "0.875rem" },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </Typography>
+  );
+});
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+const CardDescription = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & { sx?: ComponentProps<typeof Typography>["sx"] }
+>(function CardDescription({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <Typography
+      ref={ref}
       data-slot="card-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      component="div"
+      variant="body2"
+      color="text.secondary"
+      className={className}
+      style={style}
+      sx={sx}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </Typography>
+  );
+});
 
-function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+const CardAction = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & { sx?: ComponentProps<typeof Box>["sx"] }
+>(function CardAction({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <Box
+      ref={ref}
       data-slot="card-action"
-      className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
-        className
-      )}
+      className={className}
+      style={style}
+      sx={[
+        {
+          gridColumnStart: 2,
+          gridRow: "1 / span 2",
+          justifySelf: "end",
+          alignSelf: "start",
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </Box>
+  );
+});
 
-function CardContent({ className, ...props }: React.ComponentProps<"div">) {
+const CardContent = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & { sx?: ComponentProps<typeof MuiCardContent>["sx"] }
+>(function CardContent({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <MuiCardContent
+      ref={ref}
       data-slot="card-content"
-      className={cn("px-4 group-data-[size=sm]/card:px-3", className)}
+      className={className}
+      style={style}
+      sx={[
+        {
+          px: 2,
+          py: 0,
+          '[data-size="sm"] &': { px: 1.5 },
+          "&:last-child": { pb: 0 },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </MuiCardContent>
+  );
+});
 
-function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+const CardFooter = forwardRef<
+  HTMLDivElement,
+  ComponentProps<"div"> & {
+    children?: ReactNode;
+    sx?: ComponentProps<typeof MuiCardActions>["sx"];
+  }
+>(function CardFooter({ className, style, children, sx, ...props }, ref) {
   return (
-    <div
+    <MuiCardActions
+      ref={ref}
       data-slot="card-footer"
-      className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-4 group-data-[size=sm]/card:p-3",
-        className
-      )}
+      className={className}
+      style={style}
+      sx={[
+        {
+          px: 2,
+          py: 2,
+          mt: "auto",
+          borderTop: 1,
+          borderColor: "divider",
+          bgcolor: "action.hover",
+          '[data-size="sm"] &': { p: 1.5 },
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
       {...props}
-    />
-  )
-}
+    >
+      {children}
+    </MuiCardActions>
+  );
+});
 
 export {
   Card,
@@ -100,4 +203,4 @@ export {
   CardAction,
   CardDescription,
   CardContent,
-}
+};

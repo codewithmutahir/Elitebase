@@ -1,5 +1,9 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useMemo, useState } from "react";
@@ -10,12 +14,11 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  dashboardCardClass,
-  dashboardMetricLabelClass,
-  dashboardMetricValueClass,
-  dashboardPageIntroClass,
-} from "@/lib/dashboard/styles";
-import { cn } from "@/lib/utils";
+  dashboardCardSx,
+  dashboardMetricLabelSx,
+  dashboardMetricValueSx,
+  dashboardPageIntroSx,
+} from "@/lib/dashboard/sx";
 import {
   DataTable,
   DataTableBody,
@@ -146,14 +149,23 @@ export function TimesheetsView({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className={dashboardPageIntroClass}>
+    <Stack spacing={3}>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          gap: 1,
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography component="p" sx={dashboardPageIntroSx}>
           {rangeSummary(mode, selectedMonth, from, to)}
           {selectedEmployeeName ? ` · ${selectedEmployeeName}` : ""} · Page{" "}
           {page} of {totalPages}
-        </p>
-      </div>
+        </Typography>
+      </Stack>
 
       <TimesheetsFilters
         months={months}
@@ -164,30 +176,44 @@ export function TimesheetsView({
         to={to}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className={cn("p-4", dashboardCardClass)}>
-          <p className={dashboardMetricLabelClass}>Total hours (this page)</p>
-          <p className={dashboardMetricValueClass}>{totalHours.toFixed(1)}</p>
-        </Card>
-        <Card className={cn("p-4", dashboardCardClass)}>
-          <p className={dashboardMetricLabelClass}>Break hours (this page)</p>
-          <p className={dashboardMetricValueClass}>
-            {totalBreakHours.toFixed(1)}
-          </p>
-        </Card>
-        <Card className={cn("p-4", dashboardCardClass)}>
-          <p className={dashboardMetricLabelClass}>
-            {mode === "month" ? "Total shifts this month" : "Total shifts in range"}
-          </p>
-          <p className={dashboardMetricValueClass}>{total}</p>
-        </Card>
-      </div>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ ...dashboardCardSx, p: 2 }}>
+            <Typography sx={dashboardMetricLabelSx}>
+              Total hours (this page)
+            </Typography>
+            <Typography sx={dashboardMetricValueSx}>
+              {totalHours.toFixed(1)}
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ ...dashboardCardSx, p: 2 }}>
+            <Typography sx={dashboardMetricLabelSx}>
+              Break hours (this page)
+            </Typography>
+            <Typography sx={dashboardMetricValueSx}>
+              {totalBreakHours.toFixed(1)}
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ ...dashboardCardSx, p: 2 }}>
+            <Typography sx={dashboardMetricLabelSx}>
+              {mode === "month"
+                ? "Total shifts this month"
+                : "Total shifts in range"}
+            </Typography>
+            <Typography sx={dashboardMetricValueSx}>{total}</Typography>
+          </Card>
+        </Grid>
+      </Grid>
 
-      <Card className={cn("overflow-hidden", dashboardCardClass)}>
+      <Card sx={{ ...dashboardCardSx, overflow: "hidden" }}>
         <DataTable>
           <DataTableHeader>
-            <tr>
-              <DataTableHead className="w-8" />
+            <DataTableRow>
+              <DataTableHead sx={{ width: 32 }} />
               <DataTableHead>Employee</DataTableHead>
               <DataTableHead>Date</DataTableHead>
               <DataTableHead>Clock in</DataTableHead>
@@ -195,37 +221,37 @@ export function TimesheetsView({
               <DataTableHead>Breaks</DataTableHead>
               <DataTableHead>Hours</DataTableHead>
               <DataTableHead>Status</DataTableHead>
-              <DataTableHead className="w-28">Actions</DataTableHead>
-            </tr>
+              <DataTableHead sx={{ width: 112 }}>Actions</DataTableHead>
+            </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={9}>
+              <DataTableRow>
+                <DataTableCell colSpan={9}>
                   <DataTableEmpty>
                     No attendance records for the selected filters.
                   </DataTableEmpty>
-                </td>
-              </tr>
+                </DataTableCell>
+              </DataTableRow>
             ) : (
               rows.map((row) => {
                 const isOpen = expandedId === row.id;
                 return (
                   <Fragment key={row.id}>
                     <DataTableRow
-                      className="cursor-pointer"
+                      sx={{ cursor: "pointer" }}
                       onClick={() =>
                         setExpandedId(isOpen ? null : row.id)
                       }
                     >
-                      <DataTableCell className="text-[var(--eb-muted)]">
+                      <DataTableCell sx={{ color: "text.secondary" }}>
                         {isOpen ? (
                           <ChevronDown className="size-4" aria-hidden />
                         ) : (
                           <ChevronRight className="size-4" aria-hidden />
                         )}
                       </DataTableCell>
-                      <DataTableCell className="font-semibold text-[var(--eb-text)]">
+                      <DataTableCell sx={{ fontWeight: 600 }}>
                         {row.employeeName}
                       </DataTableCell>
                       <DataTableCell>
@@ -239,67 +265,128 @@ export function TimesheetsView({
                       <DataTableCell>
                         {row.clockOut ? formatTime(row.clockOut, tz) : "—"}
                       </DataTableCell>
-                      <DataTableCell className="font-mono text-[var(--eb-muted)]">
+                      <DataTableCell
+                        sx={{
+                          fontFamily: "var(--font-mono), monospace",
+                          color: "text.secondary",
+                        }}
+                      >
                         {row.breakCount > 0
                           ? `${row.breakCount} · ${row.breakHours?.toFixed(2) ?? "0"}h`
                           : "—"}
                       </DataTableCell>
-                      <DataTableCell className="font-mono">
+                      <DataTableCell
+                        sx={{ fontFamily: "var(--font-mono), monospace" }}
+                      >
                         {row.totalHours != null
                           ? row.totalHours.toFixed(2)
                           : "—"}
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <Stack
+                          direction="row"
+                          useFlexGap
+                          sx={{
+                            flexWrap: "wrap",
+                            gap: 0.75,
+                            alignItems: "center",
+                          }}
+                        >
                           {rowStatusBadge(row, dashboardTheme)}
                           {row.needsReview ? (
                             <StatusBadge tone="warning" theme={dashboardTheme}>
                               Needs review
                             </StatusBadge>
                           ) : null}
-                        </div>
+                        </Stack>
                       </DataTableCell>
                       <DataTableCell onClick={(e) => e.stopPropagation()}>
                         <EditTimesheetDialog row={row} timezone={timezone} />
                       </DataTableCell>
                     </DataTableRow>
                     {isOpen ? (
-                      <tr className="bg-[var(--eb-elevated)]/50">
-                        <td colSpan={9} className="px-6 py-4">
-                          <div className="flex flex-wrap items-end justify-between gap-4">
-                            <div className="grid gap-2 text-sm text-[var(--eb-text)] sm:grid-cols-4">
-                              <p>
-                                <span className="text-[var(--eb-muted)]">
+                      <DataTableRow
+                        sx={{
+                          bgcolor: "action.hover",
+                          "&:hover": { bgcolor: "action.hover" },
+                        }}
+                      >
+                        <DataTableCell colSpan={9}>
+                          <Stack
+                            direction="row"
+                            useFlexGap
+                            sx={{
+                              flexWrap: "wrap",
+                              gap: 2,
+                              alignItems: "flex-end",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "grid",
+                                gap: 1,
+                                fontSize: "0.875rem",
+                                color: "text.primary",
+                                gridTemplateColumns: {
+                                  xs: "1fr",
+                                  sm: "repeat(4, minmax(0, 1fr))",
+                                },
+                              }}
+                            >
+                              <Typography component="p" sx={{ m: 0 }}>
+                                <Box
+                                  component="span"
+                                  sx={{ color: "text.secondary" }}
+                                >
                                   Employee ID:
-                                </span>{" "}
-                                <span className="font-mono">{row.employeeId}</span>
-                              </p>
-                              <p>
-                                <span className="text-[var(--eb-muted)]">
+                                </Box>{" "}
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    fontFamily: "var(--font-mono), monospace",
+                                  }}
+                                >
+                                  {row.employeeId}
+                                </Box>
+                              </Typography>
+                              <Typography component="p" sx={{ m: 0 }}>
+                                <Box
+                                  component="span"
+                                  sx={{ color: "text.secondary" }}
+                                >
                                   Shift status:
-                                </span>{" "}
+                                </Box>{" "}
                                 {row.status}
-                              </p>
-                              <p>
-                                <span className="text-[var(--eb-muted)]">
+                              </Typography>
+                              <Typography component="p" sx={{ m: 0 }}>
+                                <Box
+                                  component="span"
+                                  sx={{ color: "text.secondary" }}
+                                >
                                   Recorded hours:
-                                </span>{" "}
+                                </Box>{" "}
                                 {row.totalHours ?? "In progress"}
-                              </p>
-                              <p>
-                                <span className="text-[var(--eb-muted)]">Breaks:</span>{" "}
+                              </Typography>
+                              <Typography component="p" sx={{ m: 0 }}>
+                                <Box
+                                  component="span"
+                                  sx={{ color: "text.secondary" }}
+                                >
+                                  Breaks:
+                                </Box>{" "}
                                 {row.breakCount > 0
                                   ? `${row.breakCount} (${row.breakHours?.toFixed(2) ?? "0"}h unpaid)`
                                   : "None recorded"}
-                              </p>
-                            </div>
+                              </Typography>
+                            </Box>
                             <EditTimesheetDialog
                               row={row}
                               timezone={timezone}
                             />
-                          </div>
-                        </td>
-                      </tr>
+                          </Stack>
+                        </DataTableCell>
+                      </DataTableRow>
                     ) : null}
                   </Fragment>
                 );
@@ -310,11 +397,14 @@ export function TimesheetsView({
       </Card>
 
       {total > 0 ? (
-        <div className="flex items-center justify-between">
-          <p className={dashboardPageIntroClass}>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
+          <Typography component="p" sx={dashboardPageIntroSx}>
             {total} shift{total === 1 ? "" : "s"} matching filters
-          </p>
-          <div className="flex gap-2">
+          </Typography>
+          <Stack direction="row" spacing={1}>
             {page > 1 ? (
               <Button
                 variant="outline"
@@ -333,9 +423,9 @@ export function TimesheetsView({
                 Next
               </Button>
             ) : null}
-          </div>
-        </div>
+          </Stack>
+        </Stack>
       ) : null}
-    </div>
+    </Stack>
   );
 }

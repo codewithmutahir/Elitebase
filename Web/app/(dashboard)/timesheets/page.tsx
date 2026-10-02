@@ -1,3 +1,4 @@
+import Stack from "@mui/material/Stack";
 import { TimesheetsExportPanel } from "@/components/timesheets/timesheets-export-panel";
 import { TimesheetsView } from "@/components/timesheets/timesheets-view";
 import { companyTimezone } from "@/lib/dashboard/format";
@@ -71,7 +72,7 @@ export default async function TimesheetsPage({ searchParams }: TimesheetsPagePro
   });
 
   return (
-    <div className="space-y-6">
+    <Stack spacing={3}>
       <TimesheetsView
         rows={result.rows}
         timezone={company.timezone}
@@ -88,6 +89,6 @@ export default async function TimesheetsPage({ searchParams }: TimesheetsPagePro
         queryBase={queryBase}
       />
       <TimesheetsExportPanel months={months} employees={employees} />
-    </div>
+    </Stack>
   );
 }

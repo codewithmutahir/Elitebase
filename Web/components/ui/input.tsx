@@ -1,56 +1,105 @@
-import * as React from "react";
-import { Input as InputPrimitive } from "@base-ui/react/input";
+"use client";
 
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import FormHelperText from "@mui/material/FormHelperText";
+import FormLabel from "@mui/material/FormLabel";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import {
+  forwardRef,
+  type ChangeEvent,
+  type ComponentProps,
+} from "react";
 
-export type InputProps = React.ComponentProps<"input"> & {
+export type InputProps = Omit<ComponentProps<"input">, "color" | "size"> & {
   label?: string;
   hint?: string;
   error?: string;
 };
 
-function Input({
-  className,
-  type,
-  label,
-  hint,
-  error,
-  id,
-  ...props
-}: InputProps) {
-  const inputId = id ?? props.name;
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  {
+    className,
+    type,
+    label,
+    hint,
+    error,
+    id,
+    style,
+    name,
+    value,
+    defaultValue,
+    onChange,
+    onBlur,
+    onFocus,
+    placeholder,
+    disabled,
+    required,
+    readOnly,
+    autoComplete,
+    autoFocus,
+    min,
+    max,
+    step,
+    ...rest
+  },
+  ref
+) {
+  const inputId = id ?? name;
+  const hasMeta = Boolean(label || hint || error);
 
   const field = (
-    <InputPrimitive
+    <TextField
+      inputRef={ref}
       id={inputId}
+      name={name}
       type={type}
       data-slot="input"
-      className={cn(
-        "h-10 w-full min-w-0 rounded-lg border border-input bg-transparent px-3 py-2 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        error && "border-red-300 focus-visible:ring-red-500/20",
-        className
-      )}
-      aria-invalid={error ? true : undefined}
-      {...props}
+      className={className}
+      style={style}
+      value={value}
+      defaultValue={defaultValue}
+      onChange={onChange as ((e: ChangeEvent<HTMLInputElement>) => void) | undefined}
+      onBlur={onBlur}
+      onFocus={onFocus}
+      placeholder={placeholder}
+      disabled={disabled}
+      required={required}
+      error={Boolean(error)}
+      autoComplete={autoComplete}
+      autoFocus={autoFocus}
+      fullWidth
+      size="small"
+      slotProps={{
+        htmlInput: {
+          readOnly,
+          min,
+          max,
+          step,
+          ...rest,
+        },
+      }}
     />
   );
 
-  if (!label && !hint && !error) {
+  if (!hasMeta) {
     return field;
   }
 
   return (
-    <div className="space-y-1.5">
-      {label ? <Label htmlFor={inputId}>{label}</Label> : null}
+    <Stack useFlexGap spacing={0.75} data-slot="input-field">
+      {label ? (
+        <FormLabel htmlFor={inputId} data-slot="label">
+          {label}
+        </FormLabel>
+      ) : null}
       {field}
       {error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <FormHelperText error>{error}</FormHelperText>
       ) : hint ? (
-        <p className="text-sm text-slate-500">{hint}</p>
+        <FormHelperText>{hint}</FormHelperText>
       ) : null}
-    </div>
+    </Stack>
   );
-}
+});
 
 export { Input };

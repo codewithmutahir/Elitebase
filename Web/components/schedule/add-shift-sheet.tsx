@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createScheduleShift } from "@/app/(dashboard)/schedule/schedule/actions";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -16,8 +18,6 @@ import {
 import type { DepartmentWithRoles } from "@/lib/departments/queries";
 import type { ScheduleEmployeeRow } from "@/lib/schedules/queries";
 import {
-  dashboardFieldInputClass,
-  dashboardNativeSelectClass,
   dashboardPageIntroClass,
   dashboardSectionTitleClass,
   dashboardSheetContentClass,
@@ -137,10 +137,10 @@ export function AddShiftSheet({
         overlayClassName={dashboardSheetOverlayClass}
         className={cn(
           dashboardSheetContentClass,
-          "w-full max-w-md gap-0 p-0 sm:max-w-md"
+          "flex h-full w-full max-w-md flex-col gap-0 p-0 sm:max-w-md"
         )}
       >
-        <SheetHeader className="border-b border-[var(--eb-border)] px-6 py-5 pr-14">
+        <SheetHeader className="shrink-0 border-b border-[var(--eb-border)] px-6 pb-5 pt-6 pr-14">
           <SheetTitle className={dashboardSectionTitleClass}>Add shift</SheetTitle>
           <SheetDescription className={dashboardPageIntroClass}>
             {isOpenShift
@@ -151,7 +151,7 @@ export function AddShiftSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-4">
+        <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto px-6 py-5 pb-8">
           {error ? (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
               {error}
@@ -159,104 +159,84 @@ export function AddShiftSheet({
           ) : null}
 
           {!isOpenShift ? (
-            <div className="space-y-1.5">
-              <Label htmlFor="shiftEmployee">Employee</Label>
-              <select
-                id="shiftEmployee"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                className={dashboardNativeSelectClass}
-              >
-                <option value="">Select employee</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.full_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              id="shiftEmployee"
+              label="Employee"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+              emptyLabel="Select employee"
+              options={employees.map((emp) => ({
+                value: emp.id,
+                label: emp.full_name,
+              }))}
+            />
           ) : null}
 
           <div className="space-y-1.5">
-            <Label>Date</Label>
+            <p className="text-sm font-medium text-[var(--eb-text)]">Date</p>
             <p className="text-sm font-medium text-[var(--eb-text)]">{dateLabel}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="shiftStart">Start time</Label>
-              <input
-                id="shiftStart"
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className={cn("flex h-10 w-full px-3 text-sm", dashboardFieldInputClass)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="shiftEnd">End time</Label>
-              <input
-                id="shiftEnd"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className={cn("flex h-10 w-full px-3 text-sm", dashboardFieldInputClass)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="shiftDepartment">Department</Label>
-              <select
-                id="shiftDepartment"
-                value={departmentId}
-                onChange={(e) => {
-                  setDepartmentId(e.target.value);
-                  setRoleId("");
-                }}
-                className={dashboardNativeSelectClass}
-              >
-                <option value="">None</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="shiftRole">Role</Label>
-              <select
-                id="shiftRole"
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                disabled={!departmentId}
-                className={cn(dashboardNativeSelectClass, "disabled:opacity-50")}
-              >
-                <option value="">None</option>
-                {rolesForDepartment.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="shiftNotes">Notes (optional)</Label>
-            <textarea
-              id="shiftNotes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className={cn("w-full px-3 py-2 text-sm", dashboardFieldInputClass)}
+            <Input
+              id="shiftStart"
+              label="Start time"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+            <Input
+              id="shiftEnd"
+              label="End time"
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              id="shiftDepartment"
+              label="Department"
+              value={departmentId}
+              onChange={(e) => {
+                setDepartmentId(e.target.value);
+                setRoleId("");
+              }}
+              options={[
+                { value: "", label: "None" },
+                ...departments.map((dept) => ({
+                  value: dept.id,
+                  label: dept.name,
+                })),
+              ]}
+            />
+            <Select
+              id="shiftRole"
+              label="Role"
+              value={roleId}
+              onChange={(e) => setRoleId(e.target.value)}
+              disabled={!departmentId}
+              options={[
+                { value: "", label: "None" },
+                ...rolesForDepartment.map((role) => ({
+                  value: role.id,
+                  label: role.name,
+                })),
+              ]}
+            />
+          </div>
+
+          <Textarea
+            id="shiftNotes"
+            label="Notes (optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+          />
+
           <div className="space-y-2">
-            <Label>Color</Label>
+            <p className="text-sm font-medium text-[var(--eb-text)]">Color</p>
             <div className="flex flex-wrap gap-2">
               {SHIFT_PRESET_COLORS.map((preset) => (
                 <button

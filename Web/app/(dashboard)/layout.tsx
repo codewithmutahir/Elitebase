@@ -1,3 +1,4 @@
+import { MuiProvider } from "@/components/providers/mui-provider";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CompanyProvider } from "@/contexts/company-context";
 import { requireCompanySession } from "@/lib/employees/session";
@@ -18,7 +19,9 @@ export default async function DashboardGroupLayout({
         isSuperAdmin: isSuperAdmin(user.email),
       }}
     >
-      <DashboardShell>{children}</DashboardShell>
+      <MuiProvider defaultMode="dark">
+        <DashboardShell>{children}</DashboardShell>
+      </MuiProvider>
     </CompanyProvider>
   );
 }

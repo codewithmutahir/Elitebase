@@ -1,5 +1,7 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
@@ -45,31 +47,33 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
   };
 
   return (
-    <form
+    <Box
+      component="form"
       noValidate
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4"
       aria-busy={isPending || isSubmitting}
     >
-      {lockMessage ? (
-        <AuthAlert variant="error">{lockMessage}</AuthAlert>
-      ) : null}
+      <Stack spacing={2}>
+        {lockMessage ? (
+          <AuthAlert variant="error">{lockMessage}</AuthAlert>
+        ) : null}
 
-      <AuthField
-        id="email"
-        label="Work email"
-        type="email"
-        autoComplete="email"
-        aria-required
-        error={errors.email?.message}
-        {...register("email")}
-      />
+        <AuthField
+          id="email"
+          label="Work email"
+          type="email"
+          autoComplete="email"
+          aria-required
+          error={errors.email?.message}
+          {...register("email")}
+        />
 
-      <AuthSubmitButton
-        idleLabel="Send reset link"
-        pendingLabel="Sending…"
-        disabled={!canSubmit || isPending || isSubmitting}
-      />
-    </form>
+        <AuthSubmitButton
+          idleLabel="Send reset link"
+          pendingLabel="Sending…"
+          disabled={!canSubmit || isPending || isSubmitting}
+        />
+      </Stack>
+    </Box>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui-legacy/button";
 import { USER_FACING } from "@/lib/errors/user-facing";
 import { cn } from "@/lib/utils";
 

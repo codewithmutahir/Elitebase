@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarDays,
   ChevronDown,
@@ -18,29 +17,32 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import Box from "@mui/material/Box";
+import Collapse from "@mui/material/Collapse";
+import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import { useTheme, type Theme } from "@mui/material/styles";
+import { muiAlpha } from "@/lib/mui/alpha";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useCompany } from "@/contexts/company-context";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "sidebar-expanded";
 const SCHEDULE_OPEN_KEY = "sidebar-schedule-open";
 const TEAM_OPEN_KEY = "sidebar-team-open";
 
-const navActive =
-  "bg-[var(--eb-accent)]/15 text-[var(--eb-accent)]";
-const navIdle =
-  "text-[var(--eb-muted)] hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]";
-const iconActive = "text-[var(--eb-accent)]";
-const iconIdle = "text-[var(--eb-muted)]";
-const dotActive = "bg-[var(--eb-accent)]";
-const dotIdle = "bg-[var(--eb-muted)]/45";
+/** Expanded desktop drawer width (matches previous layout shell). */
+export const SIDEBAR_WIDTH = 240;
+export const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 type NavItem = {
   href: string;
@@ -86,8 +88,73 @@ function companyInitials(name: string) {
     .toUpperCase();
 }
 
-export function Sidebar() {
+type SidebarProps = {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+};
+
+function CollapseSidebarControl({
+  isWide,
+  pinned,
+  onToggle,
+}: {
+  isWide: boolean;
+  pinned: boolean;
+  onToggle: () => void;
+}) {
+  const button = (
+    <ListItemButton
+      type="button"
+      onClick={onToggle}
+      aria-label={pinned ? "Collapse sidebar" : "Expand sidebar"}
+      sx={{
+        minHeight: 44,
+        borderRadius: 1,
+        width: isWide ? "100%" : 36,
+        minWidth: isWide ? undefined : 36,
+        px: isWide ? 1.5 : 0,
+        justifyContent: isWide ? "flex-start" : "center",
+        gap: 1,
+        color: "text.secondary",
+        "&:hover": { color: "text.primary" },
+      }}
+    >
+      {isWide ? (
+        <>
+          <ChevronLeft size={16} aria-hidden />
+          <Typography
+            component="span"
+            sx={{
+              flex: 1,
+              textAlign: "left",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            }}
+          >
+            Collapse
+          </Typography>
+        </>
+      ) : (
+        <ChevronRight size={16} aria-hidden />
+      )}
+    </ListItemButton>
+  );
+
+  if (isWide) return button;
+
+  return (
+    <Tooltip title="Expand sidebar" placement="right">
+      <Box component="span" sx={{ display: "inline-flex" }}>
+        {button}
+      </Box>
+    </Tooltip>
+  );
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
   const { company, user, isSuperAdmin } = useCompany();
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -95,7 +162,8 @@ export function Sidebar() {
   const [teamOpen, setTeamOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const isWide = pinned || hovered;
+  const isWide = isMobile || pinned || hovered;
+  const drawerWidth = isWide ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_COLLAPSED;
   const initials = userInitials(user.name, user.email);
   const companyAbbr = companyInitials(company.name);
 
@@ -126,16 +194,16 @@ export function Sidebar() {
   }, [scheduleActive, teamActive]);
 
   useEffect(() => {
-    if (scheduleActive) {
-      setScheduleOpen(true);
-    }
+    if (scheduleActive) setScheduleOpen(true);
   }, [scheduleActive]);
 
   useEffect(() => {
-    if (teamActive) {
-      setTeamOpen(true);
-    }
+    if (teamActive) setTeamOpen(true);
   }, [teamActive]);
+
+  useEffect(() => {
+    onMobileClose?.();
+  }, [pathname, onMobileClose]);
 
   const setPinnedState = useCallback((value: boolean) => {
     setPinned(value);
@@ -206,291 +274,242 @@ export function Sidebar() {
     });
   }
 
+  const navButtonSx = (active: boolean, indented = false) => ({
+    minHeight: indented ? 40 : 44,
+    borderRadius: indented ? 999 : 1,
+    mx: 0,
+    px: isWide ? 1.5 : 0,
+    justifyContent: isWide ? "flex-start" : "center",
+    ml: indented && isWide ? 3 : 0,
+    width: indented && isWide ? "calc(100% - 24px)" : "100%",
+    color: active ? "primary.main" : "text.secondary",
+    bgcolor: "transparent",
+    "&:hover": {
+      color: active ? "primary.main" : "text.primary",
+    },
+    "&.Mui-selected": {
+      color: "primary.main",
+    },
+  });
+
+  const iconSx = (active: boolean) => ({
+    minWidth: 0,
+    mr: isWide ? 1.5 : 0,
+    color: active ? "primary.main" : "text.secondary",
+    justifyContent: "center",
+  });
+
   function renderNavItem(item: NavItem, indented = false) {
     const active = isActive(item.href);
     const Icon = item.icon;
-
-    const linkClassName = cn(
-      "flex h-11 items-center rounded-lg text-sm font-medium transition-colors",
-      isWide ? "w-full gap-3 px-3" : "w-11 justify-center",
-      indented && isWide && "ml-6 h-10 w-[calc(100%-1.5rem)] px-3",
-      active ? navActive : navIdle
+    const button = (
+      <ListItemButton
+        key={item.href}
+        component={Link}
+        href={item.href}
+        selected={active}
+        aria-label={!isWide ? item.label : undefined}
+        onClick={() => {
+          if (isMobile) onMobileClose?.();
+        }}
+        sx={navButtonSx(active, indented)}
+      >
+        <ListItemIcon sx={iconSx(active)}>
+          <Icon size={20} strokeWidth={active ? 2.5 : 2} aria-hidden />
+        </ListItemIcon>
+        {isWide ? (
+          <ListItemText
+            primary={item.label}
+            slotProps={{
+              primary: {
+                noWrap: true,
+                sx: { fontSize: "0.875rem", fontWeight: 500 },
+              },
+            }}
+          />
+        ) : null}
+      </ListItemButton>
     );
 
-    const linkContent = (
-      <>
-        {Icon ? (
-          <Icon
-            className={cn(
-              "size-5 shrink-0",
-              active ? iconActive : iconIdle
-            )}
-            strokeWidth={active ? 2.5 : 2}
-            aria-hidden
-          />
-        ) : (
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              active ? dotActive : dotIdle
-            )}
-            aria-hidden
-          />
-        )}
-        <AnimatePresence initial={false}>
-          {isWide ? (
-            <motion.span
-              key={`label-${item.href}`}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="truncate"
-            >
-              {item.label}
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-      </>
-    );
-
-    if (isWide) {
-      return (
-        <li key={item.href}>
-          <Link href={item.href} className={linkClassName}>
-            {linkContent}
-          </Link>
-        </li>
-      );
-    }
+    if (isWide) return button;
 
     return (
-      <li key={item.href}>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Link href={item.href} className={linkClassName} aria-label={item.label} />
-            }
-          >
-            {linkContent}
-          </TooltipTrigger>
-          <TooltipContent side="right">{item.label}</TooltipContent>
-        </Tooltip>
-      </li>
+      <Tooltip key={item.href} title={item.label} placement="right">
+        {button}
+      </Tooltip>
     );
   }
 
-  function renderScheduleSubItem(item: Omit<NavItem, "icon">) {
-    const active = isActive(item.href);
-    const linkClassName = cn(
-      "flex h-10 items-center gap-2 rounded-lg text-sm font-medium transition-colors",
-      "ml-6 w-[calc(100%-1.5rem)] px-3",
-      active ? navActive : navIdle
-    );
-
+  function renderSubItem(
+    item: Omit<NavItem, "icon">,
+    activeOverride?: boolean
+  ) {
+    const active = activeOverride ?? isActive(item.href);
     return (
-      <li key={item.href}>
-        <Link href={item.href} className={linkClassName}>
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              active ? dotActive : dotIdle
-            )}
-            aria-hidden
-          />
-          <span className="truncate">{item.label}</span>
-        </Link>
-      </li>
-    );
-  }
-
-  function renderTeamSubItem(item: Omit<NavItem, "icon">) {
-    const active =
-      item.href === "/employees"
-        ? pathname === "/employees" || pathname.startsWith("/employees/")
-        : isActive(item.href);
-    const linkClassName = cn(
-      "flex h-10 items-center gap-2 rounded-lg text-sm font-medium transition-colors",
-      "ml-6 w-[calc(100%-1.5rem)] px-3",
-      active ? navActive : navIdle
-    );
-
-    return (
-      <li key={item.href}>
-        <Link href={item.href} className={linkClassName}>
-          <span
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              active ? dotActive : dotIdle
-            )}
-            aria-hidden
-          />
-          <span className="truncate">{item.label}</span>
-        </Link>
-      </li>
+      <ListItemButton
+        key={item.href}
+        component={Link}
+        href={item.href}
+        selected={active}
+        onClick={() => {
+          if (isMobile) onMobileClose?.();
+        }}
+        sx={navButtonSx(active, true)}
+      >
+        <Box
+          component="span"
+          sx={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            flexShrink: 0,
+            mr: 1,
+            bgcolor: active
+              ? "primary.main"
+              : muiAlpha(theme, (palette) => palette.text.secondary, 0.45),
+          }}
+          aria-hidden
+        />
+        <ListItemText
+          primary={item.label}
+          slotProps={{
+              primary: {
+                noWrap: true,
+                sx: { fontSize: "0.875rem", fontWeight: 500 },
+              },
+            }}
+        />
+      </ListItemButton>
     );
   }
 
   function renderTeamSection() {
     const parentActive = teamActive;
-    const parentClassName = cn(
-      "flex h-11 w-full items-center rounded-lg text-sm font-medium transition-colors",
-      isWide ? "gap-3 px-3" : "w-11 justify-center",
-      parentActive ? navActive : navIdle
-    );
-
-    const parentInner = (
-      <>
-        <Users
-          className={cn(
-            "size-5 shrink-0",
-            parentActive ? iconActive : iconIdle
-          )}
-          strokeWidth={parentActive ? 2.5 : 2}
-          aria-hidden
-        />
+    const parent = (
+      <ListItemButton
+        onClick={handleTeamParentClick}
+        selected={parentActive}
+        aria-expanded={teamOpen}
+        aria-label={!isWide ? "Team" : undefined}
+        sx={navButtonSx(parentActive)}
+      >
+        <ListItemIcon sx={iconSx(parentActive)}>
+          <Users
+            size={20}
+            strokeWidth={parentActive ? 2.5 : 2}
+            aria-hidden
+          />
+        </ListItemIcon>
         {isWide ? (
           <>
-            <span className="flex-1 truncate text-left">Team</span>
+            <ListItemText
+              primary="Team"
+              slotProps={{
+              primary: {
+                noWrap: true,
+                sx: { fontSize: "0.875rem", fontWeight: 500 },
+              },
+            }}
+            />
             <ChevronDown
-              className={cn(
-                "size-4 shrink-0 text-[var(--eb-muted)] transition-transform duration-200",
-                teamOpen && "rotate-180"
-              )}
+              size={16}
               aria-hidden
+              style={{
+                color: theme.palette.text.secondary,
+                transform: teamOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.2s ease",
+                flexShrink: 0,
+              }}
             />
           </>
         ) : null}
-      </>
+      </ListItemButton>
     );
 
     return (
-      <li>
+      <Box component="li" sx={{ listStyle: "none" }}>
         {isWide ? (
-          <button
-            type="button"
-            onClick={handleTeamParentClick}
-            className={parentClassName}
-            aria-expanded={teamOpen}
-          >
-            {parentInner}
-          </button>
+          parent
         ) : (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  onClick={handleTeamParentClick}
-                  className={parentClassName}
-                  aria-label="Team"
-                  aria-expanded={teamOpen}
-                >
-                  {parentInner}
-                </button>
-              }
-            />
-            <TooltipContent side="right">Team</TooltipContent>
+          <Tooltip title="Team" placement="right">
+            {parent}
           </Tooltip>
         )}
-
-        <AnimatePresence initial={false}>
-          {teamOpen && isWide ? (
-            <motion.ul
-              key="team-sub"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="mt-1 space-y-0.5 overflow-hidden"
-            >
-              {teamSubItems.map((item) => renderTeamSubItem(item))}
-            </motion.ul>
-          ) : null}
-        </AnimatePresence>
-      </li>
+        <Collapse in={teamOpen && isWide} timeout="auto" unmountOnExit>
+          <List disablePadding sx={{ mt: 0.5 }}>
+            {teamSubItems.map((item) =>
+              renderSubItem(
+                item,
+                item.href === "/employees"
+                  ? pathname === "/employees" ||
+                      pathname.startsWith("/employees/")
+                  : undefined
+              )
+            )}
+          </List>
+        </Collapse>
+      </Box>
     );
   }
 
   function renderScheduleSection() {
     const parentActive = scheduleActive;
-
-    const parentClassName = cn(
-      "flex h-11 w-full items-center rounded-lg text-sm font-medium transition-colors",
-      isWide ? "gap-3 px-3" : "w-11 justify-center",
-      parentActive ? navActive : navIdle
-    );
-
-    const parentInner = (
-      <>
-        <CalendarDays
-          className={cn(
-            "size-5 shrink-0",
-            parentActive ? iconActive : iconIdle
-          )}
-          strokeWidth={parentActive ? 2.5 : 2}
-          aria-hidden
-        />
+    const parent = (
+      <ListItemButton
+        onClick={handleScheduleParentClick}
+        selected={parentActive}
+        aria-expanded={scheduleOpen}
+        aria-label={!isWide ? "Schedule" : undefined}
+        sx={navButtonSx(parentActive)}
+      >
+        <ListItemIcon sx={iconSx(parentActive)}>
+          <CalendarDays
+            size={20}
+            strokeWidth={parentActive ? 2.5 : 2}
+            aria-hidden
+          />
+        </ListItemIcon>
         {isWide ? (
           <>
-            <span className="flex-1 truncate text-left">Schedule</span>
+            <ListItemText
+              primary="Schedule"
+              slotProps={{
+              primary: {
+                noWrap: true,
+                sx: { fontSize: "0.875rem", fontWeight: 500 },
+              },
+            }}
+            />
             <ChevronDown
-              className={cn(
-                "size-4 shrink-0 text-[var(--eb-muted)] transition-transform duration-200",
-                scheduleOpen && "rotate-180"
-              )}
+              size={16}
               aria-hidden
+              style={{
+                color: theme.palette.text.secondary,
+                transform: scheduleOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.2s ease",
+                flexShrink: 0,
+              }}
             />
           </>
         ) : null}
-      </>
+      </ListItemButton>
     );
 
     return (
-      <li>
+      <Box component="li" sx={{ listStyle: "none" }}>
         {isWide ? (
-          <button
-            type="button"
-            onClick={handleScheduleParentClick}
-            className={parentClassName}
-            aria-expanded={scheduleOpen}
-          >
-            {parentInner}
-          </button>
+          parent
         ) : (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  onClick={handleScheduleParentClick}
-                  className={parentClassName}
-                  aria-label="Schedule"
-                  aria-expanded={scheduleOpen}
-                >
-                  {parentInner}
-                </button>
-              }
-            />
-            <TooltipContent side="right">Schedule</TooltipContent>
+          <Tooltip title="Schedule" placement="right">
+            {parent}
           </Tooltip>
         )}
-
-        <AnimatePresence initial={false}>
-          {scheduleOpen && isWide ? (
-            <motion.ul
-              key="schedule-sub"
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="mt-1 space-y-0.5 overflow-hidden"
-            >
-              {scheduleSubItems.map((item) => renderScheduleSubItem(item))}
-            </motion.ul>
-          ) : null}
-        </AnimatePresence>
-      </li>
+        <Collapse in={scheduleOpen && isWide} timeout="auto" unmountOnExit>
+          <List disablePadding sx={{ mt: 0.5 }}>
+            {scheduleSubItems.map((item) => renderSubItem(item))}
+          </List>
+        </Collapse>
+      </Box>
     );
   }
 
@@ -500,167 +519,260 @@ export function Sidebar() {
     icon: ShieldCheck,
   };
 
-  return (
-    <aside
-      className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-[var(--eb-border)] bg-[var(--eb-surface)]/95 backdrop-blur-md transition-[width] duration-300 ease-in-out",
-        isWide ? "w-[240px]" : "w-[64px]"
-      )}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onDoubleClick={() => setPinnedState(!pinned)}
+  function renderDrawerContent(opts: { interactiveCollapse: boolean }) {
+    return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+      onMouseEnter={() => {
+        if (opts.interactiveCollapse) setHovered(true);
+      }}
+      onMouseLeave={() => {
+        if (opts.interactiveCollapse) setHovered(false);
+      }}
+      onDoubleClick={() => {
+        if (opts.interactiveCollapse) setPinnedState(!pinned);
+      }}
     >
-      <div
-        className={cn(
-          "flex shrink-0 items-center border-b border-[var(--eb-border)] px-3 py-4",
-          isWide ? "gap-3" : "justify-center"
-        )}
+      <Stack
+        direction="row"
+        spacing={isWide ? 1.5 : 0}
+        sx={{
+          flexShrink: 0,
+          px: 1.5,
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          alignItems: "center",
+          justifyContent: isWide ? "flex-start" : "center",
+        }}
       >
         {company.logo_url ? (
-          <div className="relative size-10 shrink-0">
+          <Box sx={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
             <Image
               src={company.logo_url}
               alt={`${company.name} logo`}
               fill
-              className="object-contain"
+              style={{ objectFit: "contain" }}
               unoptimized
             />
-          </div>
+          </Box>
         ) : (
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-bold text-[var(--eb-accent)]">
+          <Box
+            sx={{
+              display: "flex",
+              width: 36,
+              height: 36,
+              flexShrink: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "background.default",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              color: "primary.main",
+            }}
+          >
             {companyAbbr}
-          </div>
+          </Box>
         )}
-        <AnimatePresence initial={false}>
-          {isWide ? (
-            <motion.div
-              key="brand"
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="min-w-0 flex-1"
+        {isWide ? (
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              noWrap
+              sx={{ fontSize: "0.875rem", fontWeight: 600, color: "text.primary" }}
             >
-              <p className="truncate text-sm font-semibold text-[var(--eb-text)]">
-                {company.name}
-              </p>
-              <p className="text-xs font-medium text-[var(--eb-muted)]">Elitebase</p>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
+              {company.name}
+            </Typography>
+            <Typography
+              sx={{ fontSize: "0.75rem", fontWeight: 500, color: "text.secondary" }}
+            >
+              Elitebase
+            </Typography>
+          </Box>
+        ) : null}
+      </Stack>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
-        <ul className="space-y-1">
+      <Box
+        component="nav"
+        sx={{
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden",
+          px: 1,
+          py: 1.5,
+        }}
+      >
+        <List disablePadding sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
           {renderNavItem(mainNav[0])}
           {renderTeamSection()}
           {renderScheduleSection()}
           {mainNav.slice(1).map((item) => renderNavItem(item))}
-        </ul>
+        </List>
 
         {isSuperAdmin ? (
           <>
-            <Separator className="my-3" />
-            <ul className="space-y-1">{renderNavItem(superAdminItem)}</ul>
+            <Divider sx={{ my: 1.5 }} />
+            <List disablePadding sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+              {renderNavItem(superAdminItem)}
+            </List>
           </>
         ) : null}
-      </nav>
+      </Box>
 
-      <div
-        className={cn(
-          "shrink-0 border-t border-[var(--eb-border)] p-2",
-          isWide ? "px-2" : "flex justify-center"
-        )}
-      >
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                onClick={() => setPinnedState(!pinned)}
-                className={cn(
-                  "flex items-center justify-center rounded-lg text-[var(--eb-muted)] transition-colors hover:bg-[var(--eb-hover-overlay)] hover:text-[var(--eb-text)]",
-                  isWide ? "h-9 w-full gap-2 px-3" : "size-9"
-                )}
-                aria-label={pinned ? "Collapse sidebar" : "Expand sidebar"}
-              >
-                {isWide ? (
-                  <>
-                    <ChevronLeft className="size-4 shrink-0" aria-hidden />
-                    <span className="flex-1 truncate text-left text-sm font-medium">
-                      Collapse
-                    </span>
-                  </>
-                ) : (
-                  <ChevronRight className="size-4" aria-hidden />
-                )}
-              </button>
-            }
+      {opts.interactiveCollapse ? (
+        <Box
+          sx={{
+            flexShrink: 0,
+            borderTop: "1px solid",
+            borderColor: "divider",
+            p: 1,
+            display: "flex",
+            justifyContent: isWide ? "stretch" : "center",
+          }}
+        >
+          <CollapseSidebarControl
+            isWide={isWide}
+            pinned={pinned}
+            onToggle={() => setPinnedState(!pinned)}
           />
-          {!isWide ? (
-            <TooltipContent side="right">Expand sidebar</TooltipContent>
-          ) : null}
-        </Tooltip>
-      </div>
+        </Box>
+      ) : null}
 
-      <div
-        className={cn(
-          "shrink-0 border-t border-[var(--eb-border)] p-2",
-          isWide ? "px-3 py-3" : "flex justify-center py-3"
-        )}
+      <Box
+        sx={{
+          flexShrink: 0,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          p: 1,
+          px: isWide ? 1.5 : 1,
+          py: 1.5,
+          display: "flex",
+          justifyContent: isWide ? "stretch" : "center",
+        }}
       >
         {isWide ? (
-          <div className="flex items-center gap-3">
-            <Avatar className="size-8">
-              <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-text)]">
-                {initials}
-              </AvatarFallback>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ width: "100%", alignItems: "center" }}
+          >
+            <Avatar>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-[var(--eb-text)]">
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                noWrap
+                sx={{ fontSize: "0.875rem", fontWeight: 600, color: "text.primary" }}
+              >
                 {user.name || "Account"}
-              </p>
-              <p className="truncate text-xs text-[var(--eb-muted)]">{user.email}</p>
-            </div>
-            <button
+              </Typography>
+              <Typography noWrap sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+                {user.email}
+              </Typography>
+            </Box>
+            <IconButton
               type="button"
               onClick={handleSignOut}
-              className="rounded-lg p-2 text-[var(--eb-muted)] transition-colors hover:bg-[var(--eb-hover-overlay)] hover:text-red-400"
               aria-label="Log out"
+              size="small"
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "error.main", bgcolor: "action.hover" },
+              }}
             >
-              <LogOut className="size-4" aria-hidden />
-            </button>
-          </div>
+              <LogOut size={16} aria-hidden />
+            </IconButton>
+          </Stack>
         ) : (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--eb-accent)]/50"
-                  aria-label={user.email}
-                >
-                  <Avatar className="size-8">
-                    <AvatarFallback className="border border-[var(--eb-border)] bg-[var(--eb-elevated)] text-xs font-semibold text-[var(--eb-text)]">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              }
-            />
-            <TooltipContent side="right">
-              <p className="font-medium">{user.name || user.email}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </TooltipContent>
+          <Tooltip
+            title={
+              <Box>
+                <Typography sx={{ fontWeight: 500, fontSize: "0.8125rem" }}>
+                  {user.name || user.email}
+                </Typography>
+                <Typography sx={{ fontSize: "0.75rem", opacity: 0.8 }}>
+                  {user.email}
+                </Typography>
+              </Box>
+            }
+            placement="right"
+          >
+            <IconButton
+              type="button"
+              aria-label={user.email}
+              sx={{ p: 0 }}
+            >
+              <Avatar>
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+            </IconButton>
           </Tooltip>
         )}
-      </div>
+      </Box>
 
-      {mounted && !pinned ? (
-        <span className="sr-only">
+      {mounted && !pinned && opts.interactiveCollapse ? (
+        <Typography component="span" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
           Double-click sidebar to pin expanded. Hover to expand temporarily.
-        </span>
+        </Typography>
       ) : null}
-    </aside>
+    </Box>
+    );
+  }
+
+  const paperSx = {
+    width: drawerWidth,
+    boxSizing: "border-box" as const,
+    borderRight: "1px solid",
+    borderColor: "divider",
+    bgcolor: (t: Theme) =>
+      muiAlpha(t, (palette) => palette.background.paper, 0.95),
+    backdropFilter: "blur(12px)",
+    backgroundImage: "none",
+    transition: theme.transitions.create("width", {
+      easing: theme.transitions.easing.easeInOut,
+      duration: theme.transitions.duration.standard,
+    }),
+    overflowX: "hidden" as const,
+  };
+
+  return isMobile ? (
+    <Drawer
+      variant="temporary"
+      open={mobileOpen}
+      onClose={onMobileClose}
+      ModalProps={{ keepMounted: true }}
+      sx={{
+        "& .MuiDrawer-paper": {
+          ...paperSx,
+          width: SIDEBAR_WIDTH,
+        },
+      }}
+    >
+      {renderDrawerContent({ interactiveCollapse: false })}
+    </Drawer>
+  ) : (
+    <Drawer
+      variant="permanent"
+      open
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        "& .MuiDrawer-paper": {
+          ...paperSx,
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+        },
+      }}
+    >
+      {renderDrawerContent({ interactiveCollapse: true })}
+    </Drawer>
   );
 }

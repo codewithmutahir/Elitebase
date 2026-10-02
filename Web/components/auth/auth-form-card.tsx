@@ -1,5 +1,10 @@
-import { cn } from "@/lib/utils";
+"use client";
+
 import type { ReactNode } from "react";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 type AuthFormCardProps = {
   title: string;
@@ -20,38 +25,68 @@ export function AuthFormCard({
   className,
 }: AuthFormCardProps) {
   return (
-    <div
-      className={cn(
-        "w-full max-w-[520px] rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-surface)]/45 p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm sm:p-9",
-        className
-      )}
+    <Paper
+      elevation={0}
+      className={className}
+      sx={{
+        width: "100%",
+        maxWidth: 520,
+        borderRadius: "16px",
+        border: "1px solid",
+        borderColor: "var(--eb-border)",
+        bgcolor: "rgba(14, 21, 36, 0.85)",
+        p: { xs: 3.5, sm: 4.5 },
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+        backdropFilter: "blur(8px)",
+        backgroundImage: "none",
+      }}
     >
-      <div className="mb-7 sm:mb-8">
+      <Box sx={{ mb: { xs: 3.5, sm: 4 } }}>
         {eyebrow ? (
-          <p className="text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-[var(--eb-accent)]">
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              color: "var(--eb-accent)",
+            }}
+          >
             {eyebrow}
-          </p>
+          </Typography>
         ) : null}
-        <h1
-          className={cn(
-            "text-[1.625rem] font-normal tracking-[-0.02em] text-[var(--eb-text)] sm:text-[1.75rem]",
-            eyebrow && "mt-2"
-          )}
+        <Typography
+          component="h1"
+          sx={{
+            mt: eyebrow ? 1 : 0,
+            fontSize: { xs: "1.625rem", sm: "1.75rem" },
+            fontWeight: 400,
+            letterSpacing: "-0.02em",
+            color: "var(--eb-text)",
+          }}
         >
           {title}
-        </h1>
+        </Typography>
         {subtitle ? (
-          <p className="mt-2 text-sm leading-relaxed text-[var(--eb-muted)]">
+          <Typography
+            sx={{
+              mt: 1,
+              fontSize: "0.875rem",
+              lineHeight: 1.6,
+              color: "var(--eb-muted)",
+            }}
+          >
             {subtitle}
-          </p>
+          </Typography>
         ) : null}
-      </div>
+      </Box>
       {children}
       {footer ? (
-        <div className="mt-8 border-t border-[var(--eb-border)]/80 pt-6">
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 3, borderColor: "var(--eb-border)" }} />
           {footer}
-        </div>
+        </Box>
       ) : null}
-    </div>
+    </Paper>
   );
 }

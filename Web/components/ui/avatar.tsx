@@ -1,102 +1,151 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
+import MuiAvatar from "@mui/material/Avatar";
+import MuiAvatarGroup from "@mui/material/AvatarGroup";
+import Box from "@mui/material/Box";
+import {
+  Children,
+  forwardRef,
+  isValidElement,
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
-import { cn } from "@/lib/utils"
+type AvatarSize = "default" | "sm" | "lg";
 
-function Avatar({
-  className,
-  size = "default",
-  ...props
-}: AvatarPrimitive.Root.Props & {
-  size?: "default" | "sm" | "lg"
-}) {
-  return (
-    <AvatarPrimitive.Root
-      data-slot="avatar"
-      data-size={size}
-      className={cn(
-        "group/avatar relative flex size-8 shrink-0 rounded-full select-none after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken data-[size=lg]:size-10 data-[size=sm]:size-6 dark:after:mix-blend-lighten",
-        className
-      )}
-      {...props}
-    />
-  )
+type AvatarProps = ComponentProps<"div"> & {
+  size?: AvatarSize;
+  children?: ReactNode;
+};
+
+function isElementOfType(
+  child: ReactNode,
+  type: unknown
+): child is ReactElement {
+  return isValidElement(child) && child.type === type;
 }
 
-function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
+const Avatar = forwardRef<HTMLDivElement, AvatarProps>(function Avatar(
+  { className, style, size = "default", children, ...props },
+  ref
+) {
+  let src: string | undefined;
+  let alt: string | undefined;
+  let fallback: ReactNode;
+  const extras: ReactNode[] = [];
+
+  Children.forEach(children, (child) => {
+    if (isElementOfType(child, AvatarImage)) {
+      src = (child.props as { src?: string }).src;
+      alt = (child.props as { alt?: string }).alt;
+      return;
+    }
+    if (isElementOfType(child, AvatarFallback)) {
+      fallback = (child.props as { children?: ReactNode }).children;
+      return;
+    }
+    extras.push(child);
+  });
+
   return (
-    <AvatarPrimitive.Image
-      data-slot="avatar-image"
-      className={cn(
-        "aspect-square size-full rounded-full object-cover",
-        className
-      )}
+    <MuiAvatar
+      ref={ref}
+      data-slot="avatar"
+      data-size={size}
+      className={className}
+      style={style}
+      src={src}
+      alt={alt}
       {...props}
-    />
-  )
+    >
+      {fallback}
+      {extras}
+    </MuiAvatar>
+  );
+});
+
+function AvatarImage({
+  className: _className,
+  ..._props
+}: ComponentProps<"img">) {
+  void _className;
+  void _props;
+  return null;
 }
 
 function AvatarFallback({
-  className,
-  ...props
-}: AvatarPrimitive.Fallback.Props) {
-  return (
-    <AvatarPrimitive.Fallback
-      data-slot="avatar-fallback"
-      className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
-        className
-      )}
-      {...props}
-    />
-  )
+  className: _className,
+  children: _children,
+  ..._props
+}: ComponentProps<"div">) {
+  void _className;
+  void _children;
+  void _props;
+  // Parsed by Avatar parent via element props; not mounted in the tree.
+  return null;
 }
 
-function AvatarBadge({ className, ...props }: React.ComponentProps<"span">) {
+function AvatarBadge({ className, style, children, ...props }: ComponentProps<"span">) {
   return (
-    <span
+    <Box
+      component="span"
       data-slot="avatar-badge"
-      className={cn(
-        "absolute right-0 bottom-0 z-10 inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground bg-blend-color ring-2 ring-background select-none",
-        "group-data-[size=sm]/avatar:size-2 group-data-[size=sm]/avatar:[&>svg]:hidden",
-        "group-data-[size=default]/avatar:size-2.5 group-data-[size=default]/avatar:[&>svg]:size-2",
-        "group-data-[size=lg]/avatar:size-3 group-data-[size=lg]/avatar:[&>svg]:size-2",
-        className
-      )}
+      className={className}
+      style={style}
+      sx={{
+        position: "absolute",
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "50%",
+        bgcolor: "primary.main",
+        color: "primary.contrastText",
+        ring: 2,
+        width: 10,
+        height: 10,
+        '[data-size="sm"] &': { width: 8, height: 8 },
+        '[data-size="lg"] &': { width: 12, height: 12 },
+      }}
       {...props}
-    />
-  )
+    >
+      {children}
+    </Box>
+  );
 }
 
-function AvatarGroup({ className, ...props }: React.ComponentProps<"div">) {
+function AvatarGroup({ className, style, children, ...props }: ComponentProps<"div">) {
   return (
-    <div
+    <MuiAvatarGroup
       data-slot="avatar-group"
-      className={cn(
-        "group/avatar-group flex -space-x-2 *:data-[slot=avatar]:ring-2 *:data-[slot=avatar]:ring-background",
-        className
-      )}
+      className={className}
+      style={style}
       {...props}
-    />
-  )
+    >
+      {children}
+    </MuiAvatarGroup>
+  );
 }
 
 function AvatarGroupCount({
   className,
+  style,
+  children,
   ...props
-}: React.ComponentProps<"div">) {
+}: ComponentProps<"div">) {
   return (
-    <div
+    <MuiAvatar
       data-slot="avatar-group-count"
-      className={cn(
-        "relative flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground ring-2 ring-background group-has-data-[size=lg]/avatar-group:size-10 group-has-data-[size=sm]/avatar-group:size-6 [&>svg]:size-4 group-has-data-[size=lg]/avatar-group:[&>svg]:size-5 group-has-data-[size=sm]/avatar-group:[&>svg]:size-3",
-        className
-      )}
+      className={className}
+      style={style}
       {...props}
-    />
-  )
+    >
+      {children}
+    </MuiAvatar>
+  );
 }
 
 export {
@@ -106,4 +155,4 @@ export {
   AvatarGroup,
   AvatarGroupCount,
   AvatarBadge,
-}
+};

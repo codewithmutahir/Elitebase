@@ -1,69 +1,144 @@
-import { Button as ButtonPrimitive } from "@base-ui/react/button";
-import { cva, type VariantProps } from "class-variance-authority";
-import type { ButtonHTMLAttributes } from "react";
+"use client";
 
-import { cn } from "@/lib/utils";
+import MuiButton from "@mui/material/Button";
+import type { ButtonProps as MuiButtonProps } from "@mui/material/Button";
+import {
+  forwardRef,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type ElementType,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
-const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        outline:
-          "border-border bg-background text-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "text-foreground hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/30",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default:
-          "h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-9 gap-1 px-3 text-sm has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-11 min-h-[44px] gap-1.5 px-5 text-base",
-        icon: "size-10",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-8 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-11",
-      },
+export type ButtonVariant =
+  | "default"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "link";
+
+export type ButtonSize =
+  | "default"
+  | "xs"
+  | "sm"
+  | "lg"
+  | "icon"
+  | "icon-xs"
+  | "icon-sm"
+  | "icon-lg";
+
+export type ButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "color"
+> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Base UI–compatible slot: render as another element (e.g. `<Link />`). */
+  render?: ReactElement;
+  children?: ReactNode;
+};
+
+function mapVariant(
+  variant: ButtonVariant
+): Pick<MuiButtonProps, "variant" | "color"> {
+  switch (variant) {
+    case "outline":
+      return { variant: "outlined", color: "primary" };
+    case "secondary":
+      return { variant: "contained", color: "secondary" };
+    case "ghost":
+      return { variant: "ghost", color: "inherit" };
+    case "destructive":
+      return { variant: "contained", color: "error" };
+    case "link":
+      return { variant: "link", color: "primary" };
+    case "default":
+    default:
+      return { variant: "contained", color: "primary" };
+  }
+}
+
+function mapSize(size: ButtonSize): MuiButtonProps["size"] {
+  switch (size) {
+    case "xs":
+      return "xs";
+    case "sm":
+      return "small";
+    case "lg":
+      return "large";
+    case "icon":
+      return "icon";
+    case "icon-xs":
+      return "icon-xs";
+    case "icon-sm":
+      return "icon-sm";
+    case "icon-lg":
+      return "icon-lg";
+    case "default":
+    default:
+      return "medium";
+  }
+}
+
+/**
+ * Compatibility helper kept for callers that still import `buttonVariants`.
+ * Styling now lives in the MUI theme; this only forwards `className`.
+ */
+function buttonVariants(options?: {
+  variant?: ButtonVariant | null;
+  size?: ButtonSize | null;
+  className?: string;
+}): string {
+  return options?.className ?? "";
+}
+
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    {
+      className,
+      variant = "default",
+      size = "default",
+      type = "button",
+      render,
+      children,
+      style,
+      disabled,
+      ...props
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    ref
+  ) {
+    const mapped = mapVariant(variant);
+    const muiSize = mapSize(size);
+    const hasRender = isValidElement(render);
+
+    const slotProps =
+      hasRender ?
+        {
+          component: render.type as ElementType,
+          ...(render.props as Record<string, unknown>),
+        }
+      : {};
+
+    return (
+      <MuiButton
+        ref={ref}
+        data-slot="button"
+        type={hasRender ? undefined : type}
+        className={className}
+        style={style}
+        disabled={disabled}
+        variant={mapped.variant}
+        color={mapped.color}
+        size={muiSize}
+        {...slotProps}
+        {...props}
+      >
+        {children}
+      </MuiButton>
+    );
   }
 );
-
-export type ButtonVariant = NonNullable<
-  VariantProps<typeof buttonVariants>["variant"]
->;
-export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>["size"]>;
-
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonVariants>;
-
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  type = "button",
-  ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return (
-    <ButtonPrimitive
-      data-slot="button"
-      type={type}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
-}
 
 export { Button, buttonVariants };

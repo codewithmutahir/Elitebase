@@ -1,5 +1,8 @@
 "use client";
 
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,7 +14,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -42,18 +46,22 @@ import {
 import type { DepartmentOption } from "@/lib/departments/queries";
 import { fadeIn, staggerContainer } from "@/lib/animations";
 import {
-  dashboardCardClass,
-  dashboardFieldInputClass,
   dashboardGhostItemButtonClass,
-  dashboardNativeSelectClass,
   dashboardOutlineButtonClass,
-  dashboardPageIntroClass,
   dashboardPopoverContentClass,
   dashboardPrimaryButtonClass,
-  dashboardStickyTableCellClass,
-  dashboardTableHeadRowClass,
 } from "@/lib/dashboard/styles";
+import {
+  dashboardCardSx,
+  dashboardPageIntroSx,
+  dashboardStickyTableCellSx,
+} from "@/lib/dashboard/sx";
 import { cn } from "@/lib/utils";
+
+const availabilityTableHeadRowSx = {
+  borderBottom: "1px solid var(--eb-border)",
+  backgroundColor: "color-mix(in srgb, var(--eb-elevated) 90%, transparent)",
+} as const;
 
 type AvailabilityViewProps = {
   employees: EmployeeAvailabilityRow[];
@@ -162,42 +170,20 @@ function AvailabilityCellEditor({
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label
-                htmlFor={`start-${employeeId}-${dayOfWeek}`}
-                className="text-xs text-[var(--eb-muted)]"
-              >
-                Start
-              </Label>
-              <input
-                id={`start-${employeeId}-${dayOfWeek}`}
-                type="time"
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-                className={cn(
-                  "flex h-9 w-full px-2 text-sm",
-                  dashboardFieldInputClass
-                )}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label
-                htmlFor={`end-${employeeId}-${dayOfWeek}`}
-                className="text-xs text-[var(--eb-muted)]"
-              >
-                End
-              </Label>
-              <input
-                id={`end-${employeeId}-${dayOfWeek}`}
-                type="time"
-                value={endTime}
-                onChange={(event) => setEndTime(event.target.value)}
-                className={cn(
-                  "flex h-9 w-full px-2 text-sm",
-                  dashboardFieldInputClass
-                )}
-              />
-            </div>
+            <Input
+              id={`start-${employeeId}-${dayOfWeek}`}
+              label="Start"
+              type="time"
+              value={startTime}
+              onChange={(event) => setStartTime(event.target.value)}
+            />
+            <Input
+              id={`end-${employeeId}-${dayOfWeek}`}
+              label="End"
+              type="time"
+              value={endTime}
+              onChange={(event) => setEndTime(event.target.value)}
+            />
           </div>
           <div className="flex gap-2">
             <Button
@@ -325,9 +311,22 @@ export function AvailabilityView({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+    <Stack spacing={3}>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 2,
+        }}
+      >
+        <Stack
+          direction="row"
+          useFlexGap
+          sx={{ alignItems: "center", gap: 1 }}
+        >
           <Button
             type="button"
             variant="outline"
@@ -337,9 +336,18 @@ export function AvailabilityView({
           >
             <ChevronLeft className="size-4" aria-hidden />
           </Button>
-          <span className="min-w-[200px] text-center text-sm font-semibold text-[var(--eb-text)]">
+          <Typography
+            component="span"
+            sx={{
+              minWidth: 200,
+              textAlign: "center",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "var(--eb-text)",
+            }}
+          >
             {weekLabel}
-          </span>
+          </Typography>
           <Button
             type="button"
             variant="outline"
@@ -349,115 +357,183 @@ export function AvailabilityView({
           >
             <ChevronRight className="size-4" aria-hidden />
           </Button>
-        </div>
+        </Stack>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="w-full sm:w-48">
-            <Label htmlFor="availabilityDepartment">Department</Label>
-            <select
+        <Stack
+          direction="row"
+          useFlexGap
+          sx={{ flexWrap: "wrap", alignItems: "flex-end", gap: 1.5 }}
+        >
+          <Box sx={{ width: { xs: "100%", sm: 192 } }}>
+            <Select
               id="availabilityDepartment"
+              label="Department"
               value={departmentId}
               onChange={(event) => setDepartmentId(event.target.value)}
-              className={dashboardNativeSelectClass}
-            >
-              <option value="all">All departments</option>
-              {departmentOptions.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              displayEmpty={false}
+              options={[
+                { value: "all", label: "All departments" },
+                ...departmentOptions.map((dept) => ({
+                  value: dept.id,
+                  label: dept.name,
+                })),
+              ]}
+            />
+          </Box>
           <Button type="button" variant="outline" onClick={handleExport}>
             <Download className="size-4" aria-hidden />
             Export availability
           </Button>
-        </div>
-      </div>
+        </Stack>
+      </Stack>
 
-      <p className={dashboardPageIntroClass}>
+      <Typography sx={dashboardPageIntroSx}>
         Set recurring weekly availability. Click a cell to mark unavailable or
         set specific hours.
-      </p>
+      </Typography>
 
-      <Card className={cn("overflow-hidden", dashboardCardClass)}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-sm">
-            <thead>
-              <tr className={dashboardTableHeadRowClass}>
-                <th
-                  className={cn(
-                    dashboardStickyTableCellClass,
-                    "w-[200px] min-w-[200px] text-left text-xs font-semibold uppercase tracking-wide text-[var(--eb-muted)]"
-                  )}
+      <Card sx={{ ...(dashboardCardSx as object), overflow: "hidden" }}>
+        <Box sx={{ overflowX: "auto" }}>
+          <Box
+            component="table"
+            sx={{
+              width: "100%",
+              minWidth: 900,
+              borderCollapse: "collapse",
+              fontSize: "0.875rem",
+            }}
+          >
+            <Box component="thead">
+              <Box component="tr" sx={availabilityTableHeadRowSx}>
+                <Box
+                  component="th"
+                  sx={{
+                    ...(dashboardStickyTableCellSx as object),
+                    width: 200,
+                    minWidth: 200,
+                    textAlign: "left",
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
+                    color: "var(--eb-muted)",
+                  }}
                 >
                   Employee
-                </th>
+                </Box>
                 {GRID_DAYS.map((day) => {
                   const date = dateForDayInWeek(weekMonday, day.dayOfWeek);
                   return (
-                    <th
+                    <Box
+                      component="th"
                       key={day.dayOfWeek}
-                      className="min-w-[100px] border-l border-[var(--eb-border)] px-2 py-3 text-center"
+                      sx={{
+                        minWidth: 100,
+                        borderLeft: "1px solid var(--eb-border)",
+                        px: 1,
+                        py: 1.5,
+                        textAlign: "center",
+                      }}
                     >
-                      <div className="text-xs font-semibold uppercase tracking-wide text-[var(--eb-text)]">
+                      <Typography
+                        component="div"
+                        sx={{
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "var(--eb-text)",
+                        }}
+                      >
                         {day.label}
-                      </div>
-                      <div className="mt-0.5 text-xs font-normal text-[var(--eb-muted)]">
+                      </Typography>
+                      <Typography
+                        component="div"
+                        sx={{
+                          mt: 0.25,
+                          fontSize: "0.75rem",
+                          fontWeight: 400,
+                          color: "var(--eb-muted)",
+                        }}
+                      >
                         {shortDateLabel(date)}
-                      </div>
-                    </th>
+                      </Typography>
+                    </Box>
                   );
                 })}
-              </tr>
-            </thead>
+              </Box>
+            </Box>
             <motion.tbody
               variants={staggerContainer}
               initial="initial"
               animate="animate"
             >
               {filteredEmployees.length === 0 ? (
-                <tr>
-                  <td
+                <Box component="tr">
+                  <Box
+                    component="td"
                     colSpan={8}
-                    className="px-6 py-16 text-center text-[var(--eb-muted)]"
+                    sx={{
+                      px: 3,
+                      py: 8,
+                      textAlign: "center",
+                      color: "var(--eb-muted)",
+                    }}
                   >
                     No employees match this filter.
-                  </td>
-                </tr>
+                  </Box>
+                </Box>
               ) : (
                 filteredEmployees.map((employee) => (
                   <motion.tr
                     key={employee.id}
                     variants={fadeIn}
-                    className="border-b border-[var(--eb-border)] last:border-b-0"
+                    style={{
+                      borderBottom: "1px solid var(--eb-border)",
+                    }}
                   >
-                    <td
-                      className={cn(
-                        dashboardStickyTableCellClass,
-                        "w-[200px] min-w-[200px]"
-                      )}
+                    <Box
+                      component="td"
+                      sx={{
+                        ...(dashboardStickyTableCellSx as object),
+                        width: 200,
+                        minWidth: 200,
+                      }}
                     >
-                      <div className="flex items-center gap-3">
+                      <Stack
+                        direction="row"
+                        useFlexGap
+                        sx={{ alignItems: "center", gap: 1.5 }}
+                      >
                         <Avatar className="size-8 shrink-0">
                           <AvatarFallback className="bg-[var(--eb-accent)]/15 text-xs font-bold text-[var(--eb-accent)]">
                             {initials(employee.full_name)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-[var(--eb-text)]">
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography
+                            noWrap
+                            sx={{ fontWeight: 600, color: "var(--eb-text)" }}
+                          >
                             {employee.full_name}
-                          </p>
+                          </Typography>
                           {employee.department ? (
-                            <p className="truncate text-xs text-[var(--eb-muted)]">
+                            <Typography
+                              noWrap
+                              sx={{ fontSize: "0.75rem", color: "var(--eb-muted)" }}
+                            >
                               {employee.department}
-                            </p>
+                            </Typography>
                           ) : null}
-                        </div>
-                      </div>
-                    </td>
+                        </Box>
+                      </Stack>
+                    </Box>
                     {GRID_DAYS.map((day) => (
-                      <td key={day.dayOfWeek} className="p-0 align-stretch">
+                      <Box
+                        component="td"
+                        key={day.dayOfWeek}
+                        sx={{ p: 0, verticalAlign: "stretch" }}
+                      >
                         <AvailabilityCell
                           employee={employee}
                           dayOfWeek={day.dayOfWeek}
@@ -465,15 +541,15 @@ export function AvailabilityView({
                           slot={availability[employee.id]?.[day.dayOfWeek]}
                           onSaved={() => router.refresh()}
                         />
-                      </td>
+                      </Box>
                     ))}
                   </motion.tr>
                 ))
               )}
             </motion.tbody>
-          </table>
-        </div>
+          </Box>
+        </Box>
       </Card>
-    </div>
+    </Stack>
   );
 }
