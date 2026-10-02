@@ -6,8 +6,6 @@ import Stack from "@mui/material/Stack";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Toaster } from "@/components/ui/sonner";
-import { DashboardThemeProvider } from "@/contexts/dashboard-theme-context";
-
 export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -15,7 +13,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   return (
-    <DashboardThemeProvider>
+    <>
       <Box
         className="dashboard-main-glow"
         aria-hidden
@@ -49,6 +47,6 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </Box>
       </Stack>
       <Toaster position="top-right" richColors closeButton />
-    </DashboardThemeProvider>
+    </>
   );
 }

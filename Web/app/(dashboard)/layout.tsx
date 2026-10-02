@@ -1,6 +1,7 @@
 import { MuiProvider } from "@/components/providers/mui-provider";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { CompanyProvider } from "@/contexts/company-context";
+import { DashboardThemeProvider } from "@/contexts/dashboard-theme-context";
 import { requireCompanySession } from "@/lib/employees/session";
 import { isSuperAdmin } from "@/lib/super-admin/access";
 
@@ -20,7 +21,9 @@ export default async function DashboardGroupLayout({
       }}
     >
       <MuiProvider defaultMode="dark">
-        <DashboardShell>{children}</DashboardShell>
+        <DashboardThemeProvider>
+          <DashboardShell>{children}</DashboardShell>
+        </DashboardThemeProvider>
       </MuiProvider>
     </CompanyProvider>
   );
