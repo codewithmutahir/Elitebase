@@ -28,10 +28,13 @@ import {
   profileEditPanelSx,
   profileFieldLabelSx,
   profileKioskBannerSx,
-  profileTimelineBorderSx,
+  profileTimelineContentSx,
   profileTimelineDotMutedSx,
   profileTimelineDotSx,
-  profileTimelineItemSx,
+  profileTimelineListSx,
+  profileTimelineMarkerColSx,
+  profileTimelineRailSx,
+  profileTimelineRowSx,
   profileValueSx,
 } from "@/lib/dashboard/sx";
 import {
@@ -104,10 +107,15 @@ const defaultLocationSettings: Record<LocationSettingKey, boolean> = {
 const locationSettingLabelSx = (muted?: boolean) =>
   ({
     m: 0,
-    py: 0.5,
-    alignItems: "flex-start",
+    py: 0.25,
+    alignItems: "center",
+    gap: 0.5,
+    "& .MuiCheckbox-root": {
+      p: 0.5,
+    },
     "& .MuiFormControlLabel-label": {
       fontSize: "0.875rem",
+      lineHeight: 1.4,
       fontWeight: muted ? 400 : 500,
       color: muted ? "text.secondary" : "text.primary",
     },
@@ -685,34 +693,46 @@ export function JobDetailsTab({
           </Box>
         </CardHeader>
         <CardContent>
-          <Stack
-            component="ul"
-            spacing={2}
-            sx={{ ...profileTimelineBorderSx, listStyle: "none", m: 0 }}
-          >
+          <Box sx={{ position: "relative" }}>
+            {employee.hire_date ? (
+              <Box component="span" sx={profileTimelineRailSx} aria-hidden />
+            ) : null}
+            <Stack component="ul" spacing={2} sx={profileTimelineListSx}>
             {employee.hire_date ? (
               <>
-                <Box component="li" sx={profileTimelineItemSx}>
-                  <Box component="span" sx={profileTimelineDotSx} aria-hidden />
-                  <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
-                    Hired at {companyName}
-                  </Typography>
-                  <Typography
-                    sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
-                  >
-                    {formatDateShort(employee.hire_date)}
-                  </Typography>
+                <Box component="li" sx={profileTimelineRowSx}>
+                  <Box sx={profileTimelineMarkerColSx}>
+                    <Box component="span" sx={profileTimelineDotSx} aria-hidden />
+                  </Box>
+                  <Box sx={profileTimelineContentSx}>
+                    <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
+                      Hired at {companyName}
+                    </Typography>
+                    <Typography
+                      sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                    >
+                      {formatDateShort(employee.hire_date)}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box component="li" sx={profileTimelineItemSx}>
-                  <Box component="span" sx={profileTimelineDotMutedSx} aria-hidden />
-                  <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
-                    Started as {roleLabel} ({compensationLabel})
-                  </Typography>
-                  <Typography
-                    sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
-                  >
-                    {formatDateShort(employee.hire_date)}
-                  </Typography>
+                <Box component="li" sx={profileTimelineRowSx}>
+                  <Box sx={profileTimelineMarkerColSx}>
+                    <Box
+                      component="span"
+                      sx={profileTimelineDotMutedSx}
+                      aria-hidden
+                    />
+                  </Box>
+                  <Box sx={profileTimelineContentSx}>
+                    <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
+                      Started as {roleLabel} ({compensationLabel})
+                    </Typography>
+                    <Typography
+                      sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                    >
+                      {formatDateShort(employee.hire_date)}
+                    </Typography>
+                  </Box>
                 </Box>
               </>
             ) : (
@@ -723,7 +743,8 @@ export function JobDetailsTab({
                 No hire date on file.
               </Box>
             )}
-          </Stack>
+            </Stack>
+          </Box>
         </CardContent>
       </Card>
 

@@ -356,43 +356,64 @@ export const profileKioskBannerSx: SxProps<Theme> = {
   color: "var(--eb-muted)",
 };
 
-/** Vertical job-history timeline — do not set `p: 0` on the list or it clears `pl`. */
-export const profileTimelineBorderSx: SxProps<Theme> = {
-  borderLeft: "2px solid",
-  borderColor: "divider",
-  pl: 2.5,
-  py: 0,
-  pr: 0,
+/** Job-history timeline: flex rail + content (see job-details-tab). */
+export const profileTimelineListSx: SxProps<Theme> = {
+  position: "relative",
+  listStyle: "none",
+  m: 0,
+  p: 0,
 };
 
-const profileTimelineDotLeftSx = {
+export const profileTimelineRailSx: SxProps<Theme> = {
   position: "absolute",
-  /** Center 10px dot on the 2px border (padding + half border + half dot). */
-  left: (theme: Theme) => `calc(-${theme.spacing(2.5)} - 6px)`,
-  top: 6,
-  width: 10,
-  height: 10,
-  borderRadius: "50%",
-  zIndex: 1,
-} satisfies SxProps<Theme>;
+  left: 8,
+  top: 10,
+  bottom: 10,
+  width: 2,
+  borderRadius: 1,
+  bgcolor: "divider",
+  pointerEvents: "none",
+};
 
-export const profileTimelineItemSx: SxProps<Theme> = {
-  position: "relative",
-  pl: 0.5,
+export const profileTimelineRowSx: SxProps<Theme> = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 1.5,
+};
+
+export const profileTimelineMarkerColSx: SxProps<Theme> = {
+  width: 18,
+  flexShrink: 0,
+  display: "flex",
+  justifyContent: "center",
+  pt: 0.375,
+  zIndex: 1,
 };
 
 export const profileTimelineDotSx: SxProps<Theme> = {
-  ...profileTimelineDotLeftSx,
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  flexShrink: 0,
   bgcolor: "primary.main",
   boxShadow: (theme) =>
     `0 0 0 2px ${(theme.vars?.palette ?? theme.palette).background.paper}`,
 };
 
 export const profileTimelineDotMutedSx: SxProps<Theme> = {
-  ...profileTimelineDotLeftSx,
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  flexShrink: 0,
   bgcolor: (theme) => `${theme.palette.text.secondary}73`,
   boxShadow: (theme) =>
     `0 0 0 2px ${(theme.vars?.palette ?? theme.palette).background.paper}`,
+};
+
+export const profileTimelineContentSx: SxProps<Theme> = {
+  flex: 1,
+  minWidth: 0,
+  pt: 0.125,
 };
 
 export const profileTableHeadSx: SxProps<Theme> = {
