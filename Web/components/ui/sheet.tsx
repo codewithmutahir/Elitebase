@@ -185,8 +185,8 @@ function SheetContent({
           className: overlayClassName,
         },
         paper: {
-          "data-slot": "sheet-content",
           className: cn(
+            "sheet-content",
             isDashboard &&
               "dashboard-sheet border-[var(--eb-border)] bg-[var(--eb-surface)] text-[var(--eb-text)]",
             className

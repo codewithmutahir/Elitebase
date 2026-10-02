@@ -2,6 +2,7 @@
 
 import MuiButton from "@mui/material/Button";
 import type { ButtonProps as MuiButtonProps } from "@mui/material/Button";
+import type { SxProps, Theme } from "@mui/material/styles";
 import {
   forwardRef,
   isValidElement,
@@ -38,6 +39,7 @@ export type ButtonProps = Omit<
   /** Base UI–compatible slot: render as another element (e.g. `<Link />`). */
   render?: ReactElement;
   children?: ReactNode;
+  sx?: SxProps<Theme>;
 };
 
 function mapVariant(
@@ -105,6 +107,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       style,
       disabled,
+      sx,
       ...props
     },
     ref
@@ -132,6 +135,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         variant={mapped.variant}
         color={mapped.color}
         size={muiSize}
+        sx={sx}
         {...slotProps}
         {...props}
       >
