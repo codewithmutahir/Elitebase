@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": "24.x"
+  },
   "devDependencies": {
     "shadcn": "^4.21.0"
   }
