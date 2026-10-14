@@ -2,16 +2,17 @@
 
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
+import { PendingButton } from "@/components/dashboard/pending-button";
+import { usePendingNavigation } from "@/components/dashboard/use-pending-navigation";
 import { EditTimesheetDialog } from "@/components/timesheets/edit-timesheet-dialog";
 import { TimesheetsFilters } from "@/components/timesheets/timesheets-filters";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   dashboardCardSx,
@@ -19,6 +20,8 @@ import {
   dashboardMetricValueSx,
   dashboardPageIntroSx,
 } from "@/lib/dashboard/sx";
+import { dashboardOutlineButtonClass } from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 import {
   DataTable,
   DataTableBody,
@@ -40,6 +43,59 @@ import {
 } from "@/lib/timesheets/missing-punches";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
 import type { TimesheetsViewParams } from "@/lib/timesheets/view-params";
+
+/** Cap skeleton rows so pagination pending stays cheap (CSS-only MUI wave). */
+const SKELETON_ROW_CAP = 8;
+
+function TimesheetsTableSkeleton({ rowCount }: { rowCount: number }) {
+  const count = Math.min(Math.max(rowCount, 4), SKELETON_ROW_CAP);
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <DataTableRow key={`timesheet-skel-${index}`} aria-hidden>
+          <DataTableCell sx={{ width: 32 }}>
+            <Skeleton variant="rounded" width={16} height={16} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width="72%" height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width={96} height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width={72} height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width={72} height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width={56} height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton variant="text" width={48} height={20} animation="wave" />
+          </DataTableCell>
+          <DataTableCell>
+            <Skeleton
+              variant="rounded"
+              width={72}
+              height={24}
+              animation="wave"
+            />
+          </DataTableCell>
+          <DataTableCell sx={{ width: 112 }}>
+            <Skeleton
+              variant="rounded"
+              width={64}
+              height={28}
+              animation="wave"
+            />
+          </DataTableCell>
+        </DataTableRow>
+      ))}
+    </>
+  );
+}
 
 type TimesheetsViewProps = {
   rows: TimesheetRow[];
@@ -123,6 +179,15 @@ export function TimesheetsView({
   const tz = companyTimezone(timezone);
   const { theme: dashboardTheme } = useDashboardTheme();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const {
+    pending: navPending,
+    activeKey: navKey,
+    navigate,
+  } = usePendingNavigation<"prev" | "next">();
+
+  useEffect(() => {
+    if (navPending) setExpandedId(null);
+  }, [navPending]);
 
   const totalHours = useMemo(
     () => rows.reduce((sum, row) => sum + (row.totalHours ?? 0), 0),
@@ -133,6 +198,8 @@ export function TimesheetsView({
     () => rows.reduce((sum, row) => sum + (row.breakHours ?? 0), 0),
     [rows]
   );
+
+  const skeletonRows = Math.min(rows.length || 6, SKELETON_ROW_CAP);
 
   const selectedEmployeeName = useMemo(
     () =>
@@ -182,9 +249,19 @@ export function TimesheetsView({
             <Typography sx={dashboardMetricLabelSx}>
               Total hours (this page)
             </Typography>
-            <Typography sx={dashboardMetricValueSx}>
-              {totalHours.toFixed(1)}
-            </Typography>
+            {navPending ? (
+              <Skeleton
+                variant="text"
+                width={72}
+                height={40}
+                animation="wave"
+                sx={{ mt: 0.5 }}
+              />
+            ) : (
+              <Typography sx={dashboardMetricValueSx}>
+                {totalHours.toFixed(1)}
+              </Typography>
+            )}
           </Card>
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
@@ -192,9 +269,19 @@ export function TimesheetsView({
             <Typography sx={dashboardMetricLabelSx}>
               Break hours (this page)
             </Typography>
-            <Typography sx={dashboardMetricValueSx}>
-              {totalBreakHours.toFixed(1)}
-            </Typography>
+            {navPending ? (
+              <Skeleton
+                variant="text"
+                width={72}
+                height={40}
+                animation="wave"
+                sx={{ mt: 0.5 }}
+              />
+            ) : (
+              <Typography sx={dashboardMetricValueSx}>
+                {totalBreakHours.toFixed(1)}
+              </Typography>
+            )}
           </Card>
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
@@ -204,12 +291,25 @@ export function TimesheetsView({
                 ? "Total shifts this month"
                 : "Total shifts in range"}
             </Typography>
-            <Typography sx={dashboardMetricValueSx}>{total}</Typography>
+            {navPending ? (
+              <Skeleton
+                variant="text"
+                width={56}
+                height={40}
+                animation="wave"
+                sx={{ mt: 0.5 }}
+              />
+            ) : (
+              <Typography sx={dashboardMetricValueSx}>{total}</Typography>
+            )}
           </Card>
         </Grid>
       </Grid>
 
-      <Card sx={{ ...dashboardCardSx, overflow: "hidden" }}>
+      <Card
+        sx={{ ...dashboardCardSx, overflow: "hidden" }}
+        aria-busy={navPending || undefined}
+      >
         <DataTable>
           <DataTableHeader>
             <DataTableRow>
@@ -225,7 +325,9 @@ export function TimesheetsView({
             </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
-            {rows.length === 0 ? (
+            {navPending ? (
+              <TimesheetsTableSkeleton rowCount={skeletonRows} />
+            ) : rows.length === 0 ? (
               <DataTableRow>
                 <DataTableCell colSpan={9}>
                   <DataTableEmpty>
@@ -406,22 +508,32 @@ export function TimesheetsView({
           </Typography>
           <Stack direction="row" spacing={1}>
             {page > 1 ? (
-              <Button
+              <PendingButton
+                type="button"
                 variant="outline"
                 size="sm"
-                render={<Link href={paginationHref(page - 1)} />}
+                pending={navPending && navKey === "prev"}
+                disabled={navPending}
+                pendingLabel="Loading…"
+                onClick={() => navigate(paginationHref(page - 1), "prev")}
+                className={cn(dashboardOutlineButtonClass)}
               >
                 Previous
-              </Button>
+              </PendingButton>
             ) : null}
             {page < totalPages ? (
-              <Button
+              <PendingButton
+                type="button"
                 variant="outline"
                 size="sm"
-                render={<Link href={paginationHref(page + 1)} />}
+                pending={navPending && navKey === "next"}
+                disabled={navPending}
+                pendingLabel="Loading…"
+                onClick={() => navigate(paginationHref(page + 1), "next")}
+                className={cn(dashboardOutlineButtonClass)}
               >
                 Next
-              </Button>
+              </PendingButton>
             ) : null}
           </Stack>
         </Stack>

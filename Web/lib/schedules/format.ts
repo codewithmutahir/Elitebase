@@ -8,7 +8,7 @@ export const SHIFT_PRESET_COLORS = [
   "#16A34A",
   "#EA580C",
   "#DB2777",
-  "#0891B2",
+  "#2F4EA2",
 ] as const;
 
 export function formatShiftTime12(time: string): string {

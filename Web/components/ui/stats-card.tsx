@@ -19,7 +19,7 @@ export type StatsCardProps = {
   value: string | number;
   trend?: StatsCardTrend;
   className?: string;
-  /** `dark` matches dashboard ink/teal shell; default `light` for legacy pages. */
+  /** `dark` matches dashboard navy/gold shell; default `light` for legacy pages. */
   variant?: "light" | "dark";
 };
 

@@ -5,25 +5,25 @@ import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Clock, ScanFace, Tablet } from "lucide-react";
+import { Clock, Mail, Smartphone } from "lucide-react";
 import NextLink from "next/link";
 import { AuthRegisterShell } from "@/components/auth/auth-register-shell";
 
 const steps = [
   {
-    icon: Tablet,
-    title: "Your manager adds you",
-    body: "Employers create your profile and assign a kiosk PIN from their dashboard.",
+    icon: Mail,
+    title: "Your manager invites you",
+    body: "Employers add you to the roster and send a portal invite email—there’s no open employee signup.",
+  },
+  {
+    icon: Smartphone,
+    title: "Accept the invite & sign in",
+    body: "Use the link in your email to set a password, then sign in anytime at the employee portal.",
   },
   {
     icon: Clock,
-    title: "Clock in at the door",
-    body: "Use the workplace tablet—enter your PIN to start and end shifts.",
-  },
-  {
-    icon: ScanFace,
-    title: "Face check (if enabled)",
-    body: "Some locations use optional face verification to reduce buddy punching.",
+    title: "Clock in your way",
+    body: "Punch from the portal (when remote punch is enabled) or use the workplace kiosk with your PIN.",
   },
 ] as const;
 
@@ -49,7 +49,7 @@ export default function EmployeeRegisterInfoPage() {
               fontWeight: 500,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              color: "primary.main",
+              color: "var(--eb-gold-500)",
             }}
           >
             For employees
@@ -64,7 +64,7 @@ export default function EmployeeRegisterInfoPage() {
               color: "text.primary",
             }}
           >
-            You don&apos;t register here
+            Access is invite-only
           </Typography>
           <Typography
             sx={{
@@ -74,9 +74,9 @@ export default function EmployeeRegisterInfoPage() {
               color: "text.secondary",
             }}
           >
-            Elitebase accounts for are created by your employer. Once
-            you&apos;re on the roster, use the kiosk at your job site to clock in
-            and out.
+            Your employer creates your profile and sends a portal invite. After
+            you accept it, sign in here to view attendance, request leave, and
+            clock in when remote punch is allowed.
           </Typography>
 
           <Stack component="ul" spacing={2.5} sx={{ mt: 4, p: 0, m: 0, listStyle: "none" }}>
@@ -96,9 +96,11 @@ export default function EmployeeRegisterInfoPage() {
                     justifyContent: "center",
                     borderRadius: "8px",
                     border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "secondary.main",
-                    color: "primary.main",
+                    borderColor:
+                      "color-mix(in srgb, var(--eb-gold-500) 30%, transparent)",
+                    bgcolor:
+                      "color-mix(in srgb, var(--eb-gold-500) 10%, transparent)",
+                    color: "var(--eb-gold-500)",
                   }}
                 >
                   <Icon size={20} strokeWidth={1.5} aria-hidden />
@@ -141,7 +143,7 @@ export default function EmployeeRegisterInfoPage() {
                 color: "text.primary",
                 width: { sm: "auto" },
                 "&:hover": {
-                  borderColor: "primary.main",
+                  borderColor: "var(--eb-gold-500)",
                   bgcolor: "transparent",
                 },
               }}
@@ -152,16 +154,22 @@ export default function EmployeeRegisterInfoPage() {
               component={NextLink}
               href="/login"
               variant="contained"
-              color="primary"
               fullWidth
               sx={{
                 borderRadius: 999,
                 py: 1.5,
-                color: "primary.contrastText",
                 width: { sm: "auto" },
+                background: "var(--eb-gold-gradient)",
+                color: "var(--eb-navy-950)",
+                boxShadow: "0 8px 24px var(--eb-gold-glow)",
+                "&:hover": {
+                  filter: "brightness(1.06)",
+                  background: "var(--eb-gold-gradient)",
+                  boxShadow: "0 10px 28px rgba(217, 166, 63, 0.32)",
+                },
               }}
             >
-              Employer sign in
+              Employee sign in
             </Button>
           </Stack>
         </Box>
@@ -174,15 +182,29 @@ export default function EmployeeRegisterInfoPage() {
             color: "text.secondary",
           }}
         >
-          Manager setting up a new company?{" "}
+          Have an invite email? Open the link there, or{" "}
+          <Link
+            component={NextLink}
+            href="/login"
+            underline="hover"
+            sx={{
+              fontWeight: 500,
+              color: "var(--eb-gold-300)",
+              "&:hover": { color: "var(--eb-gold-500)" },
+            }}
+          >
+            sign in
+          </Link>
+          {" · "}
+          Manager setting up a company?{" "}
           <Link
             component={NextLink}
             href="/register/employer"
             underline="hover"
             sx={{
               fontWeight: 500,
-              color: "primary.main",
-              "&:hover": { color: "text.primary" },
+              color: "var(--eb-gold-300)",
+              "&:hover": { color: "var(--eb-gold-500)" },
             }}
           >
             Register as an employer

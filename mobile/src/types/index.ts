@@ -33,7 +33,11 @@ export type RootStackParamList = {
   Consent: { employee: KioskEmployee };
   FaceRegister: { employee: KioskEmployee };
   FaceScan: { employee: KioskEmployee };
-  Action: { employee: KioskEmployee; matchScore?: number };
+  Action: {
+    employee: KioskEmployee;
+    matchScore?: number;
+    faceVerifyToken?: string;
+  };
   LeaveRequest: { employee: KioskEmployee };
   Success: {
     employee: KioskEmployee;

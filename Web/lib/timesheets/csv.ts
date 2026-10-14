@@ -1,3 +1,4 @@
+import { resolveCurrency } from "@/lib/currencies";
 import type { TimesheetExportRow } from "@/lib/timesheets/export-rows";
 import type { TimesheetRow } from "@/lib/timesheets/pairing";
 
@@ -7,13 +8,20 @@ export type TimesheetsCsvOptions = {
   format?: CsvExportFormat;
   /** Group rows by employee with subtotals (for all-employee exports). */
   groupByEmployee?: boolean;
+  /** ISO currency code for Rate / Wages / Bonus columns. */
+  currency?: string | null;
 };
 
 function escapeCsv(value: string) {
-  if (/[",\n]/.test(value)) {
+  if (/[",\n\r]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
+}
+
+/** Clean display name for payroll (collapse whitespace, no decorative suffixes). */
+export function formatEmployeeNameForCsv(name: string) {
+  return name.replace(/\s+/g, " ").trim();
 }
 
 function formatStatus(status: TimesheetRow["status"]) {
@@ -27,13 +35,32 @@ function formatStatus(status: TimesheetRow["status"]) {
   }
 }
 
+function formatPayType(payType: TimesheetExportRow["payType"]) {
+  return payType === "salary" ? "Salary" : "Hourly";
+}
+
+function formatRateUnit(payType: TimesheetExportRow["payType"]) {
+  return payType === "salary" ? "month" : "hour";
+}
+
+function money(value: number) {
+  return (Math.round(value * 100) / 100).toFixed(2);
+}
+
+function optionalMoney(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return "";
+  return money(value);
+}
+
 function sortRowsByEmployee(rows: TimesheetExportRow[]): TimesheetExportRow[] {
   return [...rows].sort((a, b) => {
-    const nameCmp = a.employeeName.localeCompare(b.employeeName, "en", {
-      sensitivity: "base",
-    });
+    const nameCmp = formatEmployeeNameForCsv(a.employeeName).localeCompare(
+      formatEmployeeNameForCsv(b.employeeName),
+      "en",
+      { sensitivity: "base" }
+    );
     if (nameCmp !== 0) return nameCmp;
-    return b.date.localeCompare(a.date);
+    return a.date.localeCompare(b.date);
   });
 }
 
@@ -43,8 +70,8 @@ function groupRowsByEmployee(rows: TimesheetExportRow[]): TimesheetExportRow[][]
   let current: TimesheetExportRow[] = [];
 
   for (const row of sorted) {
-    const prevName = current[0]?.employeeName;
-    if (prevName && row.employeeName !== prevName) {
+    const prevId = current[0]?.employeeId;
+    if (prevId && row.employeeId !== prevId) {
       groups.push(current);
       current = [];
     }
@@ -74,22 +101,66 @@ function sumBreakHours(rows: TimesheetExportRow[]) {
   );
 }
 
+function sumWages(rows: TimesheetExportRow[]) {
+  return Math.round(rows.reduce((sum, row) => sum + row.wages, 0) * 100) / 100;
+}
+
 function yesNo(value: boolean) {
   return value ? "Yes" : "No";
 }
 
-function standardRowLine(
+const STANDARD_HEADER = [
+  "Employee",
+  "Department",
+  "Pay type",
+  "Rate",
+  "Rate unit",
+  "Currency",
+  "Shift date",
+  "Clock out date",
+  "Clock in",
+  "Clock out",
+  "Break hours",
+  "Total hours",
+  "Wages",
+  "Bonus",
+  "Total pay",
+  "Row type",
+  "Status",
+  "Scheduled time",
+  "On time",
+  "Late",
+  "Absent",
+  "Missing clock in",
+  "Missing clock out",
+  "Unpaid leave",
+] as const;
+
+function standardDetailLine(
   row: TimesheetExportRow,
-  formatTime: (iso: string) => string
+  formatTime: (iso: string) => string,
+  currency: string
 ) {
+  const name = formatEmployeeNameForCsv(row.employeeName);
+  const wages = row.wages;
+
   return [
-    escapeCsv(row.employeeName),
+    escapeCsv(name),
+    escapeCsv(row.department),
+    formatPayType(row.payType),
+    row.rateAmount > 0 ? money(row.rateAmount) : "",
+    formatRateUnit(row.payType),
+    currency,
     row.date,
     row.clockOutDate ?? "",
     row.clockIn ? escapeCsv(formatTime(row.clockIn)) : "",
     row.clockOut ? escapeCsv(formatTime(row.clockOut)) : "",
     row.breakHours != null ? String(row.breakHours) : "",
     row.totalHours != null ? String(row.totalHours) : "",
+    optionalMoney(wages),
+    "", // bonus only on subtotal — avoids double-counting
+    optionalMoney(wages),
+    "Detail",
     formatStatus(row.status),
     escapeCsv(row.scheduledTime),
     yesNo(row.onTime),
@@ -98,39 +169,92 @@ function standardRowLine(
     yesNo(row.missingClockIn),
     yesNo(row.missingClockOut),
     yesNo(row.unpaidLeave),
-    row.bonusAmount > 0 ? String(row.bonusAmount) : "",
   ].join(",");
 }
 
-function quickbooksRowsForShift(row: TimesheetExportRow): string[][] {
+function standardSubtotalLine(
+  group: TimesheetExportRow[],
+  currency: string
+) {
+  const first = group[0];
+  const name = formatEmployeeNameForCsv(first?.employeeName ?? "Unknown");
+  const wages = sumWages(group);
+  const bonus = first?.bonusAmount ?? 0;
+  const totalPay = Math.round((wages + bonus) * 100) / 100;
+
+  return [
+    escapeCsv(name),
+    escapeCsv(first?.department ?? ""),
+    first ? formatPayType(first.payType) : "",
+    first && first.rateAmount > 0 ? money(first.rateAmount) : "",
+    first ? formatRateUnit(first.payType) : "",
+    currency,
+    "",
+    "",
+    "",
+    "",
+    sumBreakHours(group) > 0 ? String(sumBreakHours(group)) : "",
+    String(sumHours(group)),
+    money(wages),
+    bonus > 0 ? money(bonus) : "",
+    money(totalPay),
+    "Subtotal",
+    `${group.length} shift(s)`,
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ].join(",");
+}
+
+function quickbooksRowsForShift(
+  row: TimesheetExportRow,
+  currency: string
+): string[][] {
   if (row.totalHours == null || row.totalHours <= 0) return [];
 
+  const name = formatEmployeeNameForCsv(row.employeeName);
   const regularHours = Math.min(row.totalHours, 8);
   const overtimeHours = Math.max(row.totalHours - 8, 0);
-  const breakNote =
-    row.breakHours != null && row.breakHours > 0
-      ? `${row.breakHours}h breaks`
+  const rate =
+    row.payType === "hourly" && row.rateAmount > 0
+      ? money(row.rateAmount)
+      : "";
+  const regularWages =
+    row.payType === "hourly"
+      ? money((regularHours / row.totalHours) * row.wages)
+      : money(row.wages);
+  const otWages =
+    row.payType === "hourly" && overtimeHours > 0
+      ? money((overtimeHours / row.totalHours) * row.wages)
       : "";
 
   const entries = [
     [
-      escapeCsv(row.employeeName),
+      escapeCsv(name),
       row.date,
       "Regular Pay",
-      String(regularHours),
+      String(roundHours(regularHours)),
+      rate,
+      currency,
+      regularWages,
       row.breakHours != null ? String(row.breakHours) : "",
-      breakNote,
     ],
   ];
 
   if (overtimeHours > 0) {
     entries.push([
-      escapeCsv(row.employeeName),
+      escapeCsv(name),
       row.date,
       "Overtime Pay",
       String(roundHours(overtimeHours)),
+      rate,
+      currency,
+      otWages,
       "",
-      breakNote,
     ]);
   }
 
@@ -144,8 +268,11 @@ export function timesheetsToCsv(
 ) {
   const format = options.format ?? "standard";
   const groupByEmployee = options.groupByEmployee ?? false;
+  const currency = resolveCurrency(options.currency);
   const orderedRows = groupByEmployee ? sortRowsByEmployee(rows) : rows;
-  const employeeGroups = groupByEmployee ? groupRowsByEmployee(orderedRows) : null;
+  const employeeGroups = groupByEmployee
+    ? groupRowsByEmployee(orderedRows)
+    : null;
 
   if (format === "quickbooks") {
     const header = [
@@ -153,8 +280,10 @@ export function timesheetsToCsv(
       "Date",
       "Pay Item",
       "Hours",
+      "Rate",
+      "Currency",
+      "Amount",
       "Break Hours",
-      "Notes",
     ];
 
     const lines = [header.join(",")];
@@ -164,110 +293,75 @@ export function timesheetsToCsv(
         const group = employeeGroups[index];
         if (index > 0) lines.push("");
 
-        const employeeName = group[0]?.employeeName ?? "Unknown";
-        lines.push(
-          [
-            escapeCsv(`${employeeName} — ${group.length} shift(s)`),
-            "",
-            "",
-            "",
-            "",
-            "",
-          ].join(",")
-        );
-
         for (const row of group) {
-          for (const entry of quickbooksRowsForShift(row)) {
+          for (const entry of quickbooksRowsForShift(row, currency)) {
             lines.push(entry.join(","));
           }
         }
 
+        const name = formatEmployeeNameForCsv(
+          group[0]?.employeeName ?? "Unknown"
+        );
+        const wages = sumWages(group);
+        const bonus = group[0]?.bonusAmount ?? 0;
         lines.push(
           [
-            escapeCsv(employeeName),
+            escapeCsv(name),
             "",
             "Subtotal",
             String(sumHours(group)),
+            "",
+            currency,
+            money(wages),
             sumBreakHours(group) > 0 ? String(sumBreakHours(group)) : "",
-            `${group.length} shift(s)`,
           ].join(",")
         );
+        if (bonus > 0) {
+          lines.push(
+            [
+              escapeCsv(name),
+              "",
+              "Bonus",
+              "",
+              "",
+              currency,
+              money(bonus),
+              "",
+            ].join(",")
+          );
+        }
       }
     } else {
       for (const row of orderedRows) {
-        for (const entry of quickbooksRowsForShift(row)) {
+        for (const entry of quickbooksRowsForShift(row, currency)) {
           lines.push(entry.join(","));
         }
       }
     }
 
-    return lines.join("\n");
+    return `${lines.join("\n")}\n`;
   }
 
-  const header = [
-    "Employee",
-    "Shift date",
-    "Clock out date",
-    "Clock in",
-    "Clock out",
-    "Break hours",
-    "Total hours",
-    "Status",
-    "Scheduled time",
-    "On time",
-    "Late",
-    "Absent",
-    "Missing clock in",
-    "Missing clock out",
-    "Unpaid leave",
-    "Bonus",
-  ];
-
-  const emptyGroupCells = () => Array(header.length - 1).fill("");
-
-  const lines = [header.join(",")];
+  const lines = [STANDARD_HEADER.join(",")];
 
   if (employeeGroups) {
     for (let index = 0; index < employeeGroups.length; index += 1) {
       const group = employeeGroups[index];
       if (index > 0) lines.push("");
 
-      const employeeName = group[0]?.employeeName ?? "Unknown";
-      lines.push(
-        [
-          escapeCsv(`${employeeName} — ${group.length} shift(s)`),
-          ...emptyGroupCells(),
-        ].join(",")
-      );
-
       for (const row of group) {
-        lines.push(standardRowLine(row, formatTime));
+        lines.push(standardDetailLine(row, formatTime, currency));
       }
-
-      lines.push(
-        [
-          escapeCsv(employeeName),
-          "",
-          "",
-          "",
-          "",
-          "",
-          String(sumHours(group)),
-          `Subtotal (${group.length} shift(s))`,
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ].join(",")
-      );
+      lines.push(standardSubtotalLine(group, currency));
     }
   } else {
     for (const row of orderedRows) {
-      lines.push(standardRowLine(row, formatTime));
+      lines.push(standardDetailLine(row, formatTime, currency));
+    }
+    if (orderedRows.length > 0) {
+      lines.push(standardSubtotalLine(orderedRows, currency));
     }
   }
 
-  return lines.join("\n");
+  return `${lines.join("\n")}\n`;
 }

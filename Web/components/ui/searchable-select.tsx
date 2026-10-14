@@ -30,7 +30,7 @@ type SearchableSelectProps = {
   helperText?: string;
   emptyMessage?: string;
   error?: string;
-  /** `auth` — ink/teal fields on dark onboarding & auth shells; default `light` for dashboard settings. */
+  /** `auth` — navy/gold fields on dark onboarding & auth shells; default `light` for dashboard settings. */
   variant?: SearchableSelectVariant;
 };
 

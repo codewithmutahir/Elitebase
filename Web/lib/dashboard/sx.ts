@@ -59,7 +59,7 @@ export const dashboardPillLinkSx: SxProps<Theme> = {
   },
 };
 
-/** Kiosk setup code reveal — dark elevated surface + teal glow (css-var-safe). */
+/** Kiosk setup code reveal — dark elevated surface + gold glow (css-var-safe). */
 export const dashboardSetupCodePanelSx: SxProps<Theme> = {
   borderRadius: "12px",
   border: "1px solid",
@@ -154,6 +154,30 @@ export const dashboardAccentLinkSx: SxProps<Theme> = {
   transition: "color 0.15s ease",
   "&:hover": {
     color: "primary.dark",
+  },
+};
+
+/** Missing/blocking field prompts (Add email, Add phone) — status red, not brand gold. */
+export const dashboardErrorLinkSx: SxProps<Theme> = {
+  fontWeight: 600,
+  color: "error.main",
+  textDecoration: "none",
+  transition: "color 0.15s ease",
+  "&:hover": {
+    color: "error.dark",
+    textDecoration: "underline",
+  },
+};
+
+/** Optional incomplete fields (Add role, Add wage) — quiet, not accent. */
+export const dashboardMutedLinkSx: SxProps<Theme> = {
+  fontWeight: 600,
+  color: "text.secondary",
+  textDecoration: "none",
+  transition: "color 0.15s ease",
+  "&:hover": {
+    color: "text.primary",
+    textDecoration: "underline",
   },
 };
 

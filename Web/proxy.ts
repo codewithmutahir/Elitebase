@@ -20,7 +20,11 @@ const protectedRoutes = [
   "/super-admin",
   "/schedule",
   "/team",
+  "/portal",
 ];
+
+/** Public under /portal — must not require a session cookie. */
+const portalPublicRoutes = ["/portal/accept-invite"];
 
 function matchesRoute(pathname: string, routes: string[]) {
   return routes.some(
@@ -38,7 +42,7 @@ export async function proxy(request: NextRequest) {
         const rateLimit = await checkAuthRateLimitForRequest(request, authBucket);
         if (rateLimit.limited) {
           return new NextResponse("Too Many Requests", {
-            status: 429,
+            status:429,
             headers: {
               "Retry-After": String(rateLimit.retryAfterSeconds),
             },
@@ -80,7 +84,12 @@ export async function proxy(request: NextRequest) {
   // Only gate protected routes — do NOT redirect /login → /dashboard based on
   // cookie presence alone. A stale or invalid cookie causes an infinite loop
   // when the dashboard layout cannot validate the session server-side.
-  if (matchesRoute(pathname, protectedRoutes) && !sessionCookie) {
+  const isPortalPublic = matchesRoute(pathname, portalPublicRoutes);
+  if (
+    matchesRoute(pathname, protectedRoutes) &&
+    !isPortalPublic &&
+    !sessionCookie
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -102,6 +111,8 @@ export const config = {
     "/super-admin/:path*",
     "/schedule/:path*",
     "/team/:path*",
+    "/portal",
+    "/portal/:path*",
     "/login",
     "/forgot-password",
     "/reset-password",

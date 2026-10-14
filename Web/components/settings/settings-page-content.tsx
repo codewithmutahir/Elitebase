@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
+import Link from "next/link";
 import { updateCompanySettings } from "@/app/(dashboard)/settings/actions";
 import { CurrencySelect } from "@/components/settings/currency-select";
 import { SettingsSubmitButton } from "@/components/settings/settings-submit-button";
@@ -166,6 +167,26 @@ export function SettingsPageContent({
             </Box>
           </Stack>
         </Box>
+
+        <Card sx={dashboardCardSx}>
+          <CardHeader>
+            <Typography component="h2" sx={dashboardSectionTitleSx}>
+              Locations & remote punch
+            </Typography>
+            <Typography sx={dashboardPageIntroSx}>
+              Worksite pins for portal geofence, and enable employee face
+              clock-in from the web portal.
+            </Typography>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/settings/locations"
+              className="text-sm font-semibold text-[var(--eb-accent)] no-underline hover:underline"
+            >
+              Manage locations →
+            </Link>
+          </CardContent>
+        </Card>
 
         <Card
           sx={{

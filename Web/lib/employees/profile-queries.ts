@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getEmployeePerformanceStats } from "@/lib/employees/performance";
 import type { EmployeePerformanceStats } from "@/lib/employees/performance";
+import { createEmployeeDocumentSignedUrl } from "@/lib/storage/employee-documents";
 
 export type EmployeeStatus = "active" | "terminated";
 export type EmploymentType = "employee" | "manager" | "contractor";
@@ -67,7 +68,7 @@ export type EmployeeProfile = {
   needs_reenrollment: boolean;
   created_at: string;
   hasPin: boolean;
-  /** Plain kiosk PIN for admin display (from employee_pins.pin_plain). */
+  /** Always null — cleartext PINs are never stored or listed. */
   pin: string | null;
   pinCreatedAt: string | null;
   documents: EmployeeDocument[];
@@ -101,7 +102,7 @@ export async function getEmployeeProfile(
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
       is_active, face_registered_at, face_consent, face_consent_at, needs_reenrollment, created_at,
-      employee_pins ( id, pin_plain, created_at )
+      employee_pins ( id, created_at )
     `
     )
     .eq("company_id", companyId)
@@ -116,25 +117,28 @@ export async function getEmployeeProfile(
   const [documentsRes, notesRes, milestonesRes, performance] = await Promise.all([
     admin
       .from("employee_documents")
-      .select("id, category, name, file_url, status, versions, created_at")
+      .select("id, category, name, file_url, file_path, status, versions, created_at")
       .eq("employee_id", employeeId)
+      .eq("company_id", companyId)
       .order("created_at", { ascending: true }),
     admin
       .from("employee_notes")
       .select("id, author_id, author_name, content, created_at")
       .eq("employee_id", employeeId)
+      .eq("company_id", companyId)
       .order("created_at", { ascending: false }),
     admin
       .from("employee_milestones")
       .select("id, title, milestone_date, icon")
       .eq("employee_id", employeeId)
+      .eq("company_id", companyId)
       .order("milestone_date", { ascending: true }),
     getEmployeePerformanceStats(companyId, employeeId),
   ]);
 
   const pins = data.employee_pins as
-    | { id: string; pin_plain: string | null; created_at: string }[]
-    | { id: string; pin_plain: string | null; created_at: string }
+    | { id: string; created_at: string }[]
+    | { id: string; created_at: string }
     | null;
   const pinRow = Array.isArray(pins) ? pins[0] : pins;
 
@@ -176,9 +180,25 @@ export async function getEmployeeProfile(
     needs_reenrollment: Boolean(data.needs_reenrollment),
     created_at: data.created_at,
     hasPin: Boolean(pinRow),
-    pin: pinRow?.pin_plain ?? null,
+    pin: null,
     pinCreatedAt: pinRow?.created_at ?? null,
-    documents: (documentsRes.data ?? []) as EmployeeDocument[],
+    documents: await Promise.all(
+      ((documentsRes.data ?? []) as Array<
+        EmployeeDocument & { file_path?: string | null }
+      >).map(async (doc) => ({
+        id: doc.id,
+        category: doc.category,
+        name: doc.name,
+        file_url: await createEmployeeDocumentSignedUrl(
+          admin,
+          doc.file_path,
+          doc.file_url
+        ),
+        status: doc.status,
+        versions: doc.versions,
+        created_at: doc.created_at,
+      }))
+    ),
     notes: (notesRes.data ?? []) as EmployeeNote[],
     milestones: (milestonesRes.data ?? []) as EmployeeMilestone[],
     performance,

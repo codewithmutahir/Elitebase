@@ -18,7 +18,7 @@ type RegisterRoleCardProps = {
 };
 
 /**
- * Role picker card — always dark ink/teal via `--eb-*` (landing-shell).
+ * Role picker card — always dark navy/gold via `--eb-*` (landing-shell).
  * Avoids MUI cssVariables alpha resolving to light paper on auth routes.
  */
 export function RegisterRoleCard({
@@ -41,24 +41,24 @@ export function RegisterRoleCard({
         borderRadius: { xs: "1.25rem", sm: "1.5rem" },
         border: "1px solid",
         borderColor: featured
-          ? "rgba(46, 196, 182, 0.35)"
+          ? "color-mix(in srgb, var(--eb-gold-500) 35%, transparent)"
           : "var(--eb-border)",
         bgcolor: featured
-          ? "rgba(14, 21, 36, 0.92)"
-          : "rgba(14, 21, 36, 0.78)",
+          ? "color-mix(in srgb, var(--eb-navy-800) 92%, transparent)"
+          : "color-mix(in srgb, var(--eb-navy-800) 78%, transparent)",
         p: { xs: 3, sm: 4 },
         textDecoration: "none",
         backdropFilter: "blur(12px)",
         boxShadow: featured
-          ? "inset 0 1px 0 rgba(255,255,255,0.06), 0 0 40px rgba(46, 196, 182, 0.1)"
+          ? "inset 0 1px 0 rgba(255,255,255,0.06), 0 0 40px color-mix(in srgb, var(--eb-gold-500) 10%, transparent)"
           : "inset 0 1px 0 rgba(255,255,255,0.04)",
         transition:
           "border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease",
         "&:hover": {
           transform: "translateY(-2px)",
-          borderColor: "rgba(46, 196, 182, 0.45)",
+          borderColor: "color-mix(in srgb, var(--eb-gold-500) 45%, transparent)",
           boxShadow:
-            "0 20px 50px rgba(0,0,0,0.35), 0 0 0 1px rgba(46, 196, 182, 0.12)",
+            "0 20px 50px rgba(0,0,0,0.35), 0 0 0 1px color-mix(in srgb, var(--eb-gold-500) 12%, transparent)",
           "& .role-card-continue": {
             color: "var(--eb-text)",
           },
@@ -66,8 +66,8 @@ export function RegisterRoleCard({
             transform: "translateX(2px)",
           },
           "& .role-card-icon": {
-            borderColor: "rgba(46, 196, 182, 0.35)",
-            bgcolor: "rgba(46, 196, 182, 0.12)",
+            borderColor: "color-mix(in srgb, var(--eb-gold-500) 35%, transparent)",
+            bgcolor: "color-mix(in srgb, var(--eb-gold-500) 12%, transparent)",
           },
         },
       }}
@@ -84,9 +84,9 @@ export function RegisterRoleCard({
             fontSize: "0.6875rem",
             fontWeight: 600,
             border: "1px solid",
-            borderColor: "rgba(46, 196, 182, 0.45)",
-            bgcolor: "rgba(46, 196, 182, 0.14)",
-            color: "var(--eb-accent)",
+            borderColor: "color-mix(in srgb, var(--eb-gold-500) 45%, transparent)",
+            bgcolor: "color-mix(in srgb, var(--eb-gold-500) 14%, transparent)",
+            color: "var(--eb-gold-500)",
           }}
         />
       ) : null}
@@ -102,10 +102,10 @@ export function RegisterRoleCard({
           borderRadius: "12px",
           border: "1px solid",
           borderColor: featured
-            ? "rgba(46, 196, 182, 0.3)"
+            ? "color-mix(in srgb, var(--eb-gold-500) 30%, transparent)"
             : "var(--eb-border)",
           bgcolor: "var(--eb-elevated)",
-          color: "var(--eb-accent)",
+          color: "var(--eb-gold-500)",
           transition: "border-color 200ms ease, background-color 200ms ease",
         }}
       >
@@ -167,7 +167,7 @@ export function RegisterRoleCard({
                 height: 6,
                 flexShrink: 0,
                 borderRadius: "50%",
-                bgcolor: "var(--eb-accent)",
+                bgcolor: "var(--eb-gold-500)",
               }}
               aria-hidden
             />
@@ -185,7 +185,7 @@ export function RegisterRoleCard({
           gap: 1,
           fontSize: "0.875rem",
           fontWeight: 500,
-          color: "var(--eb-accent)",
+          color: "var(--eb-gold-500)",
           transition: "color 200ms ease",
         }}
       >

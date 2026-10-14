@@ -119,7 +119,7 @@ export default function LandingPage() {
               in minutes. No credit card required to start.
             </p>
             <div className="mt-10 flex justify-center">
-              <LandingButton href="/register" variant="light" size="hero">
+              <LandingButton href="/register" variant="accent" size="hero">
                 Get started free
               </LandingButton>
             </div>

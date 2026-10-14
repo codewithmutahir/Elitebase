@@ -9,12 +9,14 @@ import {
 } from "@mui/material/styles";
 import { useEffect, type ReactNode } from "react";
 import { elitebaseMuiTheme } from "@/lib/mui/theme";
+import type { Theme } from "@mui/material/styles";
 
 /** Same key as DashboardThemeProvider — do not diverge. */
 const DASHBOARD_THEME_STORAGE_KEY = "elitebase-dashboard-theme";
 
 type MuiProviderProps = {
   children: ReactNode;
+  theme?: Theme;
   /** Auth routes stay dark; dashboard syncs via data-dashboard-theme. */
   defaultMode?: SupportedColorScheme;
   /**
@@ -56,6 +58,7 @@ function MuiColorSchemeBridge({
 
 export function MuiProvider({
   children,
+  theme = elitebaseMuiTheme,
   defaultMode = "dark",
   persistMode = true,
 }: MuiProviderProps) {
@@ -70,7 +73,7 @@ export function MuiProvider({
   return (
     <AppRouterCacheProvider options={{ enableCssLayer: true }}>
       <ThemeProvider
-        theme={elitebaseMuiTheme}
+        theme={theme}
         defaultMode={defaultMode}
         modeStorageKey={
           persistMode ? DASHBOARD_THEME_STORAGE_KEY : undefined

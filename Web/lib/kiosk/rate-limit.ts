@@ -15,9 +15,13 @@ const KIOSK_ROUTE_LIMITS: Record<string, { requests: number; window: "1 m" }> = 
   "employee-status": { requests: 60, window: "1 m" },
   "validate-tablet": { requests: 30, window: "1 m" },
   "register-tablet": { requests: 10, window: "1 m" },
+  "leave-request": { requests: 30, window: "1 m" },
   "face-verify-log": { requests: 120, window: "1 m" },
   "face-warmup": { requests: 60, window: "1 m" },
 };
+
+/** Routes that must fail closed in production when Redis is unavailable. */
+const FAIL_CLOSED_IN_PRODUCTION = new Set(["register-tablet"]);
 
 const limiterCache = new Map<string, Ratelimit>();
 
@@ -70,9 +74,18 @@ export async function checkKioskRateLimit(
   request: NextRequest,
   route: string
 ): Promise<RateLimitResult> {
+  const failClosed =
+    FAIL_CLOSED_IN_PRODUCTION.has(route) &&
+    process.env.NODE_ENV === "production";
+
   try {
     const limiter = getLimiter(route);
-    if (!limiter) return { limited: false };
+    if (!limiter) {
+      if (failClosed) {
+        return { limited: true, retryAfterSeconds: 900 };
+      }
+      return { limited: false };
+    }
 
     const identifier = getRateLimitIdentifier(request, route);
     const { success, reset } = await limiter.limit(identifier);
@@ -86,7 +99,10 @@ export async function checkKioskRateLimit(
     return { limited: true, retryAfterSeconds };
   } catch (error) {
     console.error(`[kiosk rate-limit] ${route} unavailable:`, error);
-    // Do not block kiosk clock-in if Upstash is misconfigured or unreachable.
+    if (failClosed) {
+      return { limited: true, retryAfterSeconds: 900 };
+    }
+    // Do not block day-to-day kiosk clock-in if Upstash is unreachable.
     return { limited: false };
   }
 }

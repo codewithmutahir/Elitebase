@@ -19,6 +19,19 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Elitebase",
   description: "Employee time tracking for teams and kiosk check-ins",
+  themeColor: "#0B1633",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Elitebase",
+    description: "Employee time tracking for teams and kiosk check-ins",
+    images: [{ url: "/brand/elitebase-logo-on-dark.png" }],
+  },
 };
 
 export default function RootLayout({

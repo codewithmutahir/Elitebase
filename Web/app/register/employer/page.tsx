@@ -9,9 +9,15 @@ import { auth } from "@/lib/auth";
 import { createCompanyForOwner } from "@/lib/company";
 import {
   enforceAuthRateLimitInAction,
+  recordAuthRateLimitFailureInAction,
   resolveAuthRateLimitQueryMessage,
 } from "@/lib/auth/enforce-rate-limit";
 import { parseEmployerRegisterFormData } from "@/lib/validations/auth";
+
+async function failRegister(error: string): Promise<never> {
+  await recordAuthRateLimitFailureInAction("register-employer");
+  redirect(`/register/employer?error=${error}`);
+}
 
 async function registerEmployer(formData: FormData) {
   "use server";
@@ -23,7 +29,7 @@ async function registerEmployer(formData: FormData) {
 
   const parsed = parseEmployerRegisterFormData(formData);
   if (!parsed.success) {
-    redirect("/register/employer?error=validation");
+    await failRegister("validation");
   }
 
   const { companyName, ownerName, email, password } = parsed.data;
@@ -44,7 +50,7 @@ async function registerEmployer(formData: FormData) {
 
     if (!result?.user?.id) {
       console.error("Employer signup failed: no user returned from Better Auth");
-      redirect("/register/employer?error=signup_failed");
+      await failRegister("signup_failed");
     }
 
     userId = result.user.id;
@@ -74,14 +80,14 @@ async function registerEmployer(formData: FormData) {
       const message = error.message.toLowerCase();
 
       if (message.includes("already") || message.includes("exists")) {
-        redirect("/register/employer?error=email_exists");
+        await failRegister("email_exists");
       }
 
       if (error.status === 429) {
         redirect("/register/employer?error=rate_limited");
       }
 
-      redirect("/register/employer?error=signup_failed");
+      await failRegister("signup_failed");
     } else {
       const message =
         error instanceof Error ? error.message : String(error);
@@ -93,27 +99,27 @@ async function registerEmployer(formData: FormData) {
         message.toLowerCase().includes("enotfound") ||
         message.toLowerCase().includes("getaddrinfo")
       ) {
-        redirect("/register/employer?error=db_unreachable");
+        await failRegister("db_unreachable");
       }
 
-      redirect("/register/employer?error=signup_failed");
+      await failRegister("signup_failed");
     }
   }
 
   if (!userId) {
-    redirect("/register/employer?error=signup_failed");
+    await failRegister("signup_failed");
   }
 
   let companyResult: { ok: true } | { error: string };
   try {
     companyResult = await createCompanyForOwner(userId, companyName);
   } catch {
-    redirect("/register/employer?error=missing_env");
+    await failRegister("missing_env");
   }
 
   if ("error" in companyResult) {
     console.error("Company create failed:", companyResult.error);
-    redirect("/register/employer?error=company_create_failed");
+    await failRegister("company_create_failed");
   }
 
   redirect("/onboarding");
@@ -140,6 +146,8 @@ export default async function EmployerRegisterPage({
               ? "Signup failed. Check the terminal for details, then try again."
               : null);
 
+  const failureSignal = error && !rateLimitMessage ? error : null;
+
   return (
     <AuthSplitLayout
       tagline="Create your company workspace in minutes—employees, kiosks, and timesheets in one place."
@@ -164,6 +172,7 @@ export default async function EmployerRegisterPage({
         <EmployerRegisterForm
           action={registerEmployer}
           errorMessage={errorMessage}
+          failureSignal={failureSignal}
         />
       </AuthFormCard>
     </AuthSplitLayout>

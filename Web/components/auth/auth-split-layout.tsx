@@ -8,6 +8,7 @@ import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { AuthBrandPanel } from "@/components/auth/auth-brand-panel";
+import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 import { LandingAtmosphere } from "@/components/landing/landing-atmosphere";
 
 type AuthSplitLayoutProps = {
@@ -53,22 +54,7 @@ export function AuthSplitLayout({
           py: { xs: 2, lg: 2.5 },
         }}
       >
-        <Typography
-          component={Link}
-          href="/"
-          sx={{
-            fontSize: { xs: "1.125rem", lg: "1.25rem" },
-            fontWeight: 600,
-            letterSpacing: "-0.02em",
-            color: "text.primary",
-            textDecoration: "none",
-          }}
-        >
-          Elite
-          <Box component="span" sx={{ color: "primary.main" }}>
-            base
-          </Box>
-        </Typography>
+        <ElitebaseLogo priority />
         <Stack
           direction="row"
           spacing={{ xs: 2, sm: 2.5 }}
@@ -80,9 +66,9 @@ export function AuthSplitLayout({
             sx={{
               fontSize: "0.875rem",
               fontWeight: 500,
-              color: "text.secondary",
+              color: "var(--eb-muted)",
               textDecoration: "none",
-              "&:hover": { color: "text.primary" },
+              "&:hover": { color: "var(--eb-text)" },
             }}
           >
             {backLabel}
@@ -93,9 +79,9 @@ export function AuthSplitLayout({
             sx={{
               fontSize: "0.875rem",
               fontWeight: 500,
-              color: "primary.main",
+              color: "var(--eb-gold-300)",
               textDecoration: "none",
-              "&:hover": { color: "text.primary" },
+              "&:hover": { color: "var(--eb-gold-500)" },
             }}
           >
             Sign in

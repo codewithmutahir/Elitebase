@@ -27,8 +27,8 @@ export function AuthFooterText({ prompt, href, label }: AuthFooterTextProps) {
         underline="hover"
         sx={{
           fontWeight: 500,
-          color: "var(--eb-accent)",
-          "&:hover": { color: "var(--eb-text)" },
+          color: "var(--eb-gold-300)",
+          "&:hover": { color: "var(--eb-gold-500)" },
         }}
       >
         {label}

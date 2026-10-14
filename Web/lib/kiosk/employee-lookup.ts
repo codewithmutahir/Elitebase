@@ -8,7 +8,7 @@ import {
 type PinRow = {
   employee_id: string;
   pin: string;
-  pin_plain: string | null;
+  pin_plain?: string | null;
   employees: {
     id: string;
     full_name: string;
@@ -49,11 +49,6 @@ async function pinMatchesRow(enteredPin: string, row: PinRow) {
     return { matches: true, needsRehash: !isBcryptHash(row.pin) };
   }
 
-  // Admin UI shows pin_plain; re-sync if hash drifted (e.g. manual DB edit).
-  if (row.pin_plain && row.pin_plain === enteredPin) {
-    return { matches: true, needsRehash: true };
-  }
-
   return { matches: false, needsRehash: false };
 }
 
@@ -77,7 +72,6 @@ export async function findEmployeeByPin(companyId: string, pin: string) {
       `
       employee_id,
       pin,
-      pin_plain,
       employees (
         id,
         full_name,
@@ -125,7 +119,7 @@ export async function findEmployeeByPin(companyId: string, pin: string) {
       const pinHash = await hashEmployeePin(normalizedPin);
       const { error: syncError } = await admin
         .from("employee_pins")
-        .update({ pin: pinHash, pin_plain: normalizedPin })
+        .update({ pin: pinHash, pin_plain: null })
         .eq("employee_id", row.employee_id)
         .eq("company_id", companyId);
 

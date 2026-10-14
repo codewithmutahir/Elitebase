@@ -5,12 +5,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   upsertEmployeeAvailability,
   type AvailabilityUpdateMode,
 } from "@/app/(dashboard)/schedule/availability/actions";
+import { PendingButton } from "@/components/dashboard/pending-button";
+import { usePendingNavigation } from "@/components/dashboard/use-pending-navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -279,9 +281,13 @@ export function AvailabilityView({
   departmentOptions,
   weekStart,
 }: AvailabilityViewProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [departmentId, setDepartmentId] = useState("all");
+  const {
+    pending: navPending,
+    activeKey: navKey,
+    navigate,
+  } = usePendingNavigation<"prev" | "next">();
 
   const weekMonday = useMemo(() => parseWeekParam(weekStart), [weekStart]);
   const weekLabel = formatWeekRangeLabel(weekMonday);
@@ -292,10 +298,14 @@ export function AvailabilityView({
   }, [employees, departmentId]);
 
   function navigateWeek(delta: number) {
+    if (navPending) return;
     const nextMonday = addWeeks(weekMonday, delta);
     const params = new URLSearchParams(searchParams.toString());
     params.set("week", formatWeekParam(nextMonday));
-    router.push(`/schedule/availability?${params.toString()}`);
+    navigate(
+      `/schedule/availability?${params.toString()}`,
+      delta < 0 ? "prev" : "next"
+    );
   }
 
   function handleExport() {
@@ -327,15 +337,19 @@ export function AvailabilityView({
           useFlexGap
           sx={{ alignItems: "center", gap: 1 }}
         >
-          <Button
+          <PendingButton
             type="button"
             variant="outline"
             size="icon"
+            pending={navPending && navKey === "prev"}
+            disabled={navPending}
+            pendingLabel=""
             onClick={() => navigateWeek(-1)}
             aria-label="Previous week"
+            className={cn(dashboardOutlineButtonClass)}
           >
             <ChevronLeft className="size-4" aria-hidden />
-          </Button>
+          </PendingButton>
           <Typography
             component="span"
             sx={{
@@ -348,15 +362,19 @@ export function AvailabilityView({
           >
             {weekLabel}
           </Typography>
-          <Button
+          <PendingButton
             type="button"
             variant="outline"
             size="icon"
+            pending={navPending && navKey === "next"}
+            disabled={navPending}
+            pendingLabel=""
             onClick={() => navigateWeek(1)}
             aria-label="Next week"
+            className={cn(dashboardOutlineButtonClass)}
           >
             <ChevronRight className="size-4" aria-hidden />
-          </Button>
+          </PendingButton>
         </Stack>
 
         <Stack

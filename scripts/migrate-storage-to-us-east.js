@@ -27,14 +27,19 @@ function loadEnvLocal() {
 
 const local = loadEnvLocal();
 
-const OLD_URL = process.env.OLD_SUPABASE_URL || "https://sqqjcmnmatirrdzzaoml.supabase.co";
-const OLD_SERVICE_KEY =
-  process.env.OLD_SERVICE_ROLE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxcWpjbW5tYXRpcnJkenphb21sIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTg3NzI1MCwiZXhwIjoyMDk1NDUzMjUwfQ.REPe6uVqQoE59fvw41fsfRLfoXNKg1mJuBuMoNuN9gE";
+const OLD_URL = process.env.OLD_SUPABASE_URL;
+const OLD_SERVICE_KEY = process.env.OLD_SERVICE_ROLE_KEY;
 
 const NEW_URL = local.NEXT_PUBLIC_SUPABASE_URL;
 const NEW_SERVICE_KEY = local.SUPABASE_SERVICE_ROLE_KEY;
 const NEW_DIRECT_URL = local.DIRECT_URL || local.SUPABASE_DATABASE_URL;
+
+if (!OLD_URL || !OLD_SERVICE_KEY) {
+  console.error(
+    "Missing OLD_SUPABASE_URL / OLD_SERVICE_ROLE_KEY (set via env; never hardcode secrets)."
+  );
+  process.exit(1);
+}
 
 if (!NEW_URL || !NEW_SERVICE_KEY || !NEW_DIRECT_URL) {
   console.error("Missing NEW_URL / SUPABASE_SERVICE_ROLE_KEY / DIRECT_URL in .env.local");

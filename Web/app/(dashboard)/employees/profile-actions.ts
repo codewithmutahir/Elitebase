@@ -299,6 +299,16 @@ export async function addEmployeeCertificate(
   if (!trimmed) return { error: "Certificate name is required." };
 
   const admin = createClient();
+
+  const { data: employee } = await admin
+    .from("employees")
+    .select("id")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (!employee) return { error: "Employee not found." };
+
   const { error } = await admin.from("employee_documents").insert({
     employee_id: employeeId,
     company_id: company.id,
@@ -328,6 +338,33 @@ export async function uploadEmployeeDocument(
     return { error: "Please choose a file to upload." };
   }
 
+  const MAX_DOC_BYTES = 5 * 1024 * 1024;
+  if (file.size > MAX_DOC_BYTES) {
+    return { error: "Document must be 5 MB or smaller." };
+  }
+
+  const ext = (file.name.split(".").pop() ?? "").toLowerCase();
+  const allowedExt = ["pdf", "png", "jpg", "jpeg", "webp"];
+  if (!allowedExt.includes(ext)) {
+    return { error: "Upload a PDF or image file (png, jpg, webp)." };
+  }
+
+  const mimeByExt: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+  };
+  const resolvedType = mimeByExt[ext];
+  if (
+    file.type &&
+    file.type !== "application/octet-stream" &&
+    !Object.values(mimeByExt).includes(file.type)
+  ) {
+    return { error: "File type is not allowed." };
+  }
+
   const admin = createClient();
 
   const { data: doc } = await admin
@@ -340,14 +377,13 @@ export async function uploadEmployeeDocument(
 
   if (!doc) return { error: "Document not found." };
 
-  const ext = file.name.split(".").pop() ?? "bin";
   const path = `${company.id}/${employeeId}/${documentId}-${Date.now()}.${ext}`;
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error: uploadError } = await admin.storage
     .from("employee-documents")
     .upload(path, buffer, {
-      contentType: file.type || "application/octet-stream",
+      contentType: resolvedType,
       upsert: true,
     });
 
@@ -356,14 +392,11 @@ export async function uploadEmployeeDocument(
     return { error: "File upload failed." };
   }
 
-  const { data: publicUrl } = admin.storage
-    .from("employee-documents")
-    .getPublicUrl(path);
-
   const { error: updateError } = await admin
     .from("employee_documents")
     .update({
-      file_url: publicUrl.publicUrl,
+      file_path: path,
+      file_url: null,
       status: "completed",
       versions: (doc.versions ?? 0) + 1,
     })
@@ -376,4 +409,59 @@ export async function uploadEmployeeDocument(
 
   revalidateEmployee(company.id, employeeId);
   return { ok: true };
+}
+
+/** Creates an invite token and emails the employee portal activate link. */
+export async function sendEmployeePortalInvite(employeeId: string) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { data: employee, error: lookupError } = await admin
+    .from("employees")
+    .select("id, email, full_name, status, user_id")
+    .eq("company_id", company.id)
+    .eq("id", employeeId)
+    .maybeSingle();
+
+  if (lookupError || !employee) {
+    return { error: "Employee not found." };
+  }
+
+  if (employee.status === "terminated") {
+    return { error: "Cannot invite a deactivated employee." };
+  }
+
+  if (employee.user_id) {
+    return {
+      error:
+        "This employee already activated their portal. Ask them to sign in.",
+    };
+  }
+
+  const email = employee.email?.trim() ?? "";
+  if (!email) {
+    return { error: "Add an email before sending an invite." };
+  }
+
+  const { createAndSendPortalInvite } = await import("@/lib/portal/invite");
+  const result = await createAndSendPortalInvite({
+    companyId: company.id,
+    companyName: company.name,
+    employeeId,
+    employeeName: employee.full_name,
+    email,
+  });
+
+  if ("error" in result) {
+    return { error: result.error };
+  }
+
+  revalidateEmployee(company.id, employeeId);
+  return {
+    ok: true as const,
+    email: result.email,
+    invitedAt: result.invitedAt,
+    emailed: result.emailed,
+    ...(result.emailError ? { emailError: result.emailError } : {}),
+  };
 }

@@ -9,6 +9,7 @@ export const AUTH_RATE_LIMITS = {
   "register-employer": { requests: 5, window: "15 m" as const },
   "forgot-password": { requests: 5, window: "15 m" as const },
   "reset-password": { requests: 5, window: "15 m" as const },
+  "accept-portal-invite": { requests: 5, window: "15 m" as const },
   onboarding: { requests: 10, window: "15 m" as const },
   "auth-api": { requests: 30, window: "1 m" as const },
 } satisfies Record<string, { requests: number; window: "1 m" | "15 m" }>;
@@ -89,6 +90,13 @@ function authRateLimitUnavailable(): RateLimitResult {
   };
 }
 
+function retryAfterFromReset(reset: number): number {
+  return Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+}
+
+/**
+ * Consume one token (used for `/api/auth` proxy and explicit failure recording).
+ */
 export async function checkAuthRateLimit(
   bucket: AuthRateLimitBucket,
   identifier: string
@@ -109,11 +117,11 @@ export async function checkAuthRateLimit(
 
     if (success) return { limited: false };
 
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((reset - Date.now()) / 1000)
-    );
-    return { limited: true, retryAfterSeconds, reason: "quota" };
+    return {
+      limited: true,
+      retryAfterSeconds: retryAfterFromReset(reset),
+      reason: "quota",
+    };
   } catch (error) {
     console.error(`[auth rate-limit] ${bucket} unavailable:`, error);
     if (isProductionEnv()) {
@@ -121,6 +129,51 @@ export async function checkAuthRateLimit(
     }
     return { limited: false };
   }
+}
+
+/**
+ * Read-only check — does not consume. Use at the start of auth actions so
+ * successful logins/signups are not charged against the failure quota.
+ */
+export async function peekAuthRateLimit(
+  bucket: AuthRateLimitBucket,
+  identifier: string
+): Promise<RateLimitResult> {
+  try {
+    const limiter = getLimiter(bucket);
+    if (!limiter) {
+      if (isProductionEnv()) {
+        console.error(
+          `[auth rate-limit] ${bucket}: Upstash not configured — blocking (production fail-closed)`
+        );
+        return authRateLimitUnavailable();
+      }
+      return { limited: false };
+    }
+
+    const { remaining, reset } = await limiter.getRemaining(identifier);
+    if (remaining > 0) return { limited: false };
+
+    return {
+      limited: true,
+      retryAfterSeconds: retryAfterFromReset(reset),
+      reason: "quota",
+    };
+  } catch (error) {
+    console.error(`[auth rate-limit] ${bucket} peek unavailable:`, error);
+    if (isProductionEnv()) {
+      return authRateLimitUnavailable();
+    }
+    return { limited: false };
+  }
+}
+
+/** Consume one failure token after an auth attempt fails. */
+export async function recordAuthRateLimitFailure(
+  bucket: AuthRateLimitBucket,
+  identifier: string
+): Promise<RateLimitResult> {
+  return checkAuthRateLimit(bucket, identifier);
 }
 
 export async function checkAuthRateLimitForRequest(
@@ -131,6 +184,21 @@ export async function checkAuthRateLimitForRequest(
   return checkAuthRateLimit(bucket, ip);
 }
 
+export async function peekAuthRateLimitForAction(
+  bucket: AuthRateLimitBucket
+): Promise<RateLimitResult> {
+  const ip = await getRequestClientIp();
+  return peekAuthRateLimit(bucket, ip);
+}
+
+export async function recordAuthRateLimitFailureForAction(
+  bucket: AuthRateLimitBucket
+): Promise<RateLimitResult> {
+  const ip = await getRequestClientIp();
+  return recordAuthRateLimitFailure(bucket, ip);
+}
+
+/** @deprecated Prefer peek + record-on-failure for credential actions. */
 export async function checkAuthRateLimitForAction(
   bucket: AuthRateLimitBucket
 ): Promise<RateLimitResult> {

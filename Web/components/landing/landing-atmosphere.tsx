@@ -54,9 +54,9 @@ export function LandingAtmosphere() {
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 85% 55% at 50% 0%, rgba(46,196,182,0.11), transparent 58%),
-            radial-gradient(ellipse 90% 70% at 50% 55%, rgba(46,196,182,0.07), transparent 62%),
-            #060a12
+            radial-gradient(ellipse 85% 55% at 50% 0%, rgba(47,78,162,0.12), transparent 58%),
+            radial-gradient(ellipse 90% 70% at 50% 55%, rgba(217,166,63,0.06), transparent 62%),
+            var(--eb-navy-900)
           `,
         }}
       />
@@ -65,7 +65,7 @@ export function LandingAtmosphere() {
         className="aurora-blob absolute left-[10%] top-[8%] h-[55vmax] w-[55vmax] rounded-full opacity-[0.32] will-change-transform"
         style={{
           background:
-            "radial-gradient(circle, rgba(46,196,182,0.2) 0%, rgba(46,196,182,0.05) 40%, transparent 60%)",
+            "radial-gradient(circle, rgba(47,78,162,0.18) 0%, rgba(47,78,162,0.05) 40%, transparent 60%)",
           animation: "aurora-drift 18s ease-in-out infinite",
         }}
       />
@@ -73,7 +73,7 @@ export function LandingAtmosphere() {
         className="aurora-blob absolute right-[8%] top-[35%] h-[45vmax] w-[45vmax] rounded-full opacity-[0.26] will-change-transform"
         style={{
           background:
-            "radial-gradient(circle, rgba(80,200,210,0.16) 0%, rgba(80,200,210,0.04) 35%, transparent 55%)",
+            "radial-gradient(circle, rgba(217,166,63,0.12) 0%, rgba(217,166,63,0.03) 35%, transparent 55%)",
           animation: "aurora-drift 22s ease-in-out infinite reverse",
         }}
       />
@@ -86,7 +86,7 @@ export function LandingAtmosphere() {
           top: "35%",
           opacity: 0.5,
           background:
-            "radial-gradient(circle, rgba(46,196,182,0.2) 0%, rgba(46,196,182,0.06) 42%, transparent 68%)",
+            "radial-gradient(circle, rgba(47,78,162,0.16) 0%, rgba(217,166,63,0.05) 42%, transparent 68%)",
         }}
       />
     </div>

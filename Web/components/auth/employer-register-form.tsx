@@ -21,16 +21,20 @@ import {
 
 type EmployerRegisterFormProps = {
   errorMessage?: string | null;
+  /** Raw error code from the URL — counts a client failure when set. */
+  failureSignal?: string | null;
   action: (formData: FormData) => void | Promise<void>;
 };
 
 export function EmployerRegisterForm({
   errorMessage,
+  failureSignal = null,
   action,
 }: EmployerRegisterFormProps) {
   const [isPending, startTransition] = useTransition();
-  const { canSubmit, lockMessage, consumeAttempt } = useAuthFormAttempts(
-    "auth-attempts:register-employer"
+  const { canSubmit, lockMessage, beginAttempt } = useAuthFormAttempts(
+    "auth-attempts:register-employer:v2",
+    failureSignal
   );
 
   const {
@@ -52,7 +56,7 @@ export function EmployerRegisterForm({
   });
 
   const onSubmit = (data: EmployerRegisterInput) => {
-    if (!consumeAttempt()) return;
+    if (!beginAttempt()) return;
 
     const formData = new FormData();
     formData.set("companyName", data.companyName);
@@ -211,8 +215,8 @@ export function EmployerRegisterForm({
           underline="hover"
           sx={{
             fontWeight: 500,
-            color: "primary.main",
-            "&:hover": { color: "text.primary" },
+            color: "var(--eb-gold-300)",
+            "&:hover": { color: "var(--eb-gold-500)" },
           }}
         >
           Go here

@@ -37,7 +37,11 @@ export function PendingButton({
       {pending ? (
         <span className="inline-flex items-center gap-2">
           <LatticeLoader size="sm" />
-          <span>{pendingLabel ?? children}</span>
+          {pendingLabel === undefined ? (
+            <span>{children}</span>
+          ) : pendingLabel ? (
+            <span>{pendingLabel}</span>
+          ) : null}
         </span>
       ) : (
         children

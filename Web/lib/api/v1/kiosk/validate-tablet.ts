@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   isErrorResponse,
+  jsonError,
   jsonOk,
   requireKioskTablet,
 } from "@/lib/kiosk/api";
@@ -15,12 +16,16 @@ export async function POST(request: NextRequest) {
   const admin = createClient();
   const { data: company, error: companyError } = await admin
     .from("companies")
-    .select("name, logo_url")
+    .select("name, logo_url, is_active")
     .eq("id", tablet.company_id)
     .maybeSingle();
 
   if (companyError) {
     console.error("validate-tablet company lookup failed:", companyError.message);
+  }
+
+  if (company && company.is_active === false) {
+    return jsonError("This company has been suspended.", 403);
   }
 
   return jsonOk({

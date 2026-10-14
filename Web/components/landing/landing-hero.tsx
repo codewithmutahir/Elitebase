@@ -270,7 +270,7 @@ export function LandingHero() {
               className="absolute left-1/2 top-[18%] h-[70vmax] w-[90vmax] -translate-x-1/2 rounded-full"
               style={{
                 background:
-                  "radial-gradient(circle, rgba(46,196,182,0.16) 0%, rgba(46,196,182,0.04) 40%, transparent 68%)",
+                  "radial-gradient(circle, rgba(47,78,162,0.14) 0%, rgba(217,166,63,0.06) 42%, transparent 68%)",
               }}
             />
           </div>
@@ -313,7 +313,7 @@ export function LandingHero() {
                 </LandingButton>
                 <LandingButton
                   href="#features"
-                  variant="light"
+                  variant="ghost"
                   size="hero"
                   className="w-full lg:w-auto"
                 >

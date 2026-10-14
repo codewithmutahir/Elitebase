@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SVGProps } from "react";
+import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 
 type SocialIconName = "linkedin" | "facebook" | "x" | "youtube" | "rss";
 
@@ -124,23 +125,7 @@ const legalLinks = [
 ] as const;
 
 function FooterLogo() {
-  return (
-    <Link
-      href="/"
-      className="inline-flex items-center gap-3 no-underline"
-      aria-label="Elitebase home"
-    >
-      <span
-        className="relative flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--eb-accent)]/35 via-[var(--eb-surface)] to-[var(--eb-accent-dark)]/40 shadow-[0_0_24px_rgba(46,196,182,0.15)] ring-1 ring-[var(--eb-border)]"
-        aria-hidden
-      >
-        <span className="size-4 rotate-45 rounded-sm bg-[var(--eb-accent)]/90" />
-      </span>
-      <span className="text-[1.35rem] font-semibold tracking-tight text-[var(--eb-text)]">
-        Elite<span className="text-[var(--eb-accent)]">base</span>
-      </span>
-    </Link>
-  );
+  return <ElitebaseLogo className="inline-flex items-center" />;
 }
 
 function TrustBadge({

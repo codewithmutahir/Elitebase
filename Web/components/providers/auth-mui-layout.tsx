@@ -1,4 +1,5 @@
 import { MuiProvider } from "@/components/providers/mui-provider";
+import { elitebaseAuthMuiTheme } from "@/lib/mui/auth-theme";
 
 /** Auth route MUI shell — dark only; landing stays outside this tree. */
 export default function AuthMuiLayout({
@@ -7,7 +8,11 @@ export default function AuthMuiLayout({
   children: React.ReactNode;
 }) {
   return (
-    <MuiProvider defaultMode="dark" persistMode={false}>
+    <MuiProvider
+      theme={elitebaseAuthMuiTheme}
+      defaultMode="dark"
+      persistMode={false}
+    >
       {children}
     </MuiProvider>
   );

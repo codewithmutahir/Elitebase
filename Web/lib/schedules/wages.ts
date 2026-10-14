@@ -8,7 +8,11 @@ export type EmployeeCompensation = Pick<
   "hourly_rate" | "pay_type" | "salary_amount" | "working_days"
 >;
 
-function countWorkingDaysInMonth(year: number, month: number, workingDays: number[]) {
+export function countWorkingDaysInMonth(
+  year: number,
+  month: number,
+  workingDays: number[]
+) {
   const normalized = normalizeWorkingDays(workingDays);
   const daysInMonth = new Date(year, month, 0).getDate();
   let count = 0;
@@ -125,4 +129,50 @@ export function dayEarnings(
 
 export function earningsLabel(payType: PayType): string {
   return payType === "salary" ? "Est. earnings" : "Wages";
+}
+
+/** Daily salary slice for a calendar month (payroll / timesheet export). */
+export function salaryDailyRate(
+  salaryAmount: number | null | undefined,
+  shiftDate: string,
+  workingDays: number[]
+): number {
+  const salary = Number(salaryAmount ?? 0);
+  if (salary <= 0) return 0;
+  const [yearStr, monthStr] = shiftDate.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!year || !month) return 0;
+  const days = countWorkingDaysInMonth(year, month, workingDays);
+  return Math.round((salary / days) * 100) / 100;
+}
+
+/**
+ * Earnings for one timesheet shift row.
+ * Hourly = hours × rate. Salary = one working-day slice when hours were worked.
+ */
+export function timesheetShiftWages(input: {
+  payType: string;
+  hourlyRate: number;
+  salaryAmount: number | null;
+  workingDays: number[];
+  shiftDate: string;
+  totalHours: number | null;
+  unpaidLeave: boolean;
+  absent: boolean;
+}): number {
+  if (input.unpaidLeave) return 0;
+  const hours = input.totalHours ?? 0;
+  if (hours <= 0) return 0;
+  if (input.absent && hours <= 0) return 0;
+
+  if (input.payType === "salary") {
+    return salaryDailyRate(
+      input.salaryAmount,
+      input.shiftDate,
+      input.workingDays
+    );
+  }
+
+  return hourlyShiftWages(hours, input.hourlyRate);
 }

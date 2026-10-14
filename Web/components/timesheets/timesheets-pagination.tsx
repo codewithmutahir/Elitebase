@@ -1,4 +1,9 @@
-import Link from "next/link";
+"use client";
+
+import { PendingButton } from "@/components/dashboard/pending-button";
+import { usePendingNavigation } from "@/components/dashboard/use-pending-navigation";
+import { dashboardOutlineButtonClass } from "@/lib/dashboard/styles";
+import { cn } from "@/lib/utils";
 
 type TimesheetsPaginationProps = {
   page: number;
@@ -20,38 +25,54 @@ export function TimesheetsPagination({
   to,
   total,
 }: TimesheetsPaginationProps) {
+  const { pending, activeKey, navigate } = usePendingNavigation<
+    "prev" | "next"
+  >();
+
   if (total === 0) return null;
 
   const prev = page > 1 ? page - 1 : null;
   const next = page < totalPages ? page + 1 : null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#E2E8F0] px-6 py-4">
-      <p className="text-sm text-[#64748B]">
+    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--eb-border)] px-6 py-4">
+      <p className="text-sm text-[var(--eb-muted)]">
         Page {page} of {totalPages} · {total} shift{total === 1 ? "" : "s"}
       </p>
       <div className="flex gap-2">
         {prev ? (
-          <Link
-            href={pageHref(prev, from, to)}
-            className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC]"
+          <PendingButton
+            type="button"
+            variant="outline"
+            size="sm"
+            pending={pending && activeKey === "prev"}
+            disabled={pending}
+            pendingLabel="Loading…"
+            onClick={() => navigate(pageHref(prev, from, to), "prev")}
+            className={cn(dashboardOutlineButtonClass)}
           >
             Previous
-          </Link>
+          </PendingButton>
         ) : (
-          <span className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#CBD5E1]">
+          <span className="rounded-lg border border-[var(--eb-border)] px-4 py-2 text-sm font-semibold text-[var(--eb-muted)] opacity-50">
             Previous
           </span>
         )}
         {next ? (
-          <Link
-            href={pageHref(next, from, to)}
-            className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC]"
+          <PendingButton
+            type="button"
+            variant="outline"
+            size="sm"
+            pending={pending && activeKey === "next"}
+            disabled={pending}
+            pendingLabel="Loading…"
+            onClick={() => navigate(pageHref(next, from, to), "next")}
+            className={cn(dashboardOutlineButtonClass)}
           >
             Next
-          </Link>
+          </PendingButton>
         ) : (
-          <span className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#CBD5E1]">
+          <span className="rounded-lg border border-[var(--eb-border)] px-4 py-2 text-sm font-semibold text-[var(--eb-muted)] opacity-50">
             Next
           </span>
         )}

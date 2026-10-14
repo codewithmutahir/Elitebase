@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Menu, Settings, User } from "lucide-react";
+import { LogOut, Menu, PanelLeft, Settings, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,6 +9,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { muiAlpha } from "@/lib/mui/alpha";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -54,9 +55,15 @@ function companyInitials(name: string) {
 
 type HeaderProps = {
   onMenuClick?: () => void;
+  sidebarExpanded?: boolean;
+  onSidebarToggle?: () => void;
 };
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({
+  onMenuClick,
+  sidebarExpanded = true,
+  onSidebarToggle,
+}: HeaderProps) {
   const pathname = usePathname();
   const { company, user } = useCompany();
   const title = getPageTitle(pathname);
@@ -107,6 +114,39 @@ export function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu size={20} aria-hidden />
           </IconButton>
+          {onSidebarToggle ? (
+            <Tooltip
+              title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              <IconButton
+                type="button"
+                edge="start"
+                aria-label={
+                  sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"
+                }
+                aria-pressed={sidebarExpanded}
+                onClick={onSidebarToggle}
+                sx={{
+                  display: { xs: "none", md: "inline-flex" },
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  color: "text.secondary",
+                  bgcolor: (theme) =>
+                    muiAlpha(theme, (p) => p.text.primary, 0.04),
+                  "&:hover": {
+                    color: "text.primary",
+                    bgcolor: (theme) =>
+                      muiAlpha(theme, (p) => p.text.primary, 0.08),
+                    borderColor: (theme) =>
+                      muiAlpha(theme, (p) => p.text.primary, 0.2),
+                  },
+                }}
+              >
+                <PanelLeft size={18} aria-hidden />
+              </IconButton>
+            </Tooltip>
+          ) : null}
           <Typography
             component="h1"
             noWrap

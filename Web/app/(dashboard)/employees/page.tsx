@@ -14,6 +14,7 @@ export default async function RosterPage() {
     <RosterView
       employees={employees}
       departmentOptions={departmentOptions}
+      currency={company.currency}
     />
   );
 }

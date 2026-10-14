@@ -64,3 +64,23 @@ export async function deactivateTablet(tabletId: string) {
   revalidatePath("/kiosk-setup");
   return { ok: true };
 }
+
+/** Permanently remove deactivated tablet rows (attendance keeps history via ON DELETE SET NULL). */
+export async function clearInactiveTablets() {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { error, count } = await admin
+    .from("kiosk_tablets")
+    .delete({ count: "exact" })
+    .eq("company_id", company.id)
+    .eq("is_active", false);
+
+  if (error) {
+    console.error("clearInactiveTablets failed:", error.message);
+    return { error: "Could not clear inactive tablets." };
+  }
+
+  revalidatePath("/kiosk-setup");
+  return { ok: true as const, cleared: count ?? 0 };
+}

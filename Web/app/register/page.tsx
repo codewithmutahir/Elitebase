@@ -21,7 +21,7 @@ export default function RegisterPage() {
               fontWeight: 500,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              color: "var(--eb-accent)",
+              color: "var(--eb-gold-500)",
             }}
           >
             Get started
@@ -47,8 +47,8 @@ export default function RegisterPage() {
               textWrap: "pretty",
             }}
           >
-            Employers set up the company, kiosks, and timesheets. Employees clock
-            in on the tablet at work—no app signup required.
+            Employers set up the company, kiosks, and timesheets. Employees join
+            by invite—then use the portal or the workplace kiosk.
           </Typography>
         </Box>
 
@@ -71,12 +71,12 @@ export default function RegisterPage() {
             <RegisterRoleCard
               href="/register/employee"
               title="I'm an employee"
-              description="Your manager adds you—you punch in at the kiosk."
+              description="Your manager invites you—then sign in to the portal."
               icon={Tablet}
               bullets={[
-                "PIN clock-in at your workplace tablet",
-                "Optional face verification on site",
-                "Schedules and hours from your employer",
+                "Accept a portal invite from your employer",
+                "Attendance, leave, pay, and remote clock-in",
+                "Or punch at the workplace kiosk with your PIN",
               ]}
             />
           </Grid>
@@ -97,8 +97,8 @@ export default function RegisterPage() {
             underline="hover"
             sx={{
               fontWeight: 500,
-              color: "var(--eb-accent)",
-              "&:hover": { color: "var(--eb-text)" },
+              color: "var(--eb-gold-300)",
+              "&:hover": { color: "var(--eb-gold-500)" },
             }}
           >
             Sign in

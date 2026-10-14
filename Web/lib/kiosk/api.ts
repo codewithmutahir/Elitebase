@@ -56,7 +56,9 @@ export async function requireKioskTablet(
   const admin = createClient();
   const { data: tablet, error } = await admin
     .from("kiosk_tablets")
-    .select("id, company_id, location_name, is_active")
+    .select(
+      "id, company_id, location_name, is_active, companies ( is_active )"
+    )
     .eq("tablet_token", tabletToken)
     .maybeSingle();
 
@@ -66,6 +68,15 @@ export async function requireKioskTablet(
 
   if (!tablet.is_active) {
     return jsonError("This tablet has been deactivated.", 403);
+  }
+
+  const companyJoin = tablet.companies as
+    | { is_active: boolean | null }
+    | { is_active: boolean | null }[]
+    | null;
+  const companyRow = Array.isArray(companyJoin) ? companyJoin[0] : companyJoin;
+  if (companyRow && companyRow.is_active === false) {
+    return jsonError("This company has been suspended.", 403);
   }
 
   await admin

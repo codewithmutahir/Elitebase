@@ -44,6 +44,20 @@ export async function POST(request: NextRequest) {
     return jsonError("This setup code has already been used.", 409);
   }
 
+  const { data: company, error: companyError } = await admin
+    .from("companies")
+    .select("name, logo_url, is_active")
+    .eq("id", tablet.company_id)
+    .maybeSingle();
+
+  if (companyError) {
+    console.error("register-tablet company lookup failed:", companyError.message);
+  }
+
+  if (company && company.is_active === false) {
+    return jsonError("This company has been suspended.", 403);
+  }
+
   const tabletToken = generateTabletToken();
   const now = new Date().toISOString();
 
@@ -66,16 +80,6 @@ export async function POST(request: NextRequest) {
   if (!updatedRows?.length) {
     // Race: another device claimed this setup code, or token already set.
     return jsonError("This setup code has already been used.", 409);
-  }
-
-  const { data: company, error: companyError } = await admin
-    .from("companies")
-    .select("name, logo_url")
-    .eq("id", tablet.company_id)
-    .maybeSingle();
-
-  if (companyError) {
-    console.error("register-tablet company lookup failed:", companyError.message);
   }
 
   return jsonOk({

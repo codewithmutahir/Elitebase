@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LandingButton } from "@/components/landing/landing-button";
@@ -40,13 +41,11 @@ export function LandingNavbar() {
         className="pointer-events-none fixed inset-x-0 top-0 z-50"
       >
         <div className="pointer-events-auto mx-auto flex h-[64px] max-w-[1320px] items-center justify-between px-5 sm:h-[72px] sm:px-8">
-          <Link
-            href="/"
-            className="shrink-0 text-[18px] font-semibold tracking-tight text-[#ededed]"
+          <ElitebaseLogo
+            className="shrink-0"
+            priority
             onClick={closeMenu}
-          >
-            Elite<span className="text-[var(--eb-accent)]">base</span>
-          </Link>
+          />
 
           <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-white/[0.1] bg-white/[0.04] px-2 py-1.5 backdrop-blur-md lg:flex">
             {navLinks.map((link) => (
@@ -63,13 +62,13 @@ export function LandingNavbar() {
           <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
             <LandingButton
               href="/login"
-              variant="accent"
+              variant="ghost"
               size="nav"
               className="hidden lg:inline-flex"
             >
               Sign in
             </LandingButton>
-            <LandingButton href="/register" variant="light" size="nav">
+            <LandingButton href="/register" variant="accent" size="nav">
               Get started
             </LandingButton>
             <button
@@ -99,15 +98,13 @@ export function LandingNavbar() {
         aria-hidden={!menuOpen}
       >
         <div className="flex h-[64px] shrink-0 items-center justify-between border-b border-white/[0.08] px-5 sm:h-[72px] sm:px-8">
-          <Link
-            href="/"
-            className="text-[18px] font-semibold tracking-tight text-[#ededed]"
+          <ElitebaseLogo
+            variant="icon"
+            className="shrink-0"
             onClick={closeMenu}
-          >
-            Elite<span className="text-[var(--eb-accent)]">base</span>
-          </Link>
+          />
           <div className="flex items-center gap-2">
-            <LandingButton href="/register" variant="light" size="nav">
+            <LandingButton href="/register" variant="accent" size="nav">
               Get started
             </LandingButton>
             <button

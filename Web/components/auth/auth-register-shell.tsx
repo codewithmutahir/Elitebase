@@ -6,6 +6,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 import { LandingAtmosphere } from "@/components/landing/landing-atmosphere";
 
 export function AuthRegisterShell({
@@ -36,22 +37,7 @@ export function AuthRegisterShell({
           py: { xs: 2.5, sm: 3 },
         }}
       >
-        <Typography
-          component={Link}
-          href="/"
-          sx={{
-            fontSize: { xs: "1.125rem", sm: "1.25rem" },
-            fontWeight: 600,
-            letterSpacing: "-0.02em",
-            color: "var(--eb-text)",
-            textDecoration: "none",
-          }}
-        >
-          Elite
-          <Box component="span" sx={{ color: "var(--eb-accent)" }}>
-            base
-          </Box>
-        </Typography>
+        <ElitebaseLogo priority />
         <Stack direction="row" spacing={{ xs: 1.5, sm: 2 }} sx={{ alignItems: "center" }}>
           <Typography
             component={Link}
@@ -78,7 +64,7 @@ export function AuthRegisterShell({
               borderColor: "var(--eb-border)",
               color: "var(--eb-text)",
               "&:hover": {
-                borderColor: "var(--eb-accent)",
+                borderColor: "var(--eb-gold-500)",
                 bgcolor: "transparent",
                 color: "var(--eb-text)",
               },

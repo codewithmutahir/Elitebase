@@ -24,7 +24,9 @@ test.describe("Public pages", () => {
 
   test("employee registration page loads", async ({ page }) => {
     await page.goto("/register/employee");
-    await expect(page.locator("h1, h2")).toContainText(/employee|register/i);
+    await expect(page.locator("h1, h2")).toContainText(
+      /invite|employee|access/i
+    );
   });
 });
 
@@ -57,16 +59,18 @@ test.describe("Employee features (auth required — smoke)", () => {
     const headerTexts = await headers.allTextContents();
     const joined = headerTexts.join(" ").toLowerCase();
 
-    expect(joined).toContain("employee");
-    expect(joined).toContain("schedule");
-    expect(joined).toContain("salary");
-    expect(joined).toContain("today");
-    expect(joined).toContain("pin");
+    expect(joined).toContain("team member");
+    expect(joined).toContain("contact");
+    expect(joined).toContain("access level");
+    expect(joined).toContain("department");
+    expect(joined).toContain("role");
+    expect(joined).toContain("wage");
+    expect(joined).toContain("status");
   });
 
   test("add employee drawer has schedule and bonus fields", async ({ page }) => {
     await page.goto("/employees");
-    await page.click("text=Add employee");
+    await page.getByRole("button", { name: /add team member|add employee/i }).first().click();
     await page.waitForSelector('[name="fullName"]', { timeout: 5000 });
 
     await expect(page.locator('[name="scheduleStartTime"]')).toBeVisible();
@@ -81,7 +85,7 @@ test.describe("Employee features (auth required — smoke)", () => {
 
   test("add employee with schedule and bonus", async ({ page }) => {
     await page.goto("/employees");
-    await page.click("text=Add employee");
+    await page.getByRole("button", { name: /add team member|add employee/i }).first().click();
     await page.waitForSelector('[name="fullName"]', { timeout: 5000 });
 
     await page.fill('[name="fullName"]', `Test Employee ${Date.now()}`);

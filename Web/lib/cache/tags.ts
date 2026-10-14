@@ -11,3 +11,11 @@ export function companyEmployeeListsTag(companyId: string) {
 export function companyAttendanceMonthsTag(companyId: string) {
   return `company:${companyId}:attendance-months`;
 }
+
+/** Employee portal month summary (hours / pay / attendance table). */
+export function portalEmployeeMonthTag(
+  companyId: string,
+  employeeId: string
+) {
+  return `portal:${companyId}:employee:${employeeId}:months`;
+}

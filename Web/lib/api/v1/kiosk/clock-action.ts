@@ -11,6 +11,7 @@ import {
 } from "@/lib/kiosk/api";
 import { isAttendanceType } from "@/lib/kiosk/attendance";
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
+import { consumeFaceVerifyToken } from "@/lib/kiosk/face-verify-token";
 import {
   invokeRecordPunch,
   readIdempotencyKey,
@@ -21,7 +22,9 @@ export const runtime = "nodejs";
 type ClockActionBody = {
   employee_id?: string;
   type?: string;
+  /** @deprecated Ignored — use face_verify_token from verify-face. */
   face_match_score?: number;
+  face_verify_token?: string;
   idempotency_key?: string;
   client_timestamp?: string;
 };
@@ -59,11 +62,21 @@ export async function POST(request: NextRequest) {
     return jsonError("Employee not found.", 404);
   }
 
-  const faceMatchScore =
-    typeof body.face_match_score === "number" &&
-    !Number.isNaN(body.face_match_score)
-      ? body.face_match_score
-      : null;
+  // Never trust client-supplied face_match_score. Only accept a short-lived
+  // server-issued token from a successful verify-face call.
+  let faceMatchScore: number | null = null;
+  const rawToken = String(body.face_verify_token ?? "").trim();
+  if (rawToken) {
+    const consumed = consumeFaceVerifyToken(rawToken, {
+      employeeId,
+      tabletId: tablet.id,
+      companyId: tablet.company_id,
+    });
+    if (!consumed) {
+      return jsonError("Invalid or expired face verification. Scan again.", 403);
+    }
+    faceMatchScore = consumed.score;
+  }
 
   const idempotencyKey = readIdempotencyKey(
     request.headers.get("Idempotency-Key") ??

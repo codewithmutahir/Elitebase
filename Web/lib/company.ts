@@ -7,13 +7,18 @@ export type CompanyRow = {
   logo_url: string | null;
   timezone: string | null;
   currency: string | null;
+  allow_remote_punch: boolean;
+  require_geofence: boolean;
+  is_active: boolean;
 };
 
 async function fetchCompanyByOwnerId(ownerUid: string) {
   const admin = createClient();
   const { data, error } = await admin
     .from("companies")
-    .select("id, name, logo_url, timezone, currency")
+    .select(
+      "id, name, logo_url, timezone, currency, allow_remote_punch, require_geofence, is_active"
+    )
     .eq("owner_uid", ownerUid)
     .maybeSingle();
 
@@ -22,7 +27,28 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
     return null;
   }
 
-  return data as CompanyRow | null;
+  if (!data) return null;
+
+  // Suspended tenants must not resolve to an active company session.
+  if (data.is_active === false) return null;
+
+  return {
+    ...data,
+    allow_remote_punch: Boolean(data.allow_remote_punch),
+    require_geofence: data.require_geofence !== false,
+    is_active: data.is_active !== false,
+  } as CompanyRow;
+}
+
+/** True when owner has a company row with is_active=false. */
+export async function isOwnerCompanySuspended(ownerUid: string) {
+  const admin = createClient();
+  const { data } = await admin
+    .from("companies")
+    .select("id, is_active")
+    .eq("owner_uid", ownerUid)
+    .maybeSingle();
+  return Boolean(data && data.is_active === false);
 }
 
 /** Deduped within a single server request (layout + page). */

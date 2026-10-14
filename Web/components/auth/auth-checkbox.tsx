@@ -5,8 +5,6 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormHelperText from "@mui/material/FormHelperText";
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
-import { muiAlpha } from "@/lib/mui/alpha";
-
 type AuthCheckboxProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   "type" | "className" | "color"
@@ -46,11 +44,11 @@ export const AuthCheckbox = forwardRef<HTMLInputElement, AuthCheckboxProps>(
               pt: 0.25,
               "& a": {
                 fontWeight: 500,
-                color: "primary.main",
+                color: "var(--eb-gold-300)",
                 textUnderlineOffset: 2,
                 textDecoration: "none",
                 "&:hover": {
-                  color: "text.primary",
+                  color: "var(--eb-gold-500)",
                   textDecoration: "underline",
                 },
               },
@@ -66,7 +64,6 @@ export const AuthCheckbox = forwardRef<HTMLInputElement, AuthCheckboxProps>(
               }}
               disabled={disabled}
               size="small"
-              color="primary"
               slotProps={{
                 input: {
                   ref,
@@ -79,14 +76,14 @@ export const AuthCheckbox = forwardRef<HTMLInputElement, AuthCheckboxProps>(
                 p: 0.5,
                 color: "divider",
                 "&.Mui-checked": {
-                  color: "primary.main",
+                  color: "var(--eb-gold-500)",
                 },
                 "& .MuiSvgIcon-root": {
                   fontSize: "1.125rem",
                 },
                 "&.Mui-focusVisible": {
-                  outline: (theme) =>
-                    `2px solid ${muiAlpha(theme, (p) => p.primary.main, 0.35)}`,
+                  outline:
+                    "2px solid color-mix(in srgb, var(--eb-gold-500) 35%, transparent)",
                   outlineOffset: 2,
                 },
               }}

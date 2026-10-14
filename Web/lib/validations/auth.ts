@@ -102,3 +102,24 @@ export function parseResetPasswordFormData(formData: FormData) {
     confirmPassword: String(formData.get("confirmPassword") ?? ""),
   });
 }
+
+export const acceptPortalInviteSchema = z
+  .object({
+    token: z.string().trim().min(1, "Invite link is invalid or expired"),
+    password: passwordFieldSchema,
+    confirmPassword: z.string().min(1, "Confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type AcceptPortalInviteInput = z.infer<typeof acceptPortalInviteSchema>;
+
+export function parseAcceptPortalInviteFormData(formData: FormData) {
+  return acceptPortalInviteSchema.safeParse({
+    token: String(formData.get("token") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+  });
+}

@@ -65,7 +65,7 @@ function weekdayTime(date: Date) {
 export function ActionScreen() {
   const route = useRoute<ActionRoute>();
   const navigation = useNavigation<ActionNavigation>();
-  const { employee, matchScore } = route.params;
+  const { employee, faceVerifyToken } = route.params;
 
   const [now, setNow] = useState(() => new Date());
   const [loadingStatus, setLoadingStatus] = useState(true);
@@ -141,7 +141,7 @@ export function ActionScreen() {
       try {
         const result = await clockAction(employee.id, type, {
           idempotencyKey,
-          faceMatchScore: matchScore,
+          faceVerifyToken,
         });
         navigation.replace("Success", {
           employee,
@@ -166,7 +166,7 @@ export function ActionScreen() {
         setSubmitting(null);
       }
     },
-    [employee, loadStatus, matchScore, navigation, submitting]
+    [employee, faceVerifyToken, loadStatus, navigation, submitting]
   );
 
   const breakAction: AttendanceActionType = onBreak

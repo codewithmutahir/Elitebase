@@ -165,6 +165,9 @@ export type ClockActionResponse = {
 
 export type ClockActionRequestOptions = {
   idempotencyKey: string;
+  /** Server-issued token from verify-face (preferred). */
+  faceVerifyToken?: string;
+  /** @deprecated Ignored by server — kept for type compat during rollout. */
   faceMatchScore?: number;
 };
 
@@ -218,8 +221,8 @@ export async function clockAction(
       type,
       idempotency_key: options.idempotencyKey,
       client_timestamp: new Date().toISOString(),
-      ...(options.faceMatchScore != null
-        ? { face_match_score: options.faceMatchScore }
+      ...(options.faceVerifyToken
+        ? { face_verify_token: options.faceVerifyToken }
         : {}),
     },
     {

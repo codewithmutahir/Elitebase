@@ -3,8 +3,6 @@
 import {
   CalendarDays,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -36,7 +34,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCompany } from "@/contexts/company-context";
 import { authClient } from "@/lib/auth-client";
 
-const STORAGE_KEY = "sidebar-expanded";
 const SCHEDULE_OPEN_KEY = "sidebar-schedule-open";
 const TEAM_OPEN_KEY = "sidebar-team-open";
 
@@ -59,6 +56,8 @@ const mainNav: NavItem[] = [
 const teamSubItems: Omit<NavItem, "icon">[] = [
   { href: "/employees", label: "Roster" },
   { href: "/team/time-off", label: "Time Off" },
+  { href: "/team/benefits", label: "Benefits" },
+  { href: "/team/payslips", label: "Payslips" },
 ];
 
 const scheduleSubItems: Omit<NavItem, "icon">[] = [
@@ -91,78 +90,26 @@ function companyInitials(name: string) {
 type SidebarProps = {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  /** Desktop only — controlled by header PanelLeft toggle. */
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 };
 
-function CollapseSidebarControl({
-  isWide,
-  pinned,
-  onToggle,
-}: {
-  isWide: boolean;
-  pinned: boolean;
-  onToggle: () => void;
-}) {
-  const button = (
-    <ListItemButton
-      type="button"
-      onClick={onToggle}
-      aria-label={pinned ? "Collapse sidebar" : "Expand sidebar"}
-      sx={{
-        minHeight: 44,
-        borderRadius: 1,
-        width: isWide ? "100%" : 36,
-        minWidth: isWide ? undefined : 36,
-        px: isWide ? 1.5 : 0,
-        justifyContent: isWide ? "flex-start" : "center",
-        gap: 1,
-        color: "text.secondary",
-        "&:hover": { color: "text.primary" },
-      }}
-    >
-      {isWide ? (
-        <>
-          <ChevronLeft size={16} aria-hidden />
-          <Typography
-            component="span"
-            sx={{
-              flex: 1,
-              textAlign: "left",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-            }}
-          >
-            Collapse
-          </Typography>
-        </>
-      ) : (
-        <ChevronRight size={16} aria-hidden />
-      )}
-    </ListItemButton>
-  );
-
-  if (isWide) return button;
-
-  return (
-    <Tooltip title="Expand sidebar" placement="right">
-      <Box component="span" sx={{ display: "inline-flex" }}>
-        {button}
-      </Box>
-    </Tooltip>
-  );
-}
-
-export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({
+  mobileOpen = false,
+  onMobileClose,
+  expanded = true,
+  onExpandedChange,
+}: SidebarProps) {
   const pathname = usePathname();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
   const { company, user, isSuperAdmin } = useCompany();
-  const [pinned, setPinned] = useState(false);
-  const [hovered, setHovered] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const isWide = isMobile || pinned || hovered;
+  const isWide = isMobile || expanded;
   const drawerWidth = isWide ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_COLLAPSED;
   const initials = userInitials(user.name, user.email);
   const companyAbbr = companyInitials(company.name);
@@ -178,7 +125,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   useEffect(() => {
     setMounted(true);
-    setPinned(window.localStorage.getItem(STORAGE_KEY) === "true");
     const storedSchedule = window.localStorage.getItem(SCHEDULE_OPEN_KEY);
     if (storedSchedule !== null) {
       setScheduleOpen(storedSchedule === "true");
@@ -205,11 +151,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     onMobileClose?.();
   }, [pathname, onMobileClose]);
 
-  const setPinnedState = useCallback((value: boolean) => {
-    setPinned(value);
-    window.localStorage.setItem(STORAGE_KEY, value ? "true" : "false");
-  }, []);
-
   const toggleSchedule = useCallback(() => {
     setScheduleOpen((open) => !open);
   }, []);
@@ -232,16 +173,16 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   }, [teamOpen, mounted]);
 
   const expandAndOpenTeam = useCallback(() => {
-    setPinnedState(true);
+    onExpandedChange?.(true);
     setTeamOpen(true);
     window.localStorage.setItem(TEAM_OPEN_KEY, "true");
-  }, [setPinnedState]);
+  }, [onExpandedChange]);
 
   const expandAndOpenSchedule = useCallback(() => {
-    setPinnedState(true);
+    onExpandedChange?.(true);
     setScheduleOpen(true);
     window.localStorage.setItem(SCHEDULE_OPEN_KEY, "true");
-  }, [setPinnedState]);
+  }, [onExpandedChange]);
 
   const handleTeamParentClick = useCallback(() => {
     if (!isWide) {
@@ -282,20 +223,21 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     justifyContent: isWide ? "flex-start" : "center",
     ml: indented && isWide ? 3 : 0,
     width: indented && isWide ? "calc(100% - 24px)" : "100%",
-    color: active ? "primary.main" : "text.secondary",
+    color: active ? "text.primary" : "text.secondary",
     bgcolor: "transparent",
+    fontWeight: active ? 600 : 500,
     "&:hover": {
-      color: active ? "primary.main" : "text.primary",
+      color: "text.primary",
     },
     "&.Mui-selected": {
-      color: "primary.main",
+      color: "text.primary",
     },
   });
 
   const iconSx = (active: boolean) => ({
     minWidth: 0,
     mr: isWide ? 1.5 : 0,
-    color: active ? "primary.main" : "text.secondary",
+    color: active ? "text.primary" : "text.secondary",
     justifyContent: "center",
   });
 
@@ -519,7 +461,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     icon: ShieldCheck,
   };
 
-  function renderDrawerContent(opts: { interactiveCollapse: boolean }) {
+  function renderDrawerContent() {
     return (
     <Box
       sx={{
@@ -527,15 +469,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         flexDirection: "column",
         height: "100%",
         overflow: "hidden",
-      }}
-      onMouseEnter={() => {
-        if (opts.interactiveCollapse) setHovered(true);
-      }}
-      onMouseLeave={() => {
-        if (opts.interactiveCollapse) setHovered(false);
-      }}
-      onDoubleClick={() => {
-        if (opts.interactiveCollapse) setPinnedState(!pinned);
       }}
     >
       <Stack
@@ -626,25 +559,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         ) : null}
       </Box>
 
-      {opts.interactiveCollapse ? (
-        <Box
-          sx={{
-            flexShrink: 0,
-            borderTop: "1px solid",
-            borderColor: "divider",
-            p: 1,
-            display: "flex",
-            justifyContent: isWide ? "stretch" : "center",
-          }}
-        >
-          <CollapseSidebarControl
-            isWide={isWide}
-            pinned={pinned}
-            onToggle={() => setPinnedState(!pinned)}
-          />
-        </Box>
-      ) : null}
-
       <Box
         sx={{
           flexShrink: 0,
@@ -716,12 +630,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </Tooltip>
         )}
       </Box>
-
-      {mounted && !pinned && opts.interactiveCollapse ? (
-        <Typography component="span" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
-          Double-click sidebar to pin expanded. Hover to expand temporarily.
-        </Typography>
-      ) : null}
     </Box>
     );
   }
@@ -755,7 +663,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         },
       }}
     >
-      {renderDrawerContent({ interactiveCollapse: false })}
+      {renderDrawerContent()}
     </Drawer>
   ) : (
     <Drawer
@@ -772,7 +680,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         },
       }}
     >
-      {renderDrawerContent({ interactiveCollapse: true })}
+      {renderDrawerContent()}
     </Drawer>
   );
 }

@@ -15,7 +15,7 @@ export type AuthFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
 };
 
-/** Reference-style auth input: placeholder label, teal focus ring, dark fill. */
+/** Reference-style auth input: placeholder label, gold focus ring, dark fill. */
 export const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(
   function AuthField(
     { label, hint, error, className, id, name, required, style, ...props },
@@ -93,7 +93,7 @@ export const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(
                         size="small"
                         onClick={() => setShowPassword((prev) => !prev)}
                         onMouseDown={(event) => event.preventDefault()}
-                        sx={{ color: "text.secondary" }}
+                        sx={{ color: "var(--eb-muted)" }}
                       >
                         {showPassword ? (
                           <VisibilityOff fontSize="small" />
@@ -110,27 +110,34 @@ export const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(
             "& .MuiOutlinedInput-root": {
               minHeight: 44,
               borderRadius: "10px",
-              bgcolor: "rgba(6, 10, 18, 0.55)",
-              color: "text.primary",
+              bgcolor: "var(--eb-navy-950)",
+              color: "var(--eb-text)",
               fontSize: "0.875rem",
               "& fieldset": {
-                borderColor: "divider",
+                borderColor: "var(--eb-border)",
               },
               "&:hover fieldset": {
-                borderColor: "divider",
+                borderColor: "var(--eb-border)",
               },
               "&.Mui-focused fieldset": {
-                borderColor: "primary.main",
+                borderColor: "var(--eb-gold-500)",
                 borderWidth: 1,
-                boxShadow: "0 0 0 2px rgba(46, 196, 182, 0.25)",
+                boxShadow:
+                  "0 0 0 2px color-mix(in srgb, var(--eb-gold-500) 25%, transparent)",
               },
               "&.Mui-error.Mui-focused fieldset": {
                 boxShadow: "0 0 0 2px rgba(248, 113, 113, 0.2)",
               },
             },
+            "& .MuiInputBase-input": {
+              color: "var(--eb-text)",
+              WebkitTextFillColor: "var(--eb-text)",
+              caretColor: "var(--eb-gold-500)",
+            },
             "& .MuiInputBase-input::placeholder": {
-              color: "text.secondary",
+              color: "var(--eb-muted)",
               opacity: 1,
+              WebkitTextFillColor: "var(--eb-muted)",
             },
           }}
         />

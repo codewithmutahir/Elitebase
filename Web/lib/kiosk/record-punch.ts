@@ -99,7 +99,8 @@ export async function invokeRecordPunch(
   input: {
     companyId: string;
     employeeId: string;
-    tabletId: string;
+    /** Null for employee portal punches (no kiosk tablet). */
+    tabletId: string | null;
     type: AttendanceType;
     idempotencyKey: string | null;
     clientTimestamp: string | null;

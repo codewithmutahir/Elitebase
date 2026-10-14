@@ -50,7 +50,7 @@ const QUOTE_TOKENS: { text: string; highlight?: boolean }[] = [
 
 const COLOR_INACTIVE = "#4a5366";
 const COLOR_ACTIVE = "#ededed";
-const COLOR_HIGHLIGHT = "#2ec4b6";
+const COLOR_HIGHLIGHT = "#D9A63F";
 
 const SCROLL_TRIGGER_ID = "elite-testimonial-reveal";
 

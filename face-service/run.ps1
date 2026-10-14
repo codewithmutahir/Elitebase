@@ -12,4 +12,10 @@ if (-not (Test-Path $venvPython)) {
   & $venvPython -m pip install -r requirements.txt
 }
 
+if (-not $env:INTERNAL_API_KEY) {
+  # Local default so fail-closed middleware accepts Web → face-service calls.
+  $env:INTERNAL_API_KEY = "dev-local-face-key"
+  Write-Host "[face-service] INTERNAL_API_KEY not set; using local dev default."
+}
+
 & $venvPython -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload

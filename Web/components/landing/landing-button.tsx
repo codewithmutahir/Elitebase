@@ -34,7 +34,8 @@ export function LandingButton({
           "eb-btn__content relative flex w-full min-w-0 items-center justify-center overflow-hidden rounded-full",
           size === "hero" && "px-7 py-4 text-[15px] font-medium",
           size === "nav" && "px-5 py-2.5 text-sm font-medium",
-          variant === "accent" && "eb-btn__content--accent text-white",
+          variant === "accent" &&
+            "eb-btn__content--accent text-[var(--eb-navy-950)]",
           variant === "light" && "eb-btn__content--light text-[var(--eb-cta-secondary-fg)]",
           variant === "ghost" && "eb-btn__content--ghost text-[var(--eb-text)]"
         )}

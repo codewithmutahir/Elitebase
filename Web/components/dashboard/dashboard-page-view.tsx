@@ -89,7 +89,7 @@ export function DashboardPageView({
           sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}
         >
           {data.clockedIn.length > 0 ? (
-            <StatusBadge tone="success" theme="dark">
+            <StatusBadge tone="accent" theme="dark">
               {data.clockedIn.length} on the floor
             </StatusBadge>
           ) : null}
@@ -115,7 +115,7 @@ export function DashboardPageView({
             value={data.clockedIn.length}
             trend={
               data.clockedIn.length > 0
-                ? { label: "Live", tone: "success" }
+                ? { label: "Live", tone: "accent" }
                 : undefined
             }
             icon={<Clock size={20} aria-hidden />}
@@ -155,7 +155,7 @@ export function DashboardPageView({
           >
             Who&apos;s in
           </Typography>
-          <StatusBadge tone="success" theme="dark">
+          <StatusBadge tone="accent" theme="dark">
             {data.clockedIn.length} active
           </StatusBadge>
         </Stack>
@@ -209,7 +209,7 @@ export function DashboardPageView({
                           position: "absolute",
                           inset: 0,
                           borderRadius: "50%",
-                          bgcolor: "success.main",
+                          bgcolor: "primary.main",
                           opacity: 0.7,
                           animation:
                             "mui-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite",
@@ -225,7 +225,7 @@ export function DashboardPageView({
                           width: 12,
                           height: 12,
                           borderRadius: "50%",
-                          bgcolor: "success.main",
+                          bgcolor: "primary.main",
                         }}
                       />
                     </Box>

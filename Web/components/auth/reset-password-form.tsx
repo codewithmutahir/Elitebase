@@ -17,14 +17,21 @@ import {
 type ResetPasswordFormProps = {
   token: string;
   action: (formData: FormData) => void | Promise<void>;
+  failureSignal?: string | null;
 };
 
-const ATTEMPT_KEY = "auth-attempts:reset-password";
+const ATTEMPT_KEY = "auth-attempts:reset-password:v2";
 
-export function ResetPasswordForm({ token, action }: ResetPasswordFormProps) {
+export function ResetPasswordForm({
+  token,
+  action,
+  failureSignal = null,
+}: ResetPasswordFormProps) {
   const [isPending, startTransition] = useTransition();
-  const { canSubmit, lockMessage, consumeAttempt } =
-    useAuthFormAttempts(ATTEMPT_KEY);
+  const { canSubmit, lockMessage, beginAttempt } = useAuthFormAttempts(
+    ATTEMPT_KEY,
+    failureSignal
+  );
 
   const {
     register,
@@ -41,7 +48,7 @@ export function ResetPasswordForm({ token, action }: ResetPasswordFormProps) {
   });
 
   const onSubmit = (data: ResetPasswordInput) => {
-    if (!consumeAttempt()) return;
+    if (!beginAttempt()) return;
 
     const formData = new FormData();
     formData.set("token", data.token);

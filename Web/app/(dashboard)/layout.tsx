@@ -20,7 +20,7 @@ export default async function DashboardGroupLayout({
         isSuperAdmin: isSuperAdmin(user.email),
       }}
     >
-      <MuiProvider defaultMode="dark">
+      <MuiProvider defaultMode="light">
         <DashboardThemeProvider>
           <DashboardShell>{children}</DashboardShell>
         </DashboardThemeProvider>

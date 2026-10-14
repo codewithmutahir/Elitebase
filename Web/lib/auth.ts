@@ -23,20 +23,11 @@ export const auth = betterAuth({
     type: "sqlite",
   },
   plugins: [nextCookies()],
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => ({
-          data: {
-            ...user,
-            emailVerified: true,
-          },
-        }),
-      },
-    },
-  },
   emailAndPassword: {
     enabled: true,
+    // Do not auto-mark emails verified. Keep sign-in allowed without a
+    // verification gate so portal invite + existing flows keep working;
+    // sendVerificationEmail is available when product enables the gate.
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
       await sendPasswordResetEmail(user.email, user.name, url);

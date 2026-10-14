@@ -69,7 +69,7 @@ export function DashboardMockup({ className }: { className?: string }) {
             </div>
             <span
               data-mono
-              className="rounded-full border border-[var(--eb-border)] bg-[var(--eb-elevated)] px-2.5 py-1 text-[10px] text-emerald-400"
+              className="rounded-full border border-[var(--eb-border)] bg-[var(--eb-elevated)] px-2.5 py-1 text-[10px] text-[var(--eb-gold-300)]"
             >
               Live
             </span>

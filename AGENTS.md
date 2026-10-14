@@ -2,7 +2,7 @@
 
 ## Product
 
-Elitebase is a SaaS platform for employee time tracking and attendance: kiosk clock-in, optional face verification, schedules, timesheets, and a real-time employer dashboard.
+Elitebase is a SaaS platform for employee time tracking and attendance: kiosk clock-in, optional face verification, schedules, timesheets, a real-time employer dashboard, and an invite-only employee web portal.
 
 Marketing site lives under `Web/` (Next.js App Router). Primary landing page: `Web/app/(public)/page.tsx` with components in `Web/components/landing/`.
 
@@ -38,23 +38,25 @@ Reading this as: **B2B SaaS marketing landing for employers**, with a **premium 
 
 ### Color — Elitebase unique (do not use Orchid purple)
 
-Orchid’s electric purple is the reference *role* (accent + CTA glow), not the hue. Elitebase uses **ink + signal teal**:
+Orchid’s electric purple is the reference *role* (accent + CTA glow), not the hue. Elitebase uses **navy + gold** (auth, landing, and dashboard):
 
 | Token | Hex / value | Role |
 |-------|-------------|------|
-| `--eb-ink` | `#060A12` | Page / hero base |
-| `--eb-surface` | `#0E1524` | Elevated panels, mockup chrome |
-| `--eb-elevated` | `#151D2E` | Cards inside mockup |
+| `--eb-navy-950` / `--eb-ink` | `#070F24` | Page / hero / dashboard dark base |
+| `--eb-navy-900` / `--eb-surface` | `#0B1633` | Elevated panels, mockup chrome |
+| `--eb-navy-800` / `--eb-elevated` | `#14265A` | Cards / elevated surfaces |
+| `--eb-blue-600` | `#2F4EA2` | Secondary info (not primary accent) |
 | `--eb-border` | `rgba(255,255,255,0.08)` | Hairline glass borders |
-| `--eb-text` | `#ECEEF2` | Primary text on dark |
-| `--eb-muted` | `#8B93A7` | Supporting copy |
-| `--eb-accent` | `#2EC4B6` | Primary CTA, links, highlights |
-| `--eb-accent-dark` | `#1FA89C` | CTA hover / pressed |
-| `--eb-accent-glow` | `rgba(46, 196, 182, 0.35)` | Soft radial / button glow |
+| `--eb-text` | `#F5F7FB` | Primary text on dark |
+| `--eb-muted` | `#A9B4CF` | Supporting copy |
+| `--eb-gold-500` / `--eb-accent` | `#D9A63F` | Primary CTA, links, highlights |
+| `--eb-gold-700` / `--eb-accent-dark` | `#B8801F` | CTA hover / pressed |
+| `--eb-gold-300` | `#F7DE94` | Soft link / highlight text |
+| `--eb-accent-glow` | `rgba(217, 166, 63, 0.35)` | Soft radial / button glow |
 | `--eb-cta-secondary` | `#F4F5F7` | Secondary solid button (Orchid-style white CTA) |
-| `--eb-cta-secondary-fg` | `#0B1220` | Text on secondary CTA |
+| `--eb-cta-secondary-fg` | `#070F24` | Text on secondary CTA |
 
-Functional status colors inside mockups (Present / Late / Away) may stay green / amber / red — they are data, not brand.
+Functional status colors (Present / Late / Away, success / warning / error) stay green / amber / red — they are data, not brand.
 
 **Forbidden for this landing:** Orchid purple/violet gradients, default Inter+blue-on-white SaaS kit, cream+terracotta, purple-on-white AI themes.
 
@@ -118,7 +120,7 @@ Hero budget: brand, one headline, one sentence, CTA group, one mockup. No stat s
 - **Boundaries:** `Web/app/error.tsx`, `Web/app/global-error.tsx`, `Web/app/(dashboard)/error.tsx` + shared `Web/components/errors/error-fallback.tsx`. Map thrown errors through `Web/lib/errors/user-facing.ts` (`getUserFacingError`).
 - **Server Actions:** Return `{ error: "…" }` for expected failures; wrap client `startTransition` calls in `try/catch` and use `getUserFacingError`. Log details with `console.error` only.
 - **CSV import size:** `Web/lib/employees/csv-import-limits.ts` (5 MB) must match `serverActions.bodySizeLimit` in `Web/next.config.ts`. Validate file size **on the client** before calling preview/import actions so users see inline copy instead of a framework error overlay.
-- **Dashboard dark/light:** Product UI lives under `.dashboard-shell--dark` / `--light` (`Web/app/globals.css`). Use `--eb-*` tokens and helpers in `Web/lib/dashboard/styles.ts` — no hardcoded `bg-white`, `text-slate-900`, or `border-slate-*` on dashboard pages. Native `<select>`: prefer `dashboardNativeSelectClass`; bare selects inside `.dashboard-shell` inherit shell styling from `globals.css`.
+- **Dashboard dark/light:** Product UI lives under `.dashboard-shell--dark` / `--light` (`Web/app/globals.css`) with the same **navy + gold** accents as auth (`elitebaseMuiTheme` primary `#D9A63F`). Use `--eb-*` tokens and helpers in `Web/lib/dashboard/styles.ts` — no hardcoded teal, `bg-white`, `text-slate-900`, or `border-slate-*` on dashboard pages. Native `<select>`: prefer `dashboardNativeSelectClass`; bare selects inside `.dashboard-shell` inherit shell styling from `globals.css`.
 - **Portaled UI (dropdowns, tooltips):** Renders outside `.dashboard-shell` — use `dashboardDropdownContentClass` / `dashboardDropdownItemClass` and `.dashboard-dropdown` rules keyed off `html[data-dashboard-theme]` (set in `DashboardThemeProvider`). Do not rely on shell CSS variables alone on portaled nodes. Apply to **every** dashboard menu (header account, roster row actions, etc.).
 - **Portaled sheets:** `dashboardSheetContentClass` + `dashboardSheetOverlayClass` on `SheetContent` (see `add-employee-drawer.tsx`). Form fields use `dashboardNativeSelectClass` / `dashboardFieldInputClass`.
 
@@ -147,6 +149,44 @@ When adding a new HTTP endpoint: implement handler in `lib/api/v1/…`, wire `ap
 
 ---
 
+## Employee portal
+
+Invite-only employee web portal (separate from employer `(dashboard)`). Employees do **not** self-register at `/register/employee`—that page explains invite + sign-in. Signup happens only via `/portal/accept-invite?token=…`.
+
+| Piece | Path / note |
+|-------|-------------|
+| Schema | `employees.user_id`, `employee_portal_invites` — `supabase/migrations/20261011120000_employee_portal_auth.sql` |
+| Invite send | Roster Invite/Resend → `sendEmployeePortalInvite` → hashed token + Resend email (`RESEND_API_KEY` + verified `RESEND_FROM_EMAIL` domain at [resend.com/domains](https://resend.com/domains)) |
+| Accept | `/portal/accept-invite?token=…` → Better Auth signup → link `user_id` |
+| Session | `requireEmployeeSession` (`Web/lib/portal/session.ts`); login routes via `resolvePostLoginPath` |
+| Shell + home | `/portal` — same product chrome as employer dashboard: sidebar + header, `MuiProvider` + `DashboardThemeProvider` (`layout="fill"`), light default, Light/Dark/System toggle (shared `elitebase-dashboard-theme`) |
+| RSC links | Never pass `component={Link}` from Server Components into MUI — use `PortalLink` (`Web/components/portal/portal-link.tsx`) |
+| Accept invite layout | `/portal/accept-invite` — `AuthMuiLayout` (dark auth only; not the product shell) |
+| Proxy | `/portal` cookie-gated; `/portal/accept-invite` public |
+
+**Shipped:** auth + invite + shell/home; attendance + pay summary; leave; face clock + worksite geofence; benefits / payslips (employer `/team/benefits`, `/team/payslips`; portal `/portal/benefits`, `/portal/payslips`).
+
+Face matching reuses InsightFace `buffalo_sc` / Python face service (same 512-d descriptors as kiosk). Do not introduce a second embedding model without re-enrollment.
+
+**Remote punch:** `companies.allow_remote_punch` + `require_geofence`; worksites (`lat`/`lng`/`radius_meters`); punch stores `punch_lat`/`lng`, `within_geofence`, `punch_source=portal`. GPS only at punch time — not continuous tracking.
+
+**Portal face enroll:** When `allow_remote_punch` is on, employees can self-enroll (or re-enroll) on `/portal/clock` via `portalEnrollFace` → same `extractEmbeddingFromImage` path as kiosk `register-face`. Requires explicit biometric consent. Rate-limited (`face-enroll`). If remote punch is off, enrollment stays kiosk-only.
+
+### Portal reliability (required practices)
+
+| Concern | Practice |
+|---------|----------|
+| Session | `requireEmployeeSession` is React `cache()`’d per request; rejects terminated / inactive / suspended-company employees |
+| Clock idempotency | Client sends UUID `idempotencyKey` → `record_punch` RPC replays safely; server rejects missing/invalid keys; no server-side `randomUUID()` per attempt |
+| Clock races | Pre-check `allowedActions` before face verify; RPC still enforces state machine; skip geo stamp on `replayed` |
+| Leave races | Cancel uses `.eq("status","pending")` atomic update; create blocks overlapping pending/approved ranges |
+| Rate limits | `Web/lib/portal/rate-limit.ts` — per-employee Upstash windows for clock / face-enroll / leave create / leave cancel (fail-open if Redis down) |
+| Caching | Month summaries: React `cache` + `unstable_cache` tagged `portalEmployeeMonthTag`; invalidate on punch/leave via `invalidatePortalEmployeeMonthCache` |
+| Frontend dedupe | Clock: `punchInFlight` ref + transition; leave: ignore submits while `pending` |
+| RSC links | `PortalLink` only — never pass `component={Link}` from Server Components into MUI |
+
+---
+
 ## Implementation map
 
 | Area | Path |
@@ -159,8 +199,9 @@ When adding a new HTTP endpoint: implement handler in `lib/api/v1/…`, wire `ap
 | Brands marquee | `Web/components/landing/landing-brands.tsx` |
 | Page atmosphere + cursor glow | `Web/components/landing/landing-atmosphere.tsx` (fixed full viewport; not hero-only) |
 | Global tokens / fonts | `Web/app/globals.css`, `Web/app/layout.tsx` |
-| Dashboard shell (ink/teal product UI) | `Web/components/layout/dashboard-shell.tsx`, `.dashboard-shell--dark` / `--light` in `globals.css`, toggle in header (`dashboard-theme-toggle.tsx`, `localStorage` key `elitebase-dashboard-theme`) |
+| Dashboard shell (navy/gold product UI) | `Web/components/layout/dashboard-shell.tsx`, `.dashboard-shell--dark` / `--light` in `globals.css`, toggle in header (`dashboard-theme-toggle.tsx`, `localStorage` key `elitebase-dashboard-theme`) |
 | Main dashboard | `Web/app/(dashboard)/dashboard/page.tsx` |
+| Employee portal | `Web/app/portal/`, `Web/lib/portal/` |
 
 Scope landing tokens carefully: do not break the authenticated dashboard (light product UI) unless deliberately theming shared primitives. Prefer landing-scoped wrappers / CSS variables over rewriting all shadcn product tokens at once.
 
@@ -188,7 +229,7 @@ When the user says to start, begin at step 2 only — do not redesign the whole 
 ## Anti-slop checklist (before shipping a section)
 
 - [ ] First viewport still reads as one composition after removing nav (brand + product visible)  
-- [ ] No Orchid purple; teal tokens used consistently  
+- [ ] No Orchid purple; navy + gold tokens used consistently  
 - [ ] No Inter as marketing face  
 - [ ] Mockup shows Elitebase attendance UI, not a generic analytics collage  
 - [ ] Mobile: stacked CTAs, mockup scales without horizontal page scroll  

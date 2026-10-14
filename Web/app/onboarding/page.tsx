@@ -18,11 +18,17 @@ import { DEFAULT_TIMEZONE, US_TIMEZONES } from "@/lib/timezones";
 
 import {
   enforceAuthRateLimitInAction,
+  recordAuthRateLimitFailureInAction,
   resolveAuthRateLimitQueryMessage,
 } from "@/lib/auth/enforce-rate-limit";
 import { parseOnboardingFormData } from "@/lib/validations/onboarding";
 
 const LOGO_BUCKET = "company-logos";
+
+async function failOnboarding(error: string): Promise<never> {
+  await recordAuthRateLimitFailureInAction("onboarding");
+  redirect(`/onboarding?error=${error}`);
+}
 
 async function completeOnboarding(formData: FormData) {
   "use server";
@@ -49,7 +55,7 @@ async function completeOnboarding(formData: FormData) {
 
   if (!parsed.success) {
 
-    redirect("/onboarding?error=validation");
+    await failOnboarding("validation");
 
   }
 
@@ -73,7 +79,7 @@ async function completeOnboarding(formData: FormData) {
 
     console.error("Onboarding: company lookup failed", fetchError?.message);
 
-    redirect("/onboarding?error=no_company");
+    await failOnboarding("no_company");
 
   }
 
@@ -129,7 +135,7 @@ async function completeOnboarding(formData: FormData) {
 
       console.error("Onboarding: logo upload failed", uploadError.message);
 
-      redirect("/onboarding?error=logo_upload_failed");
+      await failOnboarding("logo_upload_failed");
 
     }
 
@@ -163,7 +169,7 @@ async function completeOnboarding(formData: FormData) {
 
     console.error("Onboarding: company update failed", updateError.message);
 
-    redirect("/onboarding?error=save_failed");
+    await failOnboarding("save_failed");
 
   }
 
@@ -248,6 +254,8 @@ export default async function OnboardingPage({
             ? "Could not save your settings. Please try again."
             : null);
 
+  const failureSignal = error && !rateLimitMessage ? error : null;
+
 
 
   return (
@@ -299,6 +307,8 @@ export default async function OnboardingPage({
           defaultTimezone={selectedTimezone}
 
           existingLogoUrl={company?.logo_url}
+
+          failureSignal={failureSignal}
 
           action={completeOnboarding}
 

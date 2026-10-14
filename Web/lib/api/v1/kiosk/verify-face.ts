@@ -18,6 +18,7 @@ import {
   verifyFaceWithService,
 } from "@/lib/kiosk/python-face-service";
 import { getEmployeeForTablet } from "@/lib/kiosk/employee-lookup";
+import { issueFaceVerifyToken } from "@/lib/kiosk/face-verify-token";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -153,13 +154,25 @@ export async function POST(request: NextRequest) {
     pre_switch_enrollment: preSwitch,
   });
 
+  const score = Number(confidence.toFixed(4));
+  const faceVerifyToken =
+    verified && Number.isFinite(score)
+      ? issueFaceVerifyToken({
+          employeeId,
+          tabletId: tablet.id,
+          companyId: tablet.company_id,
+          score,
+        })
+      : null;
+
   return jsonOk({
     employee_id: employeeId,
     verified,
-    confidence: Number(confidence.toFixed(4)),
-    match_score: Number(confidence.toFixed(4)),
+    confidence: score,
+    match_score: score,
     confidence_level: confidenceLevel,
     threshold,
     reason: serviceReason,
+    ...(faceVerifyToken ? { face_verify_token: faceVerifyToken } : {}),
   });
 }

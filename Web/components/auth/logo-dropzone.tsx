@@ -89,12 +89,12 @@ export function LogoDropzone({
           borderColor: error
             ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.6)
             : dragOver
-              ? "primary.main"
+              ? "var(--eb-gold-500)"
               : "divider",
           bgcolor: error
             ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.08)
             : dragOver
-              ? (theme) => muiAlpha(theme, (p) => p.primary.main, 0.1)
+              ? "color-mix(in srgb, var(--eb-gold-500) 10%, transparent)"
               : (theme) =>
                   muiAlpha(theme, (p) => p.background.paper, 0.4),
           px: 3,
@@ -104,7 +104,7 @@ export function LogoDropzone({
           "&:hover": {
             borderColor: error
               ? (theme) => muiAlpha(theme, (p) => p.error.main, 0.6)
-              : (theme) => muiAlpha(theme, (p) => p.primary.main, 0.5),
+              : "color-mix(in srgb, var(--eb-gold-500) 50%, transparent)",
           },
         }}
       >
@@ -119,7 +119,7 @@ export function LogoDropzone({
             border: "1px solid",
             borderColor: "divider",
             bgcolor: "background.paper",
-            color: "primary.main",
+            color: "var(--eb-gold-500)",
           }}
         >
           <CloudUploadOutlined fontSize="small" aria-hidden />
@@ -148,7 +148,7 @@ export function LogoDropzone({
               border: "1px solid",
               borderColor: "divider",
               bgcolor: "background.paper",
-              color: "primary.main",
+              color: "var(--eb-gold-500)",
               fontWeight: 500,
             }}
           />

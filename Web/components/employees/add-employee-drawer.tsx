@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2 } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { addEmployee, type AddEmployeeState } from "@/app/(dashboard)/employees/actions";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
@@ -105,6 +105,16 @@ export function AddEmployeeDrawer({
                   <p className="mt-2 max-w-xs text-sm text-[var(--eb-muted)]">
                     Use this PIN for on-site kiosk clock-in.
                   </p>
+                  {state?.inviteSent ? (
+                    <p className="mt-3 max-w-xs text-sm text-[var(--eb-accent)]">
+                      Portal invite email sent.
+                    </p>
+                  ) : null}
+                  {state?.inviteError ? (
+                    <p className="mt-3 max-w-xs text-sm text-amber-400" role="status">
+                      Employee saved, but invite failed: {state.inviteError}
+                    </p>
+                  ) : null}
                   <p
                     className={cn("mt-8", dashboardPinDisplayClass)}
                     aria-label={`Kiosk PIN ${state?.plainPin}`}
@@ -160,6 +170,24 @@ export function AddEmployeeDrawer({
                   label="Email"
                   type="email"
                 />
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-[var(--eb-border)] bg-[var(--eb-elevated)]/40 px-3.5 py-3">
+                  <input
+                    id="sendInvite"
+                    name="sendInvite"
+                    type="checkbox"
+                    className="mt-0.5 size-4 shrink-0 rounded border-[var(--eb-border)] accent-[var(--eb-accent)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-[var(--eb-text)]">
+                      Send portal invite
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--eb-muted)]">
+                      Email a link so they can activate the employee portal.
+                      Requires an email address.
+                    </span>
+                  </span>
+                </label>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Select
@@ -328,12 +356,14 @@ export function AddEmployeeDrawer({
 
 export function AddEmployeeTrigger({
   onClick,
+  children,
 }: {
   onClick: () => void;
+  children?: ReactNode;
 }) {
   return (
-    <Button type="button" onClick={onClick}>
-      Add employee
+    <Button type="button" onClick={onClick} className="gap-1.5">
+      {children ?? "Add employee"}
     </Button>
   );
 }

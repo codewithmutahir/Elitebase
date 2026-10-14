@@ -260,6 +260,7 @@ export function FaceScanScreen() {
             navigation.replace("Action", {
               employee,
               matchScore: data.match_score ?? data.confidence,
+              faceVerifyToken: data.face_verify_token,
             });
           }, 1200);
           return;

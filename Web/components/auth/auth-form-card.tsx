@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
@@ -34,7 +35,7 @@ export function AuthFormCard({
         borderRadius: "16px",
         border: "1px solid",
         borderColor: "var(--eb-border)",
-        bgcolor: "rgba(14, 21, 36, 0.85)",
+        bgcolor: "color-mix(in srgb, var(--eb-navy-800) 88%, transparent)",
         p: { xs: 3.5, sm: 4.5 },
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
         backdropFilter: "blur(8px)",
@@ -42,6 +43,9 @@ export function AuthFormCard({
       }}
     >
       <Box sx={{ mb: { xs: 3.5, sm: 4 } }}>
+        <Box sx={{ mb: 2.5, lineHeight: 0 }}>
+          <ElitebaseLogo />
+        </Box>
         {eyebrow ? (
           <Typography
             sx={{
@@ -49,7 +53,7 @@ export function AuthFormCard({
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.1em",
-              color: "var(--eb-accent)",
+              color: "var(--eb-gold-500)",
             }}
           >
             {eyebrow}

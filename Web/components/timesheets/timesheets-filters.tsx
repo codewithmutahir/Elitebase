@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -39,6 +39,7 @@ export function TimesheetsFilters({
   const [fromDate, setFromDate] = useState(from);
   const [toDate, setToDate] = useState(to);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const showCustomRange = month === "custom";
 
@@ -61,7 +62,14 @@ export function TimesheetsFilters({
       component="form"
       method="get"
       sx={dashboardFormPanelSx}
-      onSubmit={() => setSubmitting(true)}
+      onSubmit={(event) => {
+        if (submittingRef.current) {
+          event.preventDefault();
+          return;
+        }
+        submittingRef.current = true;
+        setSubmitting(true);
+      }}
     >
       <Box>
         <Typography component="h3" sx={dashboardSectionTitleSx}>
@@ -85,6 +93,7 @@ export function TimesheetsFilters({
           onChange={(event) => handleMonthChange(event.target.value)}
           displayEmpty={false}
           minWidth={200}
+          disabled={submitting}
           options={
             months.length === 0
               ? [{ value: "custom", label: "Custom date range" }]
@@ -106,6 +115,7 @@ export function TimesheetsFilters({
           onChange={(event) => setEmployeeId(event.target.value)}
           displayEmpty={false}
           minWidth={200}
+          disabled={submitting}
           options={[
             { value: "all", label: "All employees" },
             ...employees.map((employee) => ({
@@ -115,7 +125,11 @@ export function TimesheetsFilters({
           ]}
         />
 
-        <PendingButton type="submit" pending={submitting} pendingLabel="Applying…">
+        <PendingButton
+          type="submit"
+          pending={submitting}
+          pendingLabel="Applying…"
+        >
           Apply
         </PendingButton>
       </Stack>
@@ -140,6 +154,7 @@ export function TimesheetsFilters({
             type="date"
             value={fromDate}
             onChange={(event) => setFromDate(event.target.value)}
+            disabled={submitting}
           />
           <Input
             id="to"
@@ -148,6 +163,7 @@ export function TimesheetsFilters({
             type="date"
             value={toDate}
             onChange={(event) => setToDate(event.target.value)}
+            disabled={submitting}
           />
         </Stack>
       ) : monthBounds ? (

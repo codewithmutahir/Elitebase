@@ -5,23 +5,30 @@ export type EmployeeListItem = {
   id: string;
   full_name: string;
   email: string | null;
+  phone: string | null;
   department_id: string | null;
   department: string | null;
   position: string | null;
   role: string;
+  employment_type: string;
   status: EmployeeStatus;
   is_active: boolean;
   hasPin: boolean;
-  /** Plain kiosk PIN for admin display (null for legacy rows). */
+  /** Always null — cleartext PINs are never shipped to the client. */
   pin: string | null;
   face_registered_at: string | null;
   /** True when face must be re-scanned after InsightFace model change. */
   needs_reenrollment: boolean;
   schedule_start_time: string;
   schedule_end_time: string;
+  hourly_rate: number;
   salary_amount: number | null;
   pay_type: string;
   bonus_amount: number;
+  /** When an employer last sent a portal invite. */
+  portal_invited_at: string | null;
+  /** Better Auth user id after portal activation. */
+  user_id: string | null;
   /** Latest clock-in attendance status for today (on_time | late | null). */
   today_status: string | null;
 };
@@ -69,7 +76,7 @@ export async function listEmployees(companyId: string) {
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, email, department_id, departments ( name ), position, role, status, is_active, face_registered_at, needs_reenrollment, schedule_start_time, schedule_end_time, salary_amount, pay_type, bonus_amount, employee_pins ( id, pin_plain )"
+      "id, full_name, email, phone, department_id, departments ( name ), position, role, employment_type, status, is_active, face_registered_at, needs_reenrollment, schedule_start_time, schedule_end_time, hourly_rate, salary_amount, pay_type, bonus_amount, portal_invited_at, user_id, employee_pins ( id )"
     )
     .eq("company_id", companyId)
     .order("full_name", { ascending: true });
@@ -107,8 +114,8 @@ export async function listEmployees(companyId: string) {
 
   return (data ?? []).map((row) => {
     const pins = row.employee_pins as
-      | { id: string; pin_plain: string | null }[]
-      | { id: string; pin_plain: string | null }
+      | { id: string }[]
+      | { id: string }
       | null;
     const pinRow = Array.isArray(pins) ? pins[0] : pins;
     const hasPin = Boolean(pinRow?.id);
@@ -117,21 +124,27 @@ export async function listEmployees(companyId: string) {
       id: row.id,
       full_name: row.full_name,
       email: row.email,
+      phone: (row.phone as string | null) ?? null,
       department_id: row.department_id,
       department: departmentName(row.departments as DepartmentJoin),
       position: row.position,
       role: row.role,
+      employment_type:
+        (row.employment_type as string) ?? (row.role as string) ?? "employee",
       status: mapStatus(row),
       is_active: row.is_active,
       hasPin,
-      pin: pinRow?.pin_plain ?? null,
+      pin: null,
       face_registered_at: row.face_registered_at,
       needs_reenrollment: Boolean(row.needs_reenrollment),
       schedule_start_time: (row.schedule_start_time as string) ?? "09:00",
       schedule_end_time: (row.schedule_end_time as string) ?? "17:00",
+      hourly_rate: Number(row.hourly_rate ?? 0),
       salary_amount: row.salary_amount != null ? Number(row.salary_amount) : null,
       pay_type: (row.pay_type as string) ?? "hourly",
       bonus_amount: Number(row.bonus_amount ?? 0),
+      portal_invited_at: (row.portal_invited_at as string | null) ?? null,
+      user_id: (row.user_id as string | null) ?? null,
       today_status: todayStatuses[row.id] ?? null,
     } satisfies EmployeeListItem;
   });

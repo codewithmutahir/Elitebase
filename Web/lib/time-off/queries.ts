@@ -39,6 +39,22 @@ function employeeName(
   return employees.full_name ?? "Unknown";
 }
 
+function mapTimeOffRows(rows: RawRow[]): TimeOffRequestRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    employee_id: row.employee_id,
+    employee_name: employeeName(row.employees),
+    start_date: row.start_date,
+    end_date: row.end_date,
+    request_type: row.request_type,
+    status: row.status,
+    reason: row.reason,
+    reviewed_at: row.reviewed_at,
+    created_at: row.created_at,
+    requested_by: (row.requested_by ?? "employer") as "employer" | "employee",
+  }));
+}
+
 export async function listTimeOffRequests(
   companyId: string
 ): Promise<TimeOffRequestRow[]> {
@@ -56,19 +72,30 @@ export async function listTimeOffRequests(
     return [];
   }
 
-  return ((data ?? []) as RawRow[]).map((row) => ({
-    id: row.id,
-    employee_id: row.employee_id,
-    employee_name: employeeName(row.employees),
-    start_date: row.start_date,
-    end_date: row.end_date,
-    request_type: row.request_type,
-    status: row.status,
-    reason: row.reason,
-    reviewed_at: row.reviewed_at,
-    created_at: row.created_at,
-    requested_by: (row.requested_by ?? "employer") as "employer" | "employee",
-  }));
+  return mapTimeOffRows((data ?? []) as RawRow[]);
+}
+
+/** Employee-scoped leave history for the portal. */
+export async function listEmployeeTimeOffRequests(
+  companyId: string,
+  employeeId: string
+): Promise<TimeOffRequestRow[]> {
+  const admin = createClient();
+  const { data, error } = await admin
+    .from("time_off_requests")
+    .select(
+      "id, employee_id, start_date, end_date, request_type, status, reason, reviewed_at, created_at, requested_by, employees ( full_name )"
+    )
+    .eq("company_id", companyId)
+    .eq("employee_id", employeeId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("listEmployeeTimeOffRequests failed:", error.message);
+    return [];
+  }
+
+  return mapTimeOffRows((data ?? []) as RawRow[]);
 }
 
 export async function listApprovedTimeOffForRange(

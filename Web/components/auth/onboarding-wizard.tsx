@@ -55,11 +55,11 @@ export function OnboardingWizard({
             color: (theme) =>
               muiAlpha(theme, (p) => p.text.secondary, 0.25),
             "&.Mui-active, &.Mui-completed": {
-              color: "primary.main",
+              color: "var(--eb-gold-500)",
             },
           },
           "& .MuiStepIcon-text": {
-            fill: (theme) => theme.palette.primary.contrastText,
+            fill: "var(--eb-navy-950)",
             fontWeight: 600,
           },
         }}
@@ -113,7 +113,7 @@ export function OnboardingWizard({
                 fontWeight: 500,
                 color: "text.secondary",
                 textDecoration: "none",
-                "&:hover": { color: "primary.main" },
+                "&:hover": { color: "var(--eb-gold-500)" },
               }}
             >
               Skip for now
@@ -121,7 +121,6 @@ export function OnboardingWizard({
             <Button
               type="button"
               variant="contained"
-              color="primary"
               onClick={onNext}
               sx={{
                 borderRadius: 999,
@@ -129,7 +128,13 @@ export function OnboardingWizard({
                 py: 1.25,
                 fontSize: "0.875rem",
                 fontWeight: 500,
-                color: "primary.contrastText",
+                background: "var(--eb-gold-gradient)",
+                color: "var(--eb-navy-950)",
+                boxShadow: "0 8px 24px var(--eb-gold-glow)",
+                "&:hover": {
+                  filter: "brightness(1.06)",
+                  background: "var(--eb-gold-gradient)",
+                },
               }}
             >
               Next
@@ -170,7 +175,7 @@ export function OnboardingWizard({
                   fontWeight: 500,
                   color: "text.secondary",
                   textDecoration: "none",
-                  "&:hover": { color: "primary.main" },
+                  "&:hover": { color: "var(--eb-gold-500)" },
                 }}
               >
                 Skip

@@ -2,8 +2,6 @@
 
 import Button from "@mui/material/Button";
 import { useFormStatus } from "react-dom";
-import { muiAlpha } from "@/lib/mui/alpha";
-
 type AuthSubmitButtonProps = {
   idleLabel: string;
   pendingLabel: string;
@@ -12,7 +10,7 @@ type AuthSubmitButtonProps = {
   onClick?: () => void;
 };
 
-/** Full-width primary CTA for auth forms — teal accent on dark canvas. */
+/** Full-width primary CTA for auth forms — gold accent on dark canvas. */
 export function AuthSubmitButton({
   idleLabel,
   pendingLabel,
@@ -41,18 +39,17 @@ export function AuthSubmitButton({
         px: 3.5,
         fontSize: "0.9375rem",
         fontWeight: 500,
-        bgcolor: "primary.main",
-        color: "primary.contrastText",
-        boxShadow: (theme) =>
-          `0 0 24px ${muiAlpha(theme, (p) => p.primary.main, 0.35)}`,
+        background: "var(--eb-gold-gradient)",
+        color: "var(--eb-navy-950)",
+        boxShadow: "0 8px 24px var(--eb-gold-glow)",
         "&:hover": {
-          bgcolor: "primary.dark",
-          boxShadow: (theme) =>
-            `0 0 28px ${muiAlpha(theme, (p) => p.primary.main, 0.45)}`,
+          filter: "brightness(1.06)",
+          boxShadow: "0 10px 28px rgba(217, 166, 63, 0.32)",
+          background: "var(--eb-gold-gradient)",
         },
         "&.Mui-disabled": {
-          bgcolor: "primary.main",
-          color: "primary.contrastText",
+          background: "var(--eb-gold-gradient)",
+          color: "var(--eb-navy-950)",
           opacity: 0.45,
         },
       }}

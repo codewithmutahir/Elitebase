@@ -83,10 +83,17 @@ async def verify_api_key(request: Request, call_next):
     if path == "/health":
         return await call_next(request)
 
-    if INTERNAL_API_KEY:
-        key = request.headers.get("X-Internal-Key", "")
-        if key != INTERNAL_API_KEY:
-            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    # Fail closed: inference endpoints require a shared secret in all deploys.
+    # Local/dev must set INTERNAL_API_KEY explicitly (see run.ps1 / Render env).
+    if not INTERNAL_API_KEY:
+        return JSONResponse(
+            {"error": "INTERNAL_API_KEY is not configured"},
+            status_code=503,
+        )
+
+    key = request.headers.get("X-Internal-Key", "")
+    if key != INTERNAL_API_KEY:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
     # Keep warmup out of the rate bucket so keep-alive / pre-warm do not
     # starve real verify traffic at shift start.

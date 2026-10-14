@@ -5,6 +5,7 @@ import type { ChipProps as MuiChipProps } from "@mui/material/Chip";
 import type { ReactNode } from "react";
 
 export type StatusTone =
+  | "accent"
   | "success"
   | "warning"
   | "error"
@@ -12,6 +13,7 @@ export type StatusTone =
   | "neutral";
 
 const toneToColor: Record<StatusTone, MuiChipProps["color"]> = {
+  accent: "primary",
   success: "success",
   warning: "warning",
   error: "error",

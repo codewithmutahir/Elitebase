@@ -28,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const PRESET_COLORS = [
-  "#2EC4B6",
+  "#D9A63F",
   "#2563EB",
   "#7C3AED",
   "#DB2777",
@@ -36,7 +36,7 @@ const PRESET_COLORS = [
   "#EA580C",
   "#CA8A04",
   "#16A34A",
-  "#0891B2",
+  "#2F4EA2",
   "#64748B",
 ];
 
@@ -53,7 +53,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
     useState<LocalDepartment[]>(initialDepartments);
   const [error, setError] = useState<string | null>(null);
   const [newDeptName, setNewDeptName] = useState("");
-  const [newDeptColor, setNewDeptColor] = useState("#2EC4B6");
+  const [newDeptColor, setNewDeptColor] = useState("#D9A63F");
   const [showAddDept, setShowAddDept] = useState(false);
   const [newRoleByDept, setNewRoleByDept] = useState<Record<string, string>>(
     {}
@@ -109,7 +109,7 @@ export function DepartmentsView({ initialDepartments }: DepartmentsViewProps) {
       { id: tempId, name, color, roles: [], optimistic: true },
     ]);
     setNewDeptName("");
-    setNewDeptColor("#2EC4B6");
+    setNewDeptColor("#D9A63F");
     setShowAddDept(false);
     setError(null);
 

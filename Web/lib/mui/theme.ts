@@ -10,7 +10,8 @@ function dashboardTableHeaderBg(theme: Theme) {
 }
 
 /**
- * Elitebase MUI theme — mapped from `--eb-*` tokens in globals.css.
+ * Elitebase MUI theme — navy + gold product UI (dashboard + shared MUI).
+ * Mapped from `--eb-*` / `--eb-gold-*` tokens in globals.css.
  * Ignores legacy `--elite-*` tokens.
  *
  * Prefer `theme.alpha((theme.vars?.palette ?? theme.palette)…)` in overrides — bare
@@ -25,9 +26,10 @@ export const elitebaseMuiTheme = createTheme({
       palette: {
         mode: "light",
         primary: {
-          main: "#2EC4B6",
-          dark: "#1FA89C",
-          contrastText: "#060A12",
+          main: "#D9A63F",
+          light: "#F7DE94",
+          dark: "#B8801F",
+          contrastText: "#070F24",
         },
         secondary: {
           main: "#E2E8F0",
@@ -45,12 +47,12 @@ export const elitebaseMuiTheme = createTheme({
         divider: "rgba(15, 23, 42, 0.1)",
         action: {
           hover: "rgba(15, 23, 42, 0.05)",
-          selected: "rgba(15, 23, 42, 0.05)",
+          selected: "rgba(15, 23, 42, 0.06)",
           focus: "rgba(15, 23, 42, 0.08)",
-          active: "rgba(46, 196, 182, 0.12)",
+          active: "rgba(15, 23, 42, 0.1)",
         },
         info: {
-          main: "rgb(37, 99, 235)",
+          main: "#2F4EA2",
         },
         success: {
           main: "rgb(5, 150, 105)",
@@ -72,32 +74,33 @@ export const elitebaseMuiTheme = createTheme({
       palette: {
         mode: "dark",
         primary: {
-          main: "#2EC4B6",
-          dark: "#1FA89C",
-          contrastText: "#060A12",
+          main: "#D9A63F",
+          light: "#F7DE94",
+          dark: "#B8801F",
+          contrastText: "#070F24",
         },
         secondary: {
-          main: "#151D2E",
-          dark: "#1A2438",
-          contrastText: "#ECEEF2",
+          main: "#14265A",
+          dark: "#0B1633",
+          contrastText: "#F5F7FB",
         },
         background: {
-          default: "#060A12",
-          paper: "#0E1524",
+          default: "#070F24",
+          paper: "#0B1633",
         },
         text: {
-          primary: "#ECEEF2",
-          secondary: "#8B93A7",
+          primary: "#F5F7FB",
+          secondary: "#A9B4CF",
         },
         divider: "rgba(255, 255, 255, 0.08)",
         action: {
           hover: "rgba(255, 255, 255, 0.06)",
-          selected: "rgba(255, 255, 255, 0.06)",
+          selected: "rgba(255, 255, 255, 0.08)",
           focus: "rgba(255, 255, 255, 0.08)",
-          active: "rgba(46, 196, 182, 0.14)",
+          active: "rgba(255, 255, 255, 0.12)",
         },
         info: {
-          main: "#2EC4B6",
+          main: "#2F4EA2",
         },
         success: {
           main: "rgb(52, 211, 153)",
@@ -109,9 +112,9 @@ export const elitebaseMuiTheme = createTheme({
           main: "rgb(248, 113, 113)",
         },
         DataGrid: {
-          bg: "#0E1524",
-          pinnedBg: "#0E1524",
-          headerBg: "#0E1524",
+          bg: "#0B1633",
+          pinnedBg: "#0B1633",
+          headerBg: "#0B1633",
         },
       },
     },
@@ -359,6 +362,14 @@ export const elitebaseMuiTheme = createTheme({
           fontWeight: 600,
           variants: [
             {
+              props: { variant: "soft", color: "primary" },
+              style: ({ theme }) => ({
+                backgroundColor: muiAlpha(theme, (p) => p.primary.main, 0.12),
+                border: `1px solid ${muiAlpha(theme, (p) => p.primary.main, 0.4)}`,
+                color: (theme.vars?.palette ?? theme.palette).primary.main,
+              }),
+            },
+            {
               props: { variant: "soft", color: "success" },
               style: ({ theme }) => ({
                 backgroundColor: muiAlpha(theme, (p) => p.success.main, 0.1),
@@ -435,7 +446,7 @@ export const elitebaseMuiTheme = createTheme({
       styleOverrides: {
         root: ({ theme }) => {
           const palette = theme.vars?.palette ?? theme.palette;
-          const selectedBg = muiAlpha(theme, (p) => p.primary.main, 0.1);
+          const selectedBg = muiAlpha(theme, (p) => p.text.primary, 0.06);
           const activeBg = palette.action.active;
           const hoverBg = palette.action.hover;
           return {
@@ -448,10 +459,10 @@ export const elitebaseMuiTheme = createTheme({
             "&.Mui-selected": {
               backgroundColor: selectedBg,
               "&:hover": {
-                backgroundColor: selectedBg,
+                backgroundColor: muiAlpha(theme, (p) => p.text.primary, 0.08),
               },
               "&:active": {
-                backgroundColor: muiAlpha(theme, (p) => p.primary.main, 0.16),
+                backgroundColor: muiAlpha(theme, (p) => p.text.primary, 0.1),
               },
             },
           };

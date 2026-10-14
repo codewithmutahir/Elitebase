@@ -43,7 +43,7 @@ export const dashboardPopoverContentClass =
 
 /** Solid primary actions in dashboard (portaled or in-shell — avoids root blue `primary`). */
 export const dashboardPrimaryButtonClass =
-  "border-transparent bg-[var(--eb-accent)] text-[#060a12] hover:bg-[var(--eb-accent-dark,#1FA89C)] focus-visible:ring-[var(--eb-accent)]/35";
+  "border-transparent bg-[var(--eb-accent)] text-[var(--eb-navy-950,#070f24)] hover:bg-[var(--eb-accent-dark,#B8801F)] focus-visible:ring-[var(--eb-accent)]/35";
 
 /** Secondary / cancel in portaled dashboard UI (outline variant inherits root `--background` without these). */
 export const dashboardOutlineButtonClass =
@@ -56,7 +56,7 @@ export const dashboardSheetOverlayClass =
   "dashboard-sheet-overlay bg-[var(--eb-ink)]/75 backdrop-blur-sm";
 
 export const dashboardSheetSuccessPanelClass =
-  "rounded-xl border border-[var(--eb-accent)]/25 bg-gradient-to-b from-[var(--eb-accent)]/10 via-[var(--eb-elevated)]/80 to-[var(--eb-surface)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_40px_var(--eb-accent-glow,rgba(46,196,182,0.12))]";
+  "rounded-xl border border-[var(--eb-accent)]/25 bg-gradient-to-b from-[var(--eb-accent)]/10 via-[var(--eb-elevated)]/80 to-[var(--eb-surface)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_40px_var(--eb-accent-glow,rgba(217,166,63,0.12))]";
 
 export const dashboardPinDisplayClass =
   "font-mono text-5xl font-bold tracking-[0.28em] text-[var(--eb-accent)] tabular-nums";

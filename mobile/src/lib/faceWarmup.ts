@@ -144,6 +144,7 @@ type VerifyFaceApiResponse = {
   threshold?: number;
   reason?: string | null;
   employee_id?: string;
+  face_verify_token?: string;
 };
 
 /**
@@ -160,6 +161,7 @@ export async function verifyFaceMultipart(options: {
   threshold: number;
   reason?: string | null;
   employee_id?: string;
+  face_verify_token?: string;
 }> {
   const base = getApiBaseUrl();
   if (!base) {
@@ -218,6 +220,10 @@ export async function verifyFaceMultipart(options: {
       threshold: Number(json?.threshold ?? 0),
       reason: json?.reason ?? null,
       employee_id: json?.employee_id,
+      face_verify_token:
+        typeof json?.face_verify_token === "string"
+          ? json.face_verify_token
+          : undefined,
     };
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {

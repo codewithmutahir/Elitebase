@@ -23,13 +23,13 @@ export function AuthAlert({ variant, children, className }: AuthAlertProps) {
         border: "1px solid",
         borderColor: isError
           ? "rgba(248, 113, 113, 0.3)"
-          : "rgba(46, 196, 182, 0.3)",
+          : "color-mix(in srgb, var(--eb-gold-500) 30%, transparent)",
         bgcolor: isError
           ? "rgba(248, 113, 113, 0.1)"
-          : "rgba(46, 196, 182, 0.1)",
+          : "color-mix(in srgb, var(--eb-gold-500) 10%, transparent)",
         color: isError ? "error.light" : "text.primary",
         "& .MuiAlert-icon": {
-          color: isError ? "error.light" : "primary.main",
+          color: isError ? "error.light" : "var(--eb-gold-500)",
         },
       }}
     >

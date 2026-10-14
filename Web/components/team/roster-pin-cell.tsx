@@ -38,7 +38,7 @@ export function RosterPinCell({ employeeId, hasPin, pin }: RosterPinCellProps) {
     }
 
     const confirmed = window.confirm(
-      "This employee's PIN was created before display was enabled. Generate a new 4-digit PIN? The old PIN will stop working on the kiosk."
+      "Reveal a new 4-digit PIN for this employee? The previous PIN will stop working on the kiosk. The new PIN is shown once and is not stored in cleartext."
     );
     if (!confirmed) return;
 

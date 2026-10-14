@@ -19,7 +19,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
 import { fadeIn } from "@/lib/animations";
 import {
-  dashboardAccentLinkSx,
+  dashboardErrorLinkSx,
+  dashboardMutedLinkSx,
   profileContactLinkSx,
   profileDestructiveOutlineSx,
 } from "@/lib/dashboard/sx";
@@ -78,10 +79,10 @@ export function EmployeeProfileView({
     setEmployee((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const needsContact = !employee.phone && !employee.email;
+  const needsContact = !employee.email?.trim();
 
-  const accentLinkButtonSx = {
-    ...dashboardAccentLinkSx,
+  const missingContactButtonSx = {
+    ...dashboardErrorLinkSx,
     display: "inline-flex",
     alignItems: "center",
     gap: 0.75,
@@ -99,7 +100,7 @@ export function EmployeeProfileView({
         component={Link}
         href="/employees"
         sx={{
-          ...dashboardAccentLinkSx,
+          ...dashboardMutedLinkSx,
           display: "inline-flex",
           alignItems: "center",
           gap: 0.75,
@@ -134,11 +135,11 @@ export function EmployeeProfileView({
               justifyContent: "center",
               borderRadius: "50%",
               border: "1px solid",
-              borderColor: (theme) => `${theme.palette.primary.main}4D`,
-              bgcolor: (theme) => `${theme.palette.primary.main}26`,
+              borderColor: "divider",
+              bgcolor: "action.hover",
               fontSize: "1.25rem",
               fontWeight: 700,
-              color: "primary.main",
+              color: "text.primary",
             }}
           >
             {employeeInitials(employee.full_name)}
@@ -181,7 +182,7 @@ export function EmployeeProfileView({
                 <Box
                   component="button"
                   type="button"
-                  sx={accentLinkButtonSx}
+                  sx={missingContactButtonSx}
                   onClick={() => setTab("personal")}
                 >
                   <Phone className="size-4" aria-hidden />
@@ -201,7 +202,7 @@ export function EmployeeProfileView({
                 <Box
                   component="button"
                   type="button"
-                  sx={accentLinkButtonSx}
+                  sx={missingContactButtonSx}
                   onClick={() => setTab("personal")}
                 >
                   <Mail className="size-4" aria-hidden />
@@ -210,8 +211,8 @@ export function EmployeeProfileView({
               )}
             </Stack>
             {needsContact ? (
-              <StatusBadge tone="warning" theme={dashboardTheme}>
-                Needs contact information
+              <StatusBadge tone="error" theme={dashboardTheme}>
+                Needs email
               </StatusBadge>
             ) : null}
           </Stack>

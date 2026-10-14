@@ -19,6 +19,7 @@ type OnboardingFormProps = {
   timezoneOptions: TimezoneOption[];
   defaultTimezone: string;
   existingLogoUrl?: string | null;
+  failureSignal?: string | null;
   action: (formData: FormData) => void | Promise<void>;
 };
 
@@ -27,12 +28,14 @@ export function OnboardingForm({
   timezoneOptions,
   defaultTimezone,
   existingLogoUrl,
+  failureSignal = null,
   action,
 }: OnboardingFormProps) {
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
-  const { canSubmit, lockMessage, consumeAttempt } = useAuthFormAttempts(
-    "auth-attempts:onboarding"
+  const { canSubmit, lockMessage, beginAttempt } = useAuthFormAttempts(
+    "auth-attempts:onboarding:v2",
+    failureSignal
   );
 
   const {
@@ -50,7 +53,7 @@ export function OnboardingForm({
   });
 
   const onSubmit = (data: OnboardingInput) => {
-    if (!consumeAttempt()) return;
+    if (!beginAttempt()) return;
 
     const formData = new FormData();
     formData.set("timezone", data.timezone);

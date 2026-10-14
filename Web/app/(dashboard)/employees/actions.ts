@@ -92,7 +92,7 @@ async function createEmployeeWithPin(
     employee_id: employee.id,
     company_id: companyId,
     pin: pinHash,
-    pin_plain: plainPin,
+    pin_plain: null,
   });
 
   if (pinError) {
@@ -114,6 +114,9 @@ export type AddEmployeeState = {
   plainPin?: string;
   employeeName?: string;
   employeeId?: string;
+  /** Set when "Send portal invite" was checked on create. */
+  inviteSent?: boolean;
+  inviteError?: string;
 };
 
 export async function addEmployee(
@@ -124,6 +127,7 @@ export async function addEmployee(
 
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim() || null;
+  const sendInvite = formData.get("sendInvite") === "on";
   const role = String(formData.get("role") ?? "employee").trim() || "employee";
   const departmentId =
     String(formData.get("departmentId") ?? "").trim() || null;
@@ -151,6 +155,10 @@ export async function addEmployee(
     return { error: "Full name is required." };
   }
 
+  if (sendInvite && !email) {
+    return { error: "Add an email to send a portal invite." };
+  }
+
   const created = await createEmployeeWithPin(company.id, {
     fullName,
     email,
@@ -171,6 +179,29 @@ export async function addEmployee(
     return { error: "Could not create employee. Please try again." };
   }
 
+  let inviteSent = false;
+  let inviteError: string | undefined;
+
+  if (sendInvite && email) {
+    const { createAndSendPortalInvite } = await import("@/lib/portal/invite");
+    const inviteResult = await createAndSendPortalInvite({
+      companyId: company.id,
+      companyName: company.name,
+      employeeId: created.id,
+      employeeName: created.fullName,
+      email,
+    });
+    if ("error" in inviteResult) {
+      inviteError = inviteResult.error;
+    } else if (inviteResult.emailed) {
+      inviteSent = true;
+    } else {
+      inviteError =
+        inviteResult.emailError ??
+        "Invite created, but the email could not be sent.";
+    }
+  }
+
   bumpEmployeeListCache(company.id);
   revalidatePath("/employees");
   revalidatePath(`/employees/${created.id}`);
@@ -179,6 +210,8 @@ export async function addEmployee(
     plainPin: created.plainPin,
     employeeName: created.fullName,
     employeeId: created.id,
+    inviteSent,
+    inviteError,
   };
 }
 
@@ -359,7 +392,7 @@ export type RegeneratePinResult = {
   error?: string;
 };
 
-/** Regenerates kiosk PIN and saves retrievable pin_plain for admin display. */
+/** Regenerates kiosk PIN; returns plaintext once (never persisted as pin_plain). */
 export async function regenerateEmployeePin(
   employeeId: string
 ): Promise<RegeneratePinResult> {
@@ -399,7 +432,7 @@ export async function regenerateEmployeePin(
 
   const { error: updateError } = await admin
     .from("employee_pins")
-    .update({ pin: pinHash, pin_plain: plainPin })
+    .update({ pin: pinHash, pin_plain: null })
     .eq("employee_id", employeeId)
     .eq("company_id", company.id);
 

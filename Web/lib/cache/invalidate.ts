@@ -3,6 +3,7 @@ import {
   companyAttendanceMonthsTag,
   companyDepartmentsTag,
   companyEmployeeListsTag,
+  portalEmployeeMonthTag,
 } from "@/lib/cache/tags";
 
 /** Call only from Server Actions (read-your-writes after mutations). */
@@ -16,4 +17,11 @@ export function invalidateEmployeeListsCache(companyId: string) {
 
 export function invalidateAttendanceMonthsCache(companyId: string) {
   updateTag(companyAttendanceMonthsTag(companyId));
+}
+
+export function invalidatePortalEmployeeMonthCache(
+  companyId: string,
+  employeeId: string
+) {
+  updateTag(portalEmployeeMonthTag(companyId, employeeId));
 }

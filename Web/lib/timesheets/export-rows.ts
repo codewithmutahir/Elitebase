@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAttendanceStatus } from "@/lib/attendance/status";
 import { formatShiftTimeRange } from "@/lib/schedules/format";
+import { timesheetShiftWages } from "@/lib/schedules/wages";
+import { normalizeWorkingDays } from "@/lib/employees/working-days";
 import {
   isDateOnApprovedTimeOff,
   listApprovedUnpaidLeaveForRange,
@@ -21,17 +23,37 @@ export type TimesheetExportRow = TimesheetRow & {
   missingClockIn: boolean;
   missingClockOut: boolean;
   unpaidLeave: boolean;
+  /** Employee-level bonus for the period (apply once on subtotal, not every shift). */
   bonusAmount: number;
+  department: string;
+  payType: "hourly" | "salary";
+  /** Hourly rate or monthly salary amount, depending on payType. */
+  rateAmount: number;
+  /** Earnings for this shift only (excludes bonus). */
+  wages: number;
 };
 
 type EmployeeExportMeta = {
   full_name: string;
+  department: string;
   schedule_start_time: string;
   schedule_end_time: string;
   bonus_amount: number;
+  pay_type: "hourly" | "salary";
+  hourly_rate: number;
+  salary_amount: number | null;
+  working_days: number[];
 };
 
 type ScheduleSlot = PublishedScheduleSlot;
+
+type DepartmentJoin = { name: string } | { name: string }[] | null;
+
+function departmentName(join: DepartmentJoin): string {
+  if (!join) return "";
+  if (Array.isArray(join)) return join[0]?.name ?? "";
+  return join.name ?? "";
+}
 
 function pgTimeToHm(value: string) {
   return value.trim().slice(0, 5);
@@ -105,6 +127,7 @@ function enrichRow(
   timezone: string,
   options: { forceAbsent?: boolean }
 ): TimesheetExportRow {
+  const meta = employees.get(row.employeeId);
   const scheduledTime = scheduledTimeLabel(
     row.employeeId,
     row.date,
@@ -129,11 +152,29 @@ function enrichRow(
       !unpaidLeaveDay &&
       Boolean(schedulesByKey.get(`${row.employeeId}:${row.date}`)));
 
-  const bonusAmount = employees.get(row.employeeId)?.bonus_amount ?? 0;
+  const payType = meta?.pay_type ?? "hourly";
+  const hourlyRate = meta?.hourly_rate ?? 0;
+  const salaryAmount = meta?.salary_amount ?? null;
+  const workingDays = meta?.working_days ?? [1, 2, 3, 4, 5];
+  const rateAmount =
+    payType === "salary" ? Number(salaryAmount ?? 0) : hourlyRate;
+
+  const wages = timesheetShiftWages({
+    payType,
+    hourlyRate,
+    salaryAmount,
+    workingDays,
+    shiftDate: row.date,
+    totalHours: row.totalHours,
+    unpaidLeave: unpaidLeaveDay,
+    absent,
+  });
+
   const { missingClockIn, missingClockOut } = missingPunchSummary(row);
 
   return {
     ...row,
+    employeeName: (meta?.full_name ?? row.employeeName).trim(),
     scheduledTime,
     onTime: row.clockIn ? onTime : false,
     late: row.clockIn ? late : false,
@@ -141,7 +182,11 @@ function enrichRow(
     missingClockIn,
     missingClockOut,
     unpaidLeave: unpaidLeaveDay,
-    bonusAmount,
+    bonusAmount: meta?.bonus_amount ?? 0,
+    department: meta?.department ?? "",
+    payType,
+    rateAmount,
+    wages,
   };
 }
 
@@ -155,7 +200,7 @@ async function fetchEmployeeExportMeta(
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, schedule_start_time, schedule_end_time, bonus_amount"
+      "id, full_name, departments ( name ), schedule_start_time, schedule_end_time, bonus_amount, pay_type, hourly_rate, salary_amount, working_days"
     )
     .eq("company_id", companyId)
     .in("id", employeeIds);
@@ -167,11 +212,21 @@ async function fetchEmployeeExportMeta(
 
   const map = new Map<string, EmployeeExportMeta>();
   for (const row of data ?? []) {
+    const payType =
+      (row.pay_type as string) === "salary" ? "salary" : "hourly";
     map.set(row.id as string, {
-      full_name: (row.full_name as string) ?? "Unknown",
+      full_name: String(row.full_name ?? "Unknown").trim(),
+      department: departmentName(row.departments as DepartmentJoin),
       schedule_start_time: (row.schedule_start_time as string) ?? "09:00:00",
       schedule_end_time: (row.schedule_end_time as string) ?? "17:00:00",
       bonus_amount: Number(row.bonus_amount ?? 0),
+      pay_type: payType,
+      hourly_rate: Number(row.hourly_rate ?? 0),
+      salary_amount:
+        row.salary_amount != null ? Number(row.salary_amount) : null,
+      working_days: normalizeWorkingDays(
+        (row.working_days as number[] | null) ?? [1, 2, 3, 4, 5]
+      ),
     });
   }
   return map;

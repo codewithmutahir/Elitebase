@@ -15,14 +15,22 @@ import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 type LoginFormProps = {
   action: (formData: FormData) => void | Promise<void>;
+  /** Set when the server redirected back with an auth failure (not rate-limit). */
+  failureSignal?: string | null;
 };
 
-const ATTEMPT_KEY = "auth-attempts:login";
+/** v2: only failed attempts count (successes no longer lock the form). */
+const ATTEMPT_KEY = "auth-attempts:login:v2";
 
-export function LoginForm({ action }: LoginFormProps) {
+export function LoginForm({
+  action,
+  failureSignal = null,
+}: LoginFormProps) {
   const [isPending, startTransition] = useTransition();
-  const { canSubmit, lockMessage, consumeAttempt } =
-    useAuthFormAttempts(ATTEMPT_KEY);
+  const { canSubmit, lockMessage, beginAttempt } = useAuthFormAttempts(
+    ATTEMPT_KEY,
+    failureSignal
+  );
 
   const {
     register,
@@ -35,7 +43,7 @@ export function LoginForm({ action }: LoginFormProps) {
   });
 
   const onSubmit = (data: LoginInput) => {
-    if (!consumeAttempt()) return;
+    if (!beginAttempt()) return;
 
     const formData = new FormData();
     formData.set("email", data.email);
@@ -84,8 +92,8 @@ export function LoginForm({ action }: LoginFormProps) {
               sx={{
                 fontSize: { xs: "0.75rem", sm: "0.875rem" },
                 fontWeight: 500,
-                color: "primary.main",
-                "&:hover": { color: "text.primary" },
+                color: "var(--eb-gold-300)",
+                "&:hover": { color: "var(--eb-gold-500)" },
               }}
             >
               Forgot password?

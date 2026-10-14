@@ -16,14 +16,20 @@ import {
 
 type ForgotPasswordFormProps = {
   action: (formData: FormData) => void | Promise<void>;
+  failureSignal?: string | null;
 };
 
-const ATTEMPT_KEY = "auth-attempts:forgot-password";
+const ATTEMPT_KEY = "auth-attempts:forgot-password:v2";
 
-export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({
+  action,
+  failureSignal = null,
+}: ForgotPasswordFormProps) {
   const [isPending, startTransition] = useTransition();
-  const { canSubmit, lockMessage, consumeAttempt } =
-    useAuthFormAttempts(ATTEMPT_KEY);
+  const { canSubmit, lockMessage, beginAttempt } = useAuthFormAttempts(
+    ATTEMPT_KEY,
+    failureSignal
+  );
 
   const {
     register,
@@ -36,7 +42,7 @@ export function ForgotPasswordForm({ action }: ForgotPasswordFormProps) {
   });
 
   const onSubmit = (data: ForgotPasswordInput) => {
-    if (!consumeAttempt()) return;
+    if (!beginAttempt()) return;
 
     const formData = new FormData();
     formData.set("email", data.email);

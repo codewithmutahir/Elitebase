@@ -1,7 +1,12 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/server-session";
-import { getCompanyByOwnerId, type CompanyRow } from "@/lib/company";
+import {
+  getCompanyByOwnerId,
+  isOwnerCompanySuspended,
+  type CompanyRow,
+} from "@/lib/company";
+import { getEmployeeByUserId } from "@/lib/portal/queries";
 
 export type CompanySessionUser = {
   id: string;
@@ -26,6 +31,13 @@ export const requireCompanySession = cache(async (): Promise<CompanySession> => 
   const company = await getCompanyByOwnerId(session.user.id);
 
   if (!company) {
+    if (await isOwnerCompanySuspended(session.user.id)) {
+      redirect("/login?error=company_suspended");
+    }
+    const employee = await getEmployeeByUserId(session.user.id);
+    if (employee) {
+      redirect("/portal");
+    }
     redirect("/onboarding");
   }
 

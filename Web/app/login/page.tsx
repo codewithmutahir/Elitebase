@@ -9,9 +9,15 @@ import { LoginForm } from "@/components/auth/login-form";
 import { auth } from "@/lib/auth";
 import {
   enforceAuthRateLimitInAction,
+  recordAuthRateLimitFailureInAction,
   resolveAuthRateLimitQueryMessage,
 } from "@/lib/auth/enforce-rate-limit";
 import { parseLoginFormData } from "@/lib/validations/auth";
+
+async function failLogin(error: string): Promise<never> {
+  await recordAuthRateLimitFailureInAction("login");
+  redirect(`/login?error=${error}`);
+}
 
 async function signIn(formData: FormData) {
   "use server";
@@ -20,20 +26,22 @@ async function signIn(formData: FormData) {
 
   const parsed = parseLoginFormData(formData);
   if (!parsed.success) {
-    redirect("/login?error=validation");
+    await failLogin("validation");
+    return;
   }
 
   const { email, password } = parsed.data;
+  let userId: string | null = null;
 
   try {
-    await auth.api.signInEmail({
+    const result = await auth.api.signInEmail({
       body: {
         email,
         password,
-        callbackURL: "/dashboard",
       },
       headers: await headers(),
     });
+    userId = result.user?.id ?? null;
   } catch (error) {
     if (error instanceof APIError) {
       const code = error.body?.code ?? "";
@@ -42,7 +50,8 @@ async function signIn(formData: FormData) {
         error.status === 401 ||
         error.status === 403
       ) {
-        redirect("/login?error=invalid_credentials");
+        await failLogin("invalid_credentials");
+        return;
       }
     }
 
@@ -50,10 +59,26 @@ async function signIn(formData: FormData) {
       "Sign in failed:",
       error instanceof Error ? error.message : error
     );
-    redirect("/login?error=signin_failed");
+    await failLogin("signin_failed");
+    return;
   }
 
-  redirect("/dashboard");
+  if (!userId) {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    userId = session?.user?.id ?? null;
+  }
+
+  if (!userId) {
+    await failLogin("signin_failed");
+    return;
+  }
+
+  const { resolvePostLoginPath } = await import(
+    "@/lib/portal/resolve-post-login"
+  );
+  redirect(await resolvePostLoginPath(userId));
 }
 
 export default async function LoginPage({
@@ -75,16 +100,27 @@ export default async function LoginPage({
       ? "Incorrect email or password. Please try again."
       : error === "validation" || error === "missing_fields"
         ? "Enter a valid email and password."
-        : error
-          ? "Could not sign you in. Please try again."
-          : null);
+        : error === "not_employee"
+          ? "This account is not linked to an employee portal. Use your invite link or contact your manager."
+          : error === "deactivated"
+            ? "Your employee account is deactivated. Contact your manager."
+            : error === "company_suspended"
+              ? "This company account has been suspended. Contact Elitebase support."
+              : error
+                ? "Could not sign you in. Please try again."
+                : null);
+
+  const failureSignal =
+    error && !rateLimitMessage
+      ? error
+      : null;
 
   return (
     <AuthSplitLayout>
       <AuthFormCard
-        eyebrow="Employer sign in"
+        eyebrow="Sign in"
         title="Welcome back"
-        subtitle="Sign in to your company dashboard and manage attendance."
+        subtitle="Employers open the company dashboard. Employees open the portal after an invite."
         footer={
           <AuthFooterText
             prompt="Don't have an account?"
@@ -100,7 +136,7 @@ export default async function LoginPage({
           <AuthAlert variant="error">{errorMessage}</AuthAlert>
         ) : null}
 
-        <LoginForm action={signIn} />
+        <LoginForm action={signIn} failureSignal={failureSignal} />
       </AuthFormCard>
     </AuthSplitLayout>
   );

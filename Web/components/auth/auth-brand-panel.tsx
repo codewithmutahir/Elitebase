@@ -76,11 +76,11 @@ export function AuthBrandPanel({
                 justifyContent: "center",
                 borderRadius: "50%",
                 border: "1px solid",
-                borderColor: "rgba(46, 196, 182, 0.35)",
-                bgcolor: "rgba(46, 196, 182, 0.1)",
+                borderColor: "color-mix(in srgb, var(--eb-gold-500) 35%, transparent)",
+                bgcolor: "color-mix(in srgb, var(--eb-gold-500) 10%, transparent)",
                 fontSize: "0.65rem",
                 fontWeight: 700,
-                color: "var(--eb-accent)",
+                color: "var(--eb-gold-500)",
               }}
             >
               ✓
@@ -107,9 +107,9 @@ export function AuthBrandPanel({
           width: "fit-content",
           fontSize: "0.875rem",
           fontWeight: 500,
-          color: "var(--eb-accent)",
+          color: "var(--eb-gold-300)",
           textDecoration: "none",
-          "&:hover": { color: "var(--eb-text)" },
+          "&:hover": { color: "var(--eb-gold-500)" },
         }}
       >
         ← Back to role selection
