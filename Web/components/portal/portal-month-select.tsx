@@ -28,7 +28,7 @@ export function PortalMonthSelect({
   const grouped = groupPortalMonthsByYear(options);
 
   return (
-    <FormControl size="small" sx={{ minWidth: 200 }}>
+    <FormControl size="small" sx={{ minWidth: 0, width: { xs: "100%", sm: 200 } }}>
       <InputLabel id="portal-month-label">Month</InputLabel>
       <SelectMui
         labelId="portal-month-label"
@@ -55,7 +55,8 @@ export function PortalMonthSelect({
         }}
         sx={{
           ...portalSelectSx,
-          minWidth: 200,
+          width: "100%",
+          minWidth: 0,
         }}
       >
         {grouped.flatMap(({ year, months }) => [

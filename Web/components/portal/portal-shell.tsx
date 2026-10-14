@@ -62,9 +62,12 @@ export function PortalShell({
           zIndex: 1,
           display: "grid",
           minHeight: "100vh",
+          width: "100%",
+          maxWidth: "100vw",
+          overflow: "hidden",
           gridTemplateColumns: {
-            xs: "1fr",
-            md: "auto 1fr",
+            xs: "minmax(0, 1fr)",
+            md: "auto minmax(0, 1fr)",
           },
         }}
       >
@@ -79,7 +82,9 @@ export function PortalShell({
           sx={{
             minHeight: "100vh",
             minWidth: 0,
+            maxWidth: "100%",
             flex: 1,
+            overflow: "hidden",
           }}
         >
           <PortalHeader
@@ -93,11 +98,16 @@ export function PortalShell({
             component="main"
             sx={{
               flex: 1,
-              overflow: "auto",
-              p: { xs: 3, sm: 4 },
+              minWidth: 0,
+              maxWidth: "100%",
+              overflowX: "hidden",
+              overflowY: "auto",
+              p: { xs: 2, sm: 3, md: 4 },
             }}
           >
-            {children}
+            <Box sx={{ minWidth: 0, maxWidth: "100%", width: "100%" }}>
+              {children}
+            </Box>
           </Box>
         </Stack>
       </Box>

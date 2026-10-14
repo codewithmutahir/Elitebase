@@ -52,8 +52,8 @@ export function PortalAttendanceTable({
   }
 
   return (
-    <Box sx={{ ...portalPanelSx, overflow: "hidden" }}>
-      <Box sx={{ overflowX: "auto" }}>
+    <Box sx={{ ...portalPanelSx, overflow: "hidden", minWidth: 0, maxWidth: "100%" }}>
+      <Box sx={{ overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch" }}>
         <Box
           component="table"
           sx={{

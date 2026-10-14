@@ -29,7 +29,7 @@ export default async function PortalAttendancePage({
   );
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} sx={{ minWidth: 0, width: "100%", maxWidth: "100%" }}>
       <PortalPageHeader
         title="Attendance"
         description={`Your punches for ${formatPortalMonthLabel(month)}.`}
@@ -59,16 +59,19 @@ async function AttendanceMonth({
   const summary = await getPortalMonthSummary(employee, month);
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={3} sx={{ minWidth: 0, width: "100%" }}>
       <Box
         sx={{
           display: "grid",
           gap: 2,
+          width: "100%",
+          minWidth: 0,
           gridTemplateColumns: {
             xs: "1fr",
             sm: "repeat(2, minmax(0, 1fr))",
-            md: "repeat(4, minmax(0, 1fr))",
+            lg: "repeat(4, minmax(0, 1fr))",
           },
+          "& > *": { minWidth: 0 },
         }}
       >
         <PortalStatCard

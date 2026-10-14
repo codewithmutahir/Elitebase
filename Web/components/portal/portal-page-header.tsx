@@ -18,11 +18,13 @@ export function PortalPageHeader({
       direction={{ xs: "column", sm: "row" }}
       spacing={2}
       sx={{
-        alignItems: { xs: "stretch", sm: "flex-end" },
+        alignItems: { xs: "stretch", sm: "flex-start" },
         justifyContent: "space-between",
+        minWidth: 0,
+        width: "100%",
       }}
     >
-      <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0, flex: "1 1 auto" }}>
         <Typography component="h1" sx={portalPageTitleSx}>
           {title}
         </Typography>
@@ -30,7 +32,11 @@ export function PortalPageHeader({
           <Typography sx={portalPageSubtitleSx}>{description}</Typography>
         ) : null}
       </Box>
-      {action ? <Box sx={{ flexShrink: 0 }}>{action}</Box> : null}
+      {action ? (
+        <Box sx={{ flexShrink: 0, alignSelf: { xs: "stretch", sm: "flex-start" } }}>
+          {action}
+        </Box>
+      ) : null}
     </Stack>
   );
 }
