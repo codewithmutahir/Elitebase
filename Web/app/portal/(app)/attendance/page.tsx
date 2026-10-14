@@ -25,8 +25,7 @@ export default async function PortalAttendancePage({
   const month = resolvePortalMonth(employee.company_timezone, monthParam);
   const monthOptions = portalMonthSelectOptions(
     employee.company_timezone,
-    month,
-    8
+    month
   );
 
   return (

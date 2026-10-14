@@ -46,6 +46,9 @@ export function recentMonthOptions(endMonth: string, count = 6): string[] {
   return options;
 }
 
+/** Default lookback: current month + previous 23 = 24 months (2 years). */
+export const PORTAL_MONTH_SELECT_COUNT = 24;
+
 /**
  * Month picker options always anchored to the company “now” month so selecting
  * an older month never drops the current month from the list.
@@ -54,7 +57,7 @@ export function recentMonthOptions(endMonth: string, count = 6): string[] {
 export function portalMonthSelectOptions(
   timezone: string,
   selectedMonth: string,
-  count = 8
+  count = PORTAL_MONTH_SELECT_COUNT
 ): string[] {
   const current = currentMonthKey(timezone);
   const options = recentMonthOptions(current, count);
@@ -66,6 +69,26 @@ export function portalMonthSelectOptions(
     options.sort((a, b) => b.localeCompare(a));
   }
   return options;
+}
+
+/** Group YYYY-MM keys by year for year-sectioned dropdowns (newest year first). */
+export function groupPortalMonthsByYear(
+  months: string[]
+): { year: string; months: string[] }[] {
+  const byYear = new Map<string, string[]>();
+  for (const month of months) {
+    if (!/^\d{4}-\d{2}$/.test(month)) continue;
+    const year = month.slice(0, 4);
+    const list = byYear.get(year) ?? [];
+    list.push(month);
+    byYear.set(year, list);
+  }
+  return [...byYear.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([year, yearMonths]) => ({
+      year,
+      months: yearMonths.sort((a, b) => b.localeCompare(a)),
+    }));
 }
 
 export function resolvePortalMonth(

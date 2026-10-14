@@ -24,6 +24,17 @@ export function formatPortalMonthLabel(month: string): string {
   }).format(date);
 }
 
+/** Month name only (for year-grouped dropdown rows). */
+export function formatPortalMonthName(month: string): string {
+  if (!/^\d{4}-\d{2}$/.test(month)) return month;
+  const [, monthNum] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(2000, monthNum - 1, 1));
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 export function portalShiftStatusLabel(
   status: "open" | "complete" | "incomplete",
   opts?: { absent?: boolean; unpaidLeave?: boolean }
