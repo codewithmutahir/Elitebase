@@ -42,14 +42,16 @@ export function PortalMonthSelect({
           );
         }}
         MenuProps={{
-          PaperProps: {
-            className: "dashboard-dropdown",
-            sx: {
-              backgroundImage: "none",
-              bgcolor: "var(--eb-surface)",
-              color: "var(--eb-text)",
-              border: "1px solid var(--eb-border)",
-              maxHeight: 360,
+          slotProps: {
+            paper: {
+              className: "dashboard-dropdown",
+              sx: {
+                backgroundImage: "none",
+                bgcolor: "var(--eb-surface)",
+                color: "var(--eb-text)",
+                border: "1px solid var(--eb-border)",
+                maxHeight: 360,
+              },
             },
           },
         }}
