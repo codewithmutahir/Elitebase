@@ -53,46 +53,28 @@ async function completeOnboarding(formData: FormData) {
 
   const parsed = parseOnboardingFormData(formData);
 
+  // failOnboarding never returns, but TS does not narrow across await-never.
   if (!parsed.success) {
-
     await failOnboarding("validation");
-
   }
-
-
+  const { timezone, logo } = parsed.data!;
 
   const admin = createClient();
 
   const { data: company, error: fetchError } = await admin
-
     .from("companies")
-
     .select("id, timezone, logo_url")
-
     .eq("owner_uid", session.user.id)
-
     .maybeSingle();
 
-
-
   if (fetchError || !company) {
-
     console.error("Onboarding: company lookup failed", fetchError?.message);
-
     await failOnboarding("no_company");
-
   }
-
-
-
-  const { timezone, logo } = parsed.data;
-
-
+  const companyRow = company!;
 
   const updates: { timezone: string; logo_url?: string } = {
-
     timezone,
-
   };
 
 
@@ -111,7 +93,7 @@ async function completeOnboarding(formData: FormData) {
 
       : "png";
 
-    const objectPath = `${company.id}/logo-${Date.now()}.${safeExt}`;
+    const objectPath = `${companyRow.id}/logo-${Date.now()}.${safeExt}`;
 
     const buffer = Buffer.from(await logo.arrayBuffer());
 
@@ -161,7 +143,7 @@ async function completeOnboarding(formData: FormData) {
 
     .update(updates)
 
-    .eq("id", company.id);
+    .eq("id", companyRow.id);
 
 
 

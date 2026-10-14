@@ -94,7 +94,7 @@ export function PortalSidebar({
           spacing={1.25}
           sx={{ alignItems: "center", justifyContent: expanded ? "flex-start" : "center" }}
         >
-          <Avatar sx={{ width: 36, height: 36 }}>
+          <Avatar className="h-9 w-9">
             <AvatarFallback>{initials(companyName)}</AvatarFallback>
           </Avatar>
           {expanded ? (

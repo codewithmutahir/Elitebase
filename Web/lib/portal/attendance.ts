@@ -46,6 +46,28 @@ export function recentMonthOptions(endMonth: string, count = 6): string[] {
   return options;
 }
 
+/**
+ * Month picker options always anchored to the company “now” month so selecting
+ * an older month never drops the current month from the list.
+ * Ensures `selectedMonth` stays in the list if it falls outside the window.
+ */
+export function portalMonthSelectOptions(
+  timezone: string,
+  selectedMonth: string,
+  count = 8
+): string[] {
+  const current = currentMonthKey(timezone);
+  const options = recentMonthOptions(current, count);
+  if (
+    /^\d{4}-\d{2}$/.test(selectedMonth) &&
+    !options.includes(selectedMonth)
+  ) {
+    options.push(selectedMonth);
+    options.sort((a, b) => b.localeCompare(a));
+  }
+  return options;
+}
+
 export function resolvePortalMonth(
   timezone: string,
   monthInput?: string | null

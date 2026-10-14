@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Download } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   upsertEmployeeAvailability,
@@ -281,6 +281,7 @@ export function AvailabilityView({
   departmentOptions,
   weekStart,
 }: AvailabilityViewProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [departmentId, setDepartmentId] = useState("all");
   const {

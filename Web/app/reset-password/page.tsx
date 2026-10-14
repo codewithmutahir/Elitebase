@@ -45,7 +45,7 @@ async function resetPassword(formData: FormData) {
     await failReset("validation", token || undefined);
   }
 
-  const { token, password } = parsed.data;
+  const { token, password } = parsed.data!;
 
   try {
     await auth.api.resetPassword({

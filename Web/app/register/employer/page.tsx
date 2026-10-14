@@ -31,8 +31,7 @@ async function registerEmployer(formData: FormData) {
   if (!parsed.success) {
     await failRegister("validation");
   }
-
-  const { companyName, ownerName, email, password } = parsed.data;
+  const { companyName, ownerName, email, password } = parsed.data!;
 
   const requestHeaders = await headers();
   let userId: string | null = null;
@@ -53,7 +52,7 @@ async function registerEmployer(formData: FormData) {
       await failRegister("signup_failed");
     }
 
-    userId = result.user.id;
+    userId = result.user!.id;
 
     if (!result.token) {
       try {
@@ -110,15 +109,18 @@ async function registerEmployer(formData: FormData) {
     await failRegister("signup_failed");
   }
 
-  let companyResult: { ok: true } | { error: string };
+  let companyResult: { ok: true } | { error: string } | undefined;
   try {
-    companyResult = await createCompanyForOwner(userId, companyName);
+    companyResult = await createCompanyForOwner(userId!, companyName);
   } catch {
     await failRegister("missing_env");
   }
 
-  if ("error" in companyResult) {
-    console.error("Company create failed:", companyResult.error);
+  if (!companyResult || "error" in companyResult) {
+    console.error(
+      "Company create failed:",
+      companyResult && "error" in companyResult ? companyResult.error : "unknown"
+    );
     await failRegister("company_create_failed");
   }
 

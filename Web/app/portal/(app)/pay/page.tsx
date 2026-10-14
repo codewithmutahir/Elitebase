@@ -9,7 +9,7 @@ import { PortalMonthDataSkeleton } from "@/components/portal/portal-skeletons";
 import { PortalStatCard } from "@/components/portal/portal-stat-card";
 import {
   getPortalMonthSummary,
-  recentMonthOptions,
+  portalMonthSelectOptions,
   resolvePortalMonth,
 } from "@/lib/portal/attendance";
 import { formatPortalHours, formatPortalMonthLabel } from "@/lib/portal/format";
@@ -29,7 +29,11 @@ export default async function PortalPayPage({
   const { month: monthParam } = await searchParams;
   const { employee } = await requireEmployeeSession();
   const month = resolvePortalMonth(employee.company_timezone, monthParam);
-  const monthOptions = recentMonthOptions(month, 8);
+  const monthOptions = portalMonthSelectOptions(
+    employee.company_timezone,
+    month,
+    8
+  );
 
   return (
     <Stack spacing={3}>

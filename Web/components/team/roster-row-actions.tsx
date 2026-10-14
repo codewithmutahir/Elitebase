@@ -55,8 +55,12 @@ export function RosterRowActions({ employee }: RosterRowActionsProps) {
   function handleInvite() {
     startInvite(async () => {
       const result = await sendEmployeePortalInvite(employee.id);
-      if (result.error) {
+      if ("error" in result && result.error) {
         toast.error(result.error);
+        return;
+      }
+      if (!("ok" in result) || !result.ok) {
+        toast.error("Could not send invitation. Try again.");
         return;
       }
       if (result.emailed) {
