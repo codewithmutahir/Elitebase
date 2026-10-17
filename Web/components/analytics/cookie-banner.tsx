@@ -84,7 +84,7 @@ export function CookieBanner() {
       aria-describedby="cookie-banner-desc"
       className="fixed inset-x-0 bottom-0 z-[100] flex justify-center p-4 sm:justify-start sm:p-6"
     >
-      <div className="w-full max-w-[22rem] rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-surface,#0B1633)]/95 p-5 text-[var(--eb-text,#F5F7FB)] shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
+      <div className="w-full max-w-[22rem] rounded-2xl border border-white/[0.06] bg-[var(--eb-surface,#0B1633)]/95 p-5 text-[var(--eb-text,#F5F7FB)] shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
         <div className="flex items-center gap-2.5">
           <ShieldCheck
             className="size-5 shrink-0 text-[var(--eb-accent,#D9A63F)]"
@@ -114,12 +114,12 @@ export function CookieBanner() {
         </Link>
 
         {customizing ? (
-          <div className="mt-5 space-y-3">
-            <div className="rounded-xl border border-[var(--eb-border)] bg-black/20 px-3.5 py-3">
-              <div className="flex items-start justify-between gap-3">
+          <div className="mt-5 space-y-2">
+            <div className="rounded-lg border border-white/[0.06] bg-black/15 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">Essential</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-[var(--eb-muted,#A9B4CF)]">
+                  <p className="mt-0.5 text-xs leading-snug text-[var(--eb-muted,#A9B4CF)]">
                     Sign-in and security. Always on.
                   </p>
                 </div>
@@ -128,10 +128,10 @@ export function CookieBanner() {
                 </span>
               </div>
             </div>
-            <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-[var(--eb-border)] bg-black/20 px-3.5 py-3">
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-black/15 px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Analytics</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-[var(--eb-muted,#A9B4CF)]">
+                <p className="mt-0.5 text-xs leading-snug text-[var(--eb-muted,#A9B4CF)]">
                   PostHog and Sentry (session replay masked). Optional.
                 </p>
               </div>
@@ -139,13 +139,13 @@ export function CookieBanner() {
                 type="checkbox"
                 checked={analyticsOn}
                 onChange={(event) => setAnalyticsOn(event.target.checked)}
-                className="mt-0.5 size-4 shrink-0 accent-[var(--eb-accent,#D9A63F)]"
+                className="size-4 shrink-0 accent-[var(--eb-accent,#D9A63F)]"
               />
             </label>
             <button
               type="button"
               onClick={() => choose(analyticsOn ? "accepted" : "rejected")}
-              className="w-full rounded-xl border border-[var(--eb-accent,#D9A63F)] bg-transparent px-5 py-2.5 text-sm font-semibold text-[var(--eb-text)] transition-colors hover:bg-[var(--eb-accent,#D9A63F)]/10"
+              className="w-full rounded-xl bg-[var(--eb-accent,#D9A63F)] px-5 py-2.5 text-sm font-semibold text-[var(--eb-ink,#070F24)] transition-colors hover:bg-[var(--eb-accent-dark,#B8801F)]"
             >
               Save preferences
             </button>
@@ -162,21 +162,21 @@ export function CookieBanner() {
             <button
               type="button"
               onClick={() => choose("accepted")}
-              className="w-full rounded-xl border border-[var(--eb-accent,#D9A63F)] bg-transparent px-5 py-2.5 text-sm font-semibold text-[var(--eb-text)] transition-colors hover:bg-[var(--eb-accent,#D9A63F)]/10"
+              className="w-full rounded-xl bg-[var(--eb-accent,#D9A63F)] px-5 py-2.5 text-sm font-semibold text-[var(--eb-ink,#070F24)] transition-colors hover:bg-[var(--eb-accent-dark,#B8801F)]"
             >
               Accept all
             </button>
             <button
               type="button"
               onClick={() => choose("rejected")}
-              className="w-full rounded-xl border border-[var(--eb-accent,#D9A63F)]/55 bg-transparent px-5 py-2.5 text-sm font-medium text-[var(--eb-text)] transition-colors hover:bg-white/5"
+              className="w-full rounded-xl border border-white/15 bg-transparent px-5 py-2.5 text-sm font-medium text-[var(--eb-text)] transition-colors hover:bg-white/5"
             >
               Reject optional
             </button>
             <button
               type="button"
               onClick={() => setCustomizing(true)}
-              className="mx-auto mt-1 text-sm text-[var(--eb-text)] underline underline-offset-2 transition-colors hover:text-[var(--eb-gold-300,#F7DE94)]"
+              className="mx-auto mt-0.5 text-sm text-[var(--eb-muted,#A9B4CF)] underline underline-offset-2 transition-colors hover:text-[var(--eb-text)]"
             >
               Customize preferences
             </button>
