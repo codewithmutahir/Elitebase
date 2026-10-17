@@ -43,6 +43,8 @@ export function initPosthog(): void {
       blockSelector: REPLAY_BLOCK_SELECTOR,
     },
     loaded: (ph) => {
+      // Clear a prior Reject (opt_out is persisted in localStorage).
+      ph.opt_in_capturing();
       if (process.env.NODE_ENV === "development") {
         ph.debug(false);
       }

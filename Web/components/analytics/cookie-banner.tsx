@@ -82,7 +82,7 @@ export function CookieBanner() {
       aria-modal="false"
       aria-labelledby="cookie-banner-title"
       aria-describedby="cookie-banner-desc"
-      className="fixed inset-x-0 bottom-0 z-[100] flex justify-center p-4 sm:p-6"
+      className="fixed inset-x-0 bottom-0 z-[100] flex justify-center p-4 sm:justify-start sm:p-6"
     >
       <div className="w-full max-w-[22rem] rounded-2xl border border-[var(--eb-border)] bg-[var(--eb-surface,#0B1633)]/95 p-5 text-[var(--eb-text,#F5F7FB)] shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
         <div className="flex items-center gap-2.5">
