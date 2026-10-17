@@ -124,6 +124,12 @@ async function registerEmployer(formData: FormData) {
     await failRegister("company_create_failed");
   }
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(userId!, AnalyticsEvent.employerSignedUp);
+
   redirect("/onboarding");
 }
 

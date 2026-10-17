@@ -21,8 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCompany } from "@/contexts/company-context";
-import { authClient } from "@/lib/auth-client";
 import { DashboardThemeToggle } from "@/components/layout/dashboard-theme-toggle";
+import { HeaderNavProgress } from "@/components/navigation/header-nav-progress";
 import {
   dashboardDropdownContentClass,
   dashboardDropdownHeaderClass,
@@ -70,12 +70,8 @@ export function Header({
   const initials = userInitials(user.name, user.email);
 
   function handleSignOut() {
-    authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/login";
-        },
-      },
+    void import("@/lib/analytics/sign-out").then(({ signOutAndResetAnalytics }) => {
+      signOutAndResetAnalytics();
     });
   }
 
@@ -85,6 +81,7 @@ export function Header({
       elevation={0}
       color="transparent"
       sx={{
+        position: "sticky",
         zIndex: 30,
         borderBottom: "1px solid",
         borderColor: "divider",
@@ -94,6 +91,7 @@ export function Header({
         color: "text.primary",
       }}
     >
+      <HeaderNavProgress />
       <Toolbar
         disableGutters
         sx={{

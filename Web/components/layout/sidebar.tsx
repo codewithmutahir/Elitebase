@@ -32,8 +32,6 @@ import { muiAlpha } from "@/lib/mui/alpha";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCompany } from "@/contexts/company-context";
-import { authClient } from "@/lib/auth-client";
-
 const SCHEDULE_OPEN_KEY = "sidebar-schedule-open";
 const TEAM_OPEN_KEY = "sidebar-team-open";
 
@@ -56,6 +54,7 @@ const mainNav: NavItem[] = [
 const teamSubItems: Omit<NavItem, "icon">[] = [
   { href: "/employees", label: "Roster" },
   { href: "/team/time-off", label: "Time Off" },
+  { href: "/team/payroll", label: "Payroll" },
   { href: "/team/benefits", label: "Benefits" },
   { href: "/team/payslips", label: "Payslips" },
 ];
@@ -206,12 +205,8 @@ export function Sidebar({
   }
 
   function handleSignOut() {
-    authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/login";
-        },
-      },
+    void import("@/lib/analytics/sign-out").then(({ signOutAndResetAnalytics }) => {
+      signOutAndResetAnalytics();
     });
   }
 

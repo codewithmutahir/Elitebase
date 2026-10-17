@@ -51,9 +51,12 @@ export default function CookiePolicyPage() {
             UI preferences where we offer them.
           </li>
           <li>
-            <strong>Analytics:</strong> Help us understand traffic and product
-            usage in aggregate so we can improve the Service. We configure
-            analytics to minimize identification where possible.
+            <strong>Analytics &amp; session replay:</strong> With your consent,
+            we use PostHog for product analytics and session recording, and
+            Sentry for error monitoring and session replay. These help us fix
+            bugs and improve the Service. We mask form inputs (including PIN
+            fields) and block camera previews from recordings. We do not send
+            face images or biometric templates to analytics tools.
           </li>
         </ul>
         <p>
@@ -66,10 +69,14 @@ export default function CookiePolicyPage() {
 
       <LegalSection title="4. Your choices.">
         <p>
-          Most browsers let you block or delete cookies through settings. Blocking
-          strictly necessary cookies may prevent you from signing in or using
-          parts of the Service. Where required by law, we will request consent
-          before placing non-essential cookies on our marketing site.
+          When you first visit, you can Accept or Reject analytics cookies via
+          our cookie banner. You can change your choice anytime using{" "}
+          <strong>Cookie settings</strong> in the site footer. Rejecting
+          analytics does not affect sign-in; we may still collect technical
+          error reports (without session replay) to keep the Service reliable.
+          Most browsers also let you block or delete cookies through settings.
+          Blocking strictly necessary cookies may prevent you from signing in
+          or using parts of the Service.
         </p>
       </LegalSection>
 

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { CookieBanner } from "@/components/analytics/cookie-banner";
+import { PosthogProvider } from "@/components/analytics/posthog-provider";
 import { NavigationProgress } from "@/components/navigation/navigation-progress";
 import { TooltipProvider } from "@/components/ui-legacy/tooltip";
 import "./globals.css";
@@ -50,7 +52,10 @@ export default function RootLayout({
         className={`${inter.className} flex min-h-full flex-col font-sans`}
       >
         <NavigationProgress />
-        <TooltipProvider>{children}</TooltipProvider>
+        <PosthogProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+          <CookieBanner />
+        </PosthogProvider>
       </body>
     </html>
   );

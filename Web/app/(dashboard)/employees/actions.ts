@@ -14,6 +14,7 @@ import {
 } from "@/lib/employees/csv-import-limits";
 import { invalidateEmployeeListsCache } from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
+import { cycleStartFromHireDate } from "@/lib/payroll/bonus";
 
 function bumpEmployeeListCache(companyId: string) {
   invalidateEmployeeListsCache(companyId);
@@ -79,6 +80,8 @@ async function createEmployeeWithPin(
       schedule_end_time: input.scheduleEndTime || "17:00",
       bonus_amount: input.bonusAmount ?? 0,
       bonus_note: input.bonusNote ?? null,
+      bonus_policy: "six_monthly",
+      bonus_cycle_start_month: cycleStartFromHireDate(input.hireDate ?? null),
     })
     .select("id, full_name, position")
     .single();
@@ -383,6 +386,17 @@ export async function importEmployeesFromCsv(
       revalidatePath(`/employees/${row.id}`);
     }
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(company.id, AnalyticsEvent.csvImportCompleted, {
+    companyId: company.id,
+    created: created.length,
+    skipped: skippedExisting.length,
+    failed: failed.length,
+  });
 
   return { created, skippedExisting, failed };
 }

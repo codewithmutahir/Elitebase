@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  invalidatePortalCompanyLeaveCache,
+  invalidatePortalEmployeeLeaveCache,
+  invalidatePortalEmployeeMonthCache,
+} from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
 import type { TimeOffRequestType } from "@/lib/time-off/queries";
 
@@ -16,9 +21,19 @@ const REQUEST_TYPES: TimeOffRequestType[] = [
   "unpaid_leave",
 ];
 
-function revalidateTimeOff() {
+function revalidateTimeOff(companyId: string, employeeId?: string) {
+  if (employeeId) {
+    invalidatePortalEmployeeLeaveCache(companyId, employeeId);
+    invalidatePortalEmployeeMonthCache(companyId, employeeId);
+  } else {
+    invalidatePortalCompanyLeaveCache(companyId);
+  }
   revalidatePath(TIME_OFF_PATH);
   revalidatePath("/schedule/schedule");
+  revalidatePath("/portal/leave");
+  revalidatePath("/portal");
+  revalidatePath("/portal/attendance");
+  revalidatePath("/portal/pay");
 }
 
 export type CreateTimeOffInput = {
@@ -72,7 +87,7 @@ export async function createTimeOffRequest(input: CreateTimeOffInput) {
     return { error: "Could not create time-off request." };
   }
 
-  revalidateTimeOff();
+  revalidateTimeOff(company.id, input.employeeId);
   return { id: data.id };
 }
 
@@ -85,7 +100,7 @@ export async function reviewTimeOffRequest(
 
   const { data: existing } = await admin
     .from("time_off_requests")
-    .select("id, status")
+    .select("id, status, employee_id")
     .eq("id", requestId)
     .eq("company_id", company.id)
     .maybeSingle();
@@ -109,7 +124,7 @@ export async function reviewTimeOffRequest(
     return { error: "Could not update request." };
   }
 
-  revalidateTimeOff();
+  revalidateTimeOff(company.id, existing.employee_id);
   return { ok: true };
 }
 
@@ -119,7 +134,7 @@ export async function cancelTimeOffRequest(requestId: string) {
 
   const { data: existing } = await admin
     .from("time_off_requests")
-    .select("id, status")
+    .select("id, status, employee_id")
     .eq("id", requestId)
     .eq("company_id", company.id)
     .maybeSingle();
@@ -140,6 +155,6 @@ export async function cancelTimeOffRequest(requestId: string) {
     return { error: "Could not cancel request." };
   }
 
-  revalidateTimeOff();
+  revalidateTimeOff(company.id, existing.employee_id);
   return { ok: true };
 }

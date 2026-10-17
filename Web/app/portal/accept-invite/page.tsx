@@ -126,6 +126,16 @@ async function acceptPortalInvite(formData: FormData) {
     .update({ accepted_at: nowIso })
     .eq("id", invite.id);
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    `emp_${invite.employee_id}`,
+    AnalyticsEvent.portalInviteAccepted,
+    { companyId: invite.company_id }
+  );
+
   try {
     await auth.api.signInEmail({
       body: {

@@ -4,6 +4,12 @@ import { formatShiftTimeRange } from "@/lib/schedules/format";
 import { timesheetShiftWages } from "@/lib/schedules/wages";
 import { normalizeWorkingDays } from "@/lib/employees/working-days";
 import {
+  bonusDueForDateSet,
+  normalizeBonusPolicy,
+  normalizeCycleStartMonth,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
+import {
   isDateOnApprovedTimeOff,
   listApprovedUnpaidLeaveForRange,
 } from "@/lib/time-off/queries";
@@ -39,6 +45,8 @@ type EmployeeExportMeta = {
   schedule_start_time: string;
   schedule_end_time: string;
   bonus_amount: number;
+  bonus_policy: BonusPolicy;
+  bonus_cycle_start_month: number;
   pay_type: "hourly" | "salary";
   hourly_rate: number;
   salary_amount: number | null;
@@ -182,12 +190,49 @@ function enrichRow(
     missingClockIn,
     missingClockOut,
     unpaidLeave: unpaidLeaveDay,
-    bonusAmount: meta?.bonus_amount ?? 0,
+    /** Placeholder — replaced by applyPolicyAwareBonus after all rows are built. */
+    bonusAmount: 0,
     department: meta?.department ?? "",
     payType,
     rateAmount,
     wages,
   };
+}
+
+/** Set each employee's row.bonusAmount to policy-aware due for dates in the set. */
+function applyPolicyAwareBonus(
+  rows: TimesheetExportRow[],
+  employees: Map<string, EmployeeExportMeta>
+): TimesheetExportRow[] {
+  const datesByEmployee = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = datesByEmployee.get(row.employeeId) ?? [];
+    list.push(row.date);
+    datesByEmployee.set(row.employeeId, list);
+  }
+
+  const bonusByEmployee = new Map<string, number>();
+  for (const [employeeId, dates] of datesByEmployee) {
+    const meta = employees.get(employeeId);
+    if (!meta || meta.bonus_amount <= 0) {
+      bonusByEmployee.set(employeeId, 0);
+      continue;
+    }
+    bonusByEmployee.set(
+      employeeId,
+      bonusDueForDateSet(
+        dates,
+        meta.bonus_amount,
+        meta.bonus_policy,
+        meta.bonus_cycle_start_month
+      )
+    );
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    bonusAmount: bonusByEmployee.get(row.employeeId) ?? 0,
+  }));
 }
 
 async function fetchEmployeeExportMeta(
@@ -200,7 +245,7 @@ async function fetchEmployeeExportMeta(
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, departments ( name ), schedule_start_time, schedule_end_time, bonus_amount, pay_type, hourly_rate, salary_amount, working_days"
+      "id, full_name, departments ( name ), schedule_start_time, schedule_end_time, bonus_amount, bonus_policy, bonus_cycle_start_month, pay_type, hourly_rate, salary_amount, working_days"
     )
     .eq("company_id", companyId)
     .in("id", employeeIds);
@@ -220,6 +265,10 @@ async function fetchEmployeeExportMeta(
       schedule_start_time: (row.schedule_start_time as string) ?? "09:00:00",
       schedule_end_time: (row.schedule_end_time as string) ?? "17:00:00",
       bonus_amount: Number(row.bonus_amount ?? 0),
+      bonus_policy: normalizeBonusPolicy(row.bonus_policy),
+      bonus_cycle_start_month: normalizeCycleStartMonth(
+        row.bonus_cycle_start_month
+      ),
       pay_type: payType,
       hourly_rate: Number(row.hourly_rate ?? 0),
       salary_amount:
@@ -269,9 +318,11 @@ export async function getTimesheetExportRows(
     listApprovedUnpaidLeaveForRange(companyId, from, to),
   ]);
 
-  return baseRows.map((row) =>
+  const enriched = baseRows.map((row) =>
     enrichRow(row, employees, schedulesByKey, unpaidLeave, timezone, {
       forceAbsent: row.id.startsWith("absent:"),
     })
   );
+
+  return applyPolicyAwareBonus(enriched, employees);
 }

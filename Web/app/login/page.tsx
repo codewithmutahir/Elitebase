@@ -59,6 +59,8 @@ async function signIn(formData: FormData) {
       "Sign in failed:",
       error instanceof Error ? error.message : error
     );
+    const { reportError } = await import("@/lib/analytics/report-error");
+    reportError(error, { surface: "auth", route: "/login" });
     await failLogin("signin_failed");
     return;
   }
@@ -74,6 +76,12 @@ async function signIn(formData: FormData) {
     await failLogin("signin_failed");
     return;
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(userId, AnalyticsEvent.employerLoggedIn);
 
   const { resolvePostLoginPath } = await import(
     "@/lib/portal/resolve-post-login"

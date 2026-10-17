@@ -1,3 +1,10 @@
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  portalCompanyBenefitsTag,
+  portalEmployeeBenefitsTag,
+} from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 
 export type BenefitCategory =
@@ -113,7 +120,7 @@ export async function listCompanyEmployeeBenefits(
   return ((data ?? []) as RawEmployeeBenefit[]).map(mapEmployeeBenefit);
 }
 
-export async function listEmployeeBenefitsForPortal(
+async function loadEmployeeBenefitsForPortal(
   companyId: string,
   employeeId: string
 ): Promise<EmployeeBenefitRow[]> {
@@ -144,6 +151,25 @@ export async function listEmployeeBenefitsForPortal(
 
   return ((data ?? []) as RawEmployeeBenefit[]).map(mapEmployeeBenefit);
 }
+
+/** Portal benefits list (cached + tagged for employer/employee mutations). */
+export const listEmployeeBenefitsForPortal = cache(
+  async (
+    companyId: string,
+    employeeId: string
+  ): Promise<EmployeeBenefitRow[]> =>
+    unstable_cache(
+      () => loadEmployeeBenefitsForPortal(companyId, employeeId),
+      ["portal-employee-benefits", companyId, employeeId],
+      {
+        revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+        tags: [
+          portalEmployeeBenefitsTag(companyId, employeeId),
+          portalCompanyBenefitsTag(companyId),
+        ],
+      }
+    )()
+);
 
 type RawEmployeeBenefit = {
   id: string;

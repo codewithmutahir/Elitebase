@@ -13,6 +13,9 @@ export default function PortalError({
 }) {
   useEffect(() => {
     console.error("[portal error]", error);
+    void import("@/lib/analytics/report-error").then(({ reportError }) => {
+      reportError(error, { surface: "portal" });
+    });
   }, [error]);
 
   return (

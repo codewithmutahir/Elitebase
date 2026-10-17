@@ -19,3 +19,42 @@ export function portalEmployeeMonthTag(
 ) {
   return `portal:${companyId}:employee:${employeeId}:months`;
 }
+
+/** Portal leave list for one employee. */
+export function portalEmployeeLeaveTag(
+  companyId: string,
+  employeeId: string
+) {
+  return `portal:${companyId}:employee:${employeeId}:leave`;
+}
+
+/** Company-wide portal leave invalidation (employer review / create). */
+export function portalCompanyLeaveTag(companyId: string) {
+  return `portal:${companyId}:leave`;
+}
+
+/** Portal benefits for one employee. */
+export function portalEmployeeBenefitsTag(
+  companyId: string,
+  employeeId: string
+) {
+  return `portal:${companyId}:employee:${employeeId}:benefits`;
+}
+
+/** Company-wide portal benefits invalidation. */
+export function portalCompanyBenefitsTag(companyId: string) {
+  return `portal:${companyId}:benefits`;
+}
+
+/** Portal payslips for one employee. */
+export function portalEmployeePayslipsTag(
+  companyId: string,
+  employeeId: string
+) {
+  return `portal:${companyId}:employee:${employeeId}:payslips`;
+}
+
+/** Company-wide portal payslips invalidation. */
+export function portalCompanyPayslipsTag(companyId: string) {
+  return `portal:${companyId}:payslips`;
+}

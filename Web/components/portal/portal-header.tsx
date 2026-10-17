@@ -1,8 +1,10 @@
 "use client";
 
 import { LogOut, Menu, PanelLeft } from "lucide-react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
@@ -18,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DashboardThemeToggle } from "@/components/layout/dashboard-theme-toggle";
+import { HeaderNavProgress } from "@/components/navigation/header-nav-progress";
+import { usePortalNav } from "@/contexts/portal-nav-context";
 import {
   dashboardDropdownContentClass,
   dashboardDropdownHeaderClass,
@@ -27,11 +31,10 @@ import {
   dashboardDropdownMetaClass,
 } from "@/lib/dashboard/styles";
 import { getPortalPageTitle } from "@/lib/layout/page-titles";
-import { authClient } from "@/lib/auth-client";
-
 type PortalHeaderProps = {
   employeeName: string;
   companyName: string;
+  companyLogoUrl: string | null;
   onMenuClick: () => void;
   sidebarExpanded: boolean;
   onSidebarToggle: () => void;
@@ -48,23 +51,40 @@ function userInitials(name: string) {
   );
 }
 
+function companyInitials(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "C"
+  );
+}
+
 export function PortalHeader({
   employeeName,
   companyName,
+  companyLogoUrl,
   onMenuClick,
   sidebarExpanded,
   onSidebarToggle,
 }: PortalHeaderProps) {
   const pathname = usePathname();
-  const title = getPortalPageTitle(pathname);
+  const { pending: portalNavPending, pendingHref } = usePortalNav();
+  const titlePath = (() => {
+    if (!portalNavPending || !pendingHref) return pathname;
+    try {
+      return new URL(pendingHref, "http://local.invalid").pathname;
+    } catch {
+      return pendingHref.split("?")[0] || pathname;
+    }
+  })();
+  const title = getPortalPageTitle(titlePath);
 
   function handleSignOut() {
-    authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/login";
-        },
-      },
+    void import("@/lib/analytics/sign-out").then(({ signOutAndResetAnalytics }) => {
+      signOutAndResetAnalytics();
     });
   }
 
@@ -74,6 +94,7 @@ export function PortalHeader({
       elevation={0}
       color="transparent"
       sx={{
+        position: "sticky",
         zIndex: 30,
         borderBottom: "1px solid",
         borderColor: "divider",
@@ -83,6 +104,7 @@ export function PortalHeader({
         color: "text.primary",
       }}
     >
+      <HeaderNavProgress force={portalNavPending} />
       <Toolbar
         disableGutters
         sx={{
@@ -152,18 +174,62 @@ export function PortalHeader({
           sx={{ flexShrink: 0, alignItems: "center" }}
         >
           <DashboardThemeToggle />
-          <Typography
-            noWrap
-            sx={{
-              display: { xs: "none", sm: "block" },
-              maxWidth: 160,
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              color: "text.primary",
-            }}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center" }}
           >
-            {companyName}
-          </Typography>
+            {companyLogoUrl ? (
+              <Box
+                sx={{
+                  position: "relative",
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                }}
+              >
+                <Image
+                  src={companyLogoUrl}
+                  alt={`${companyName} logo`}
+                  fill
+                  style={{ objectFit: "contain" }}
+                  unoptimized
+                />
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  width: 32,
+                  height: 32,
+                  flexShrink: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.default",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "primary.main",
+                }}
+                aria-hidden
+              >
+                {companyInitials(companyName)}
+              </Box>
+            )}
+            <Typography
+              noWrap
+              sx={{
+                maxWidth: 140,
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                color: "text.primary",
+              }}
+            >
+              {companyName}
+            </Typography>
+          </Stack>
 
           <DropdownMenu>
             <DropdownMenuTrigger

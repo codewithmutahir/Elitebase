@@ -13,6 +13,9 @@ export default function DashboardError({
 }) {
   useEffect(() => {
     console.error("[dashboard error]", error);
+    void import("@/lib/analytics/report-error").then(({ reportError }) => {
+      reportError(error, { surface: "dashboard" });
+    });
   }, [error]);
 
   return (

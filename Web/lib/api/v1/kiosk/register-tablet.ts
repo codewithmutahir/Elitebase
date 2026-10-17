@@ -82,6 +82,16 @@ export async function POST(request: NextRequest) {
     return jsonError("This setup code has already been used.", 409);
   }
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    tablet.company_id,
+    AnalyticsEvent.kioskTabletRegistered,
+    { companyId: tablet.company_id }
+  );
+
   return jsonOk({
     tablet_token: tabletToken,
     tablet_id: tablet.id,

@@ -1,15 +1,44 @@
+import { Suspense } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { PortalLeaveForm } from "@/components/portal/portal-leave-form";
 import { PortalLeaveList } from "@/components/portal/portal-leave-list";
 import { PortalPageHeader } from "@/components/portal/portal-page-header";
+import {
+  PortalStatGridSkeleton,
+  PortalTableSkeleton,
+} from "@/components/portal/portal-skeletons";
 import { PortalStatCard } from "@/components/portal/portal-stat-card";
+import type { PortalEmployee } from "@/lib/portal/queries";
 import { requireEmployeeSession } from "@/lib/portal/session";
 import { listEmployeeTimeOffRequests } from "@/lib/time-off/queries";
 
 export default async function PortalLeavePage() {
   const { employee } = await requireEmployeeSession();
+
+  return (
+    <Stack spacing={3}>
+      <PortalPageHeader
+        title="Leave"
+        description="Request time off and track approval status."
+      />
+
+      <Suspense
+        fallback={
+          <Stack spacing={3}>
+            <PortalStatGridSkeleton count={2} />
+            <PortalTableSkeleton columns={4} rows={3} />
+          </Stack>
+        }
+      >
+        <LeaveBody employee={employee} />
+      </Suspense>
+    </Stack>
+  );
+}
+
+async function LeaveBody({ employee }: { employee: PortalEmployee }) {
   const requests = await listEmployeeTimeOffRequests(
     employee.company_id,
     employee.id
@@ -21,12 +50,7 @@ export default async function PortalLeavePage() {
   ).length;
 
   return (
-    <Stack spacing={3}>
-      <PortalPageHeader
-        title="Leave"
-        description="Request time off and track approval status."
-      />
-
+    <>
       <Box
         sx={{
           display: "grid",
@@ -55,6 +79,6 @@ export default async function PortalLeavePage() {
         </Typography>
         <PortalLeaveList requests={requests} />
       </Box>
-    </Stack>
+    </>
   );
 }

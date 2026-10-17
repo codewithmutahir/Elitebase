@@ -11,7 +11,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
@@ -27,8 +27,7 @@ import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { muiAlpha } from "@/lib/mui/alpha";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { authClient } from "@/lib/auth-client";
+import { usePortalNav } from "@/contexts/portal-nav-context";
 import {
   SIDEBAR_WIDTH,
   SIDEBAR_WIDTH_COLLAPSED,
@@ -59,30 +58,83 @@ function initials(name: string) {
 type PortalSidebarProps = {
   employeeName: string;
   companyName: string;
+  companyLogoUrl: string | null;
   mobileOpen: boolean;
   onMobileClose: () => void;
   expanded: boolean;
 };
 
+function CompanyMark({
+  name,
+  logoUrl,
+  size = 36,
+}: {
+  name: string;
+  logoUrl: string | null;
+  size?: number;
+}) {
+  if (logoUrl) {
+    return (
+      <Box
+        sx={{
+          position: "relative",
+          width: size,
+          height: size,
+          flexShrink: 0,
+        }}
+      >
+        <Image
+          src={logoUrl}
+          alt={`${name} logo`}
+          fill
+          style={{ objectFit: "contain" }}
+          unoptimized
+        />
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        width: size,
+        height: size,
+        flexShrink: 0,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 1,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.default",
+        fontSize: "0.75rem",
+        fontWeight: 700,
+        color: "primary.main",
+      }}
+      aria-hidden
+    >
+      {initials(name)}
+    </Box>
+  );
+}
+
 export function PortalSidebar({
   employeeName,
   companyName,
+  companyLogoUrl,
   mobileOpen,
   onMobileClose,
   expanded,
 }: PortalSidebarProps) {
   const pathname = usePathname();
+  const { navigate, pending } = usePortalNav();
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   const width = expanded ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_COLLAPSED;
 
   function handleSignOut() {
-    authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = "/login";
-        },
-      },
+    void import("@/lib/analytics/sign-out").then(({ signOutAndResetAnalytics }) => {
+      signOutAndResetAnalytics();
     });
   }
 
@@ -94,9 +146,7 @@ export function PortalSidebar({
           spacing={1.25}
           sx={{ alignItems: "center", justifyContent: expanded ? "flex-start" : "center" }}
         >
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>{initials(companyName)}</AvatarFallback>
-          </Avatar>
+          <CompanyMark name={companyName} logoUrl={companyLogoUrl} size={36} />
           {expanded ? (
             <Box sx={{ minWidth: 0 }}>
               <Typography
@@ -125,15 +175,20 @@ export function PortalSidebar({
           const button = (
             <ListItemButton
               key={item.href}
-              component={Link}
-              href={item.href}
-              onClick={onMobileClose}
+              component="button"
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                onMobileClose();
+                navigate(item.href);
+              }}
               selected={active}
               sx={{
                 borderRadius: 2,
                 mb: 0.5,
                 justifyContent: expanded ? "flex-start" : "center",
                 px: expanded ? 1.5 : 1,
+                width: "100%",
                 "&.Mui-selected": {
                   bgcolor: (t) => muiAlpha(t, (p) => p.primary.main, 0.14),
                   color: "primary.main",

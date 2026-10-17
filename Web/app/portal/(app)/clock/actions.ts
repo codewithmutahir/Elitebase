@@ -33,9 +33,25 @@ export async function portalEnrollFace(formData: FormData) {
     consent,
   });
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+
   if ("error" in result) {
+    await captureServerEvent(
+      `emp_${employee.id}`,
+      AnalyticsEvent.faceEnrollFailed,
+      { companyId: employee.company_id, source: "portal" }
+    );
     return { error: result.error };
   }
+
+  await captureServerEvent(
+    `emp_${employee.id}`,
+    AnalyticsEvent.faceEnrollSucceeded,
+    { companyId: employee.company_id, source: "portal" }
+  );
 
   revalidatePath("/portal/clock");
   revalidatePath("/portal");
@@ -96,9 +112,34 @@ export async function portalClockPunch(formData: FormData) {
     idempotencyKey,
   });
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+
   if ("error" in result) {
+    await captureServerEvent(
+      `emp_${employee.id}`,
+      AnalyticsEvent.punchFailed,
+      {
+        companyId: employee.company_id,
+        source: "portal",
+        reason: "punch_error",
+      }
+    );
     return { error: result.error };
   }
+
+  await captureServerEvent(
+    `emp_${employee.id}`,
+    AnalyticsEvent.punchSucceeded,
+    {
+      companyId: employee.company_id,
+      source: "portal",
+      type,
+      within_geofence: result.withinGeofence ?? undefined,
+    }
+  );
 
   invalidatePortalEmployeeMonthCache(employee.company_id, employee.id);
   invalidateAttendanceMonthsCache(employee.company_id);

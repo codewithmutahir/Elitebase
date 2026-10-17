@@ -1,5 +1,11 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeWorkingDays } from "@/lib/employees/working-days";
+import {
+  normalizeBonusPolicy,
+  normalizeCycleStartMonth,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
 
 export type PortalEmployee = {
   id: string;
@@ -13,6 +19,10 @@ export type PortalEmployee = {
   pay_type: string | null;
   hourly_rate: number | null;
   salary_amount: number | null;
+  working_days: number[];
+  bonus_amount: number;
+  bonus_policy: BonusPolicy;
+  bonus_cycle_start_month: number;
   schedule_start_time: string | null;
   schedule_end_time: string | null;
   face_registered_at: string | null;
@@ -45,6 +55,10 @@ async function fetchEmployeeByUserId(
       pay_type,
       hourly_rate,
       salary_amount,
+      working_days,
+      bonus_amount,
+      bonus_policy,
+      bonus_cycle_start_month,
       schedule_start_time,
       schedule_end_time,
       face_registered_at,
@@ -110,6 +124,14 @@ async function fetchEmployeeByUserId(
     pay_type: data.pay_type,
     hourly_rate: data.hourly_rate,
     salary_amount: data.salary_amount,
+    working_days: normalizeWorkingDays(
+      (data.working_days as number[] | null) ?? [1, 2, 3, 4, 5]
+    ),
+    bonus_amount: Number(data.bonus_amount ?? 0),
+    bonus_policy: normalizeBonusPolicy(data.bonus_policy),
+    bonus_cycle_start_month: normalizeCycleStartMonth(
+      data.bonus_cycle_start_month
+    ),
     schedule_start_time: data.schedule_start_time,
     schedule_end_time: data.schedule_end_time,
     face_registered_at: data.face_registered_at,

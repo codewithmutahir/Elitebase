@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { PortalLink } from "@/components/portal/portal-link";
+import { PortalHomeSkeleton } from "@/components/portal/portal-skeletons";
 import { PortalStatCard } from "@/components/portal/portal-stat-card";
 import { dateKeyInTimezone } from "@/lib/dashboard/format";
 import { formatMoney } from "@/lib/money/format";
@@ -13,6 +15,7 @@ import {
   formatPortalPunch,
   portalShiftStatusLabel,
 } from "@/lib/portal/format";
+import type { PortalEmployee } from "@/lib/portal/queries";
 import { requireEmployeeSession } from "@/lib/portal/session";
 import { portalPageTitleSx, portalPanelSx } from "@/lib/portal/styles";
 import { listEmployeeTimeOffRequests } from "@/lib/time-off/queries";
@@ -55,6 +58,15 @@ const clockCtaSx = {
 
 export default async function EmployeePortalHomePage() {
   const { employee } = await requireEmployeeSession();
+
+  return (
+    <Suspense fallback={<PortalHomeSkeleton />}>
+      <PortalHomeBody employee={employee} />
+    </Suspense>
+  );
+}
+
+async function PortalHomeBody({ employee }: { employee: PortalEmployee }) {
   const [summary, clock, leave] = await Promise.all([
     getPortalMonthSummary(employee),
     getPortalClockStatus(employee),

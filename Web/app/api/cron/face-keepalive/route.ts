@@ -64,6 +64,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "keepalive failed";
+    const { reportError } = await import("@/lib/analytics/report-error");
+    reportError(err, { surface: "cron", route: "/api/cron/face-keepalive" });
     return jsonOk({
       ok: false,
       status: "unreachable",

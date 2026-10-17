@@ -155,7 +155,13 @@ async function completeOnboarding(formData: FormData) {
 
   }
 
-
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(session.user.id, AnalyticsEvent.onboardingCompleted, {
+    companyId: companyRow.id,
+  });
 
   redirect("/dashboard");
 

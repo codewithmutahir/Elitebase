@@ -1,3 +1,10 @@
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  portalCompanyPayslipsTag,
+  portalEmployeePayslipsTag,
+} from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import { createEmployeeDocumentSignedUrl } from "@/lib/storage/employee-documents";
 
@@ -109,7 +116,7 @@ export async function listCompanyPayslips(
   );
 }
 
-export async function listEmployeePayslips(
+async function loadEmployeePayslips(
   companyId: string,
   employeeId: string
 ): Promise<PayslipRow[]> {
@@ -147,3 +154,19 @@ export async function listEmployeePayslips(
     ((data ?? []) as RawPayslip[]).map((row) => mapPayslip(admin, row))
   );
 }
+
+/** Portal payslips (cached + tagged; signed URLs refresh within TTL). */
+export const listEmployeePayslips = cache(
+  async (companyId: string, employeeId: string): Promise<PayslipRow[]> =>
+    unstable_cache(
+      () => loadEmployeePayslips(companyId, employeeId),
+      ["portal-employee-payslips", companyId, employeeId],
+      {
+        revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+        tags: [
+          portalEmployeePayslipsTag(companyId, employeeId),
+          portalCompanyPayslipsTag(companyId),
+        ],
+      }
+    )()
+);

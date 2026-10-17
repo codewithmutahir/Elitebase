@@ -127,6 +127,21 @@ export async function POST(request: NextRequest) {
   });
 
   if ("kind" in result) {
+    const { captureServerEvent } = await import(
+      "@/lib/analytics/posthog-server"
+    );
+    const { AnalyticsEvent } = await import("@/lib/analytics/events");
+    await captureServerEvent(
+      tablet.company_id,
+      AnalyticsEvent.punchFailed,
+      {
+        companyId: tablet.company_id,
+        source: "kiosk",
+        reason: result.kind,
+        type,
+      }
+    );
+
     if (result.kind === "invalid_transition") {
       return NextResponse.json(
         {
@@ -141,8 +156,29 @@ export async function POST(request: NextRequest) {
     if (result.kind === "invalid_type") {
       return jsonError(result.message, 400);
     }
+    const { reportError } = await import("@/lib/analytics/report-error");
+    reportError(new Error(result.message), {
+      surface: "kiosk",
+      companyId: tablet.company_id,
+      route: "/api/v1/kiosk/clock-action",
+      extra: { kind: result.kind },
+    });
     return jsonError(result.message, 500);
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    tablet.company_id,
+    AnalyticsEvent.punchSucceeded,
+    {
+      companyId: tablet.company_id,
+      source: "kiosk",
+      type,
+    }
+  );
 
   return jsonOk({
     attendance: result.attendance,

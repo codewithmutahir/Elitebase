@@ -9,6 +9,11 @@ import {
   normalizeWorkingDays,
   syncWorkingDaysToAvailability,
 } from "@/lib/employees/working-days";
+import {
+  normalizeBonusPolicy,
+  normalizeCycleStartMonth,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
 
 function revalidateEmployee(companyId: string, employeeId: string) {
   invalidateEmployeeListsCache(companyId);
@@ -29,11 +34,15 @@ export async function updateEmployeeJobDetails(
     schedule_end_time: string;
     bonus_amount: number;
     bonus_note: string | null;
+    bonus_policy: BonusPolicy;
+    bonus_cycle_start_month: number;
   }
 ) {
   const { company } = await requireCompanySession();
   const admin = createClient();
   const workingDays = normalizeWorkingDays(data.working_days);
+  const bonusPolicy = normalizeBonusPolicy(data.bonus_policy);
+  const cycleStart = normalizeCycleStartMonth(data.bonus_cycle_start_month);
 
   if (data.pay_type === "salary" && (!data.salary_amount || data.salary_amount <= 0)) {
     return { error: "Monthly salary is required for salaried employees." };
@@ -44,6 +53,10 @@ export async function updateEmployeeJobDetails(
   // end < start is overnight (next calendar day); only identical times are invalid.
   if (endTime === startTime) {
     return { error: "Shift end must differ from shift start." };
+  }
+
+  if (data.bonus_amount < 0) {
+    return { error: "Bonus amount cannot be negative." };
   }
 
   const { error } = await admin
@@ -60,6 +73,8 @@ export async function updateEmployeeJobDetails(
       schedule_end_time: endTime,
       bonus_amount: data.bonus_amount ?? 0,
       bonus_note: data.bonus_note?.trim() || null,
+      bonus_policy: bonusPolicy,
+      bonus_cycle_start_month: cycleStart,
     })
     .eq("id", employeeId)
     .eq("company_id", company.id);
@@ -78,6 +93,7 @@ export async function updateEmployeeJobDetails(
   revalidateEmployee(company.id, employeeId);
   revalidatePath("/schedule/schedule");
   revalidatePath("/schedule/availability");
+  revalidatePath("/team/payroll");
   return { ok: true };
 }
 
@@ -455,6 +471,14 @@ export async function sendEmployeePortalInvite(employeeId: string) {
   if ("error" in result) {
     return { error: result.error };
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(company.id, AnalyticsEvent.employeeInvited, {
+    companyId: company.id,
+  });
 
   revalidateEmployee(company.id, employeeId);
   return {

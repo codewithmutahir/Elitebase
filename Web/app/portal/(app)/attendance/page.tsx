@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { PortalAttendanceTable } from "@/components/portal/portal-attendance-table";
-import { PortalMonthSelect } from "@/components/portal/portal-month-select";
-import { PortalPageHeader } from "@/components/portal/portal-page-header";
+import { PortalMonthPendingFrame } from "@/components/portal/portal-pending-frame";
 import { PortalMonthDataSkeleton } from "@/components/portal/portal-skeletons";
 import { PortalStatCard } from "@/components/portal/portal-stat-card";
 import {
@@ -30,21 +28,16 @@ export default async function PortalAttendancePage({
 
   return (
     <Stack spacing={3} sx={{ minWidth: 0, width: "100%", maxWidth: "100%" }}>
-      <PortalPageHeader
+      <PortalMonthPendingFrame
+        basePath="/portal/attendance"
+        month={month}
+        options={monthOptions}
         title="Attendance"
         description={`Your punches for ${formatPortalMonthLabel(month)}.`}
-        action={
-          <PortalMonthSelect
-            basePath="/portal/attendance"
-            month={month}
-            options={monthOptions}
-          />
-        }
-      />
-
-      <Suspense key={month} fallback={<PortalMonthDataSkeleton stats={4} columns={5} />}>
+        skeleton={<PortalMonthDataSkeleton stats={4} columns={5} />}
+      >
         <AttendanceMonth employee={employee} month={month} />
-      </Suspense>
+      </PortalMonthPendingFrame>
     </Stack>
   );
 }

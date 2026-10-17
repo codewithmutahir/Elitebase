@@ -3,6 +3,7 @@ export function getPageTitle(pathname: string): string {
   if (pathname === "/employees") return "Roster";
   if (pathname.startsWith("/employees/")) return "Employee";
   if (pathname === "/team/time-off") return "Time Off";
+  if (pathname === "/team/payroll") return "Payroll";
   if (pathname === "/team/benefits") return "Benefits";
   if (pathname === "/team/payslips") return "Payslips";
   if (pathname === "/schedule/schedule") return "Schedule";

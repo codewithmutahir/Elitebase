@@ -2,11 +2,18 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { portalEmployeeMonthTag } from "@/lib/cache/tags";
 import { dateKeyInTimezone } from "@/lib/dashboard/format";
+import {
+  buildBonusMonthRow,
+  nextPayoutYearMonth,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
+import { monthlySalaryPay } from "@/lib/payroll/salary";
 import { getMonthRange } from "@/lib/timesheets/dates";
 import {
   getTimesheetExportRows,
   type TimesheetExportRow,
 } from "@/lib/timesheets/export-rows";
+import { listApprovedUnpaidLeaveForRange } from "@/lib/time-off/queries";
 import type { PortalEmployee } from "@/lib/portal/queries";
 
 /** Short TTL — punches should show up quickly after revalidateTag. */
@@ -19,8 +26,15 @@ export type PortalPaySummary = {
   rows: TimesheetExportRow[];
   totalHours: number;
   shiftWages: number;
+  /** Full configured bonus target (policy amount). */
+  bonusTarget: number;
+  /** Cumulative accrued bonus through this month in the cycle. */
+  accruedBonus: number;
+  /** Cash bonus due this month (0 unless payout month). */
   bonusAmount: number;
   estimatedPay: number;
+  isPayoutMonth: boolean;
+  nextPayoutMonth: string | null;
   completeShifts: number;
   openShifts: number;
   lateShifts: number;
@@ -107,8 +121,12 @@ function emptySummary(month: string): PortalPaySummary {
     rows: [],
     totalHours: 0,
     shiftWages: 0,
+    bonusTarget: 0,
+    accruedBonus: 0,
     bonusAmount: 0,
     estimatedPay: 0,
+    isPayoutMonth: false,
+    nextPayoutMonth: null,
     completeShifts: 0,
     openShifts: 0,
     lateShifts: 0,
@@ -121,21 +139,33 @@ async function loadPortalMonthSummary(
   employeeId: string,
   timezone: string,
   month: string,
-  bonusFallback: number
+  bonusConfig: {
+    bonusAmount: number;
+    bonusPolicy: BonusPolicy;
+    cycleStartMonth: number;
+  },
+  payConfig: {
+    payType: string | null;
+    salaryAmount: number | null;
+    workingDays: number[];
+  }
 ): Promise<PortalPaySummary> {
   const range = getMonthRange(month);
   if (!range) return emptySummary(month);
 
-  const rows = await getTimesheetExportRows(
-    companyId,
-    timezone,
-    range.from,
-    range.to,
-    employeeId
-  );
+  const [rows, unpaidLeave] = await Promise.all([
+    getTimesheetExportRows(
+      companyId,
+      timezone,
+      range.from,
+      range.to,
+      employeeId
+    ),
+    listApprovedUnpaidLeaveForRange(companyId, range.from, range.to),
+  ]);
 
   let totalHours = 0;
-  let shiftWages = 0;
+  let punchWages = 0;
   let completeShifts = 0;
   let openShifts = 0;
   let lateShifts = 0;
@@ -143,15 +173,40 @@ async function loadPortalMonthSummary(
 
   for (const row of rows) {
     if (row.totalHours != null) totalHours += row.totalHours;
-    shiftWages += row.wages;
+    punchWages += row.wages;
     if (row.status === "complete") completeShifts += 1;
     if (row.status === "open") openShifts += 1;
     if (row.late) lateShifts += 1;
     if (row.absent) absentDays += 1;
   }
 
-  const bonusAmount = rows[0]?.bonusAmount ?? bonusFallback;
-  const estimatedPay = Math.round((shiftWages + bonusAmount) * 100) / 100;
+  const employeeLeave = unpaidLeave.filter(
+    (leave) => leave.employee_id === employeeId
+  );
+
+  const salaryPay =
+    payConfig.payType === "salary"
+      ? monthlySalaryPay({
+          salaryAmount: payConfig.salaryAmount ?? 0,
+          yearMonth: month,
+          workingDays: payConfig.workingDays,
+          unpaidLeaveRanges: employeeLeave,
+        })
+      : Math.round(punchWages * 100) / 100;
+
+  const bonusRow = buildBonusMonthRow({
+    yearMonth: month,
+    salaryPay,
+    bonusAmount: bonusConfig.bonusAmount,
+    policy: bonusConfig.bonusPolicy,
+    cycleStartMonth: bonusConfig.cycleStartMonth,
+  });
+
+  const bonusAmount = bonusRow?.bonusDue ?? 0;
+  const accruedBonus = bonusRow?.accruedBalance ?? 0;
+  const estimatedPay =
+    bonusRow?.totalDue ??
+    Math.round((salaryPay + bonusAmount) * 100) / 100;
 
   return {
     month,
@@ -159,9 +214,17 @@ async function loadPortalMonthSummary(
     to: range.to,
     rows,
     totalHours: Math.round(totalHours * 100) / 100,
-    shiftWages: Math.round(shiftWages * 100) / 100,
+    shiftWages: salaryPay,
+    bonusTarget: Math.max(0, bonusConfig.bonusAmount),
+    accruedBonus,
     bonusAmount,
     estimatedPay,
+    isPayoutMonth: Boolean(bonusRow?.isPayoutMonth),
+    nextPayoutMonth: nextPayoutYearMonth(
+      month,
+      bonusConfig.cycleStartMonth,
+      bonusConfig.bonusPolicy
+    ),
     completeShifts,
     openShifts,
     lateShifts,
@@ -179,6 +242,16 @@ export const getPortalMonthSummary = cache(
     monthInput?: string | null
   ): Promise<PortalPaySummary> => {
     const month = resolvePortalMonth(employee.company_timezone, monthInput);
+    const bonusConfig = {
+      bonusAmount: employee.bonus_amount,
+      bonusPolicy: employee.bonus_policy,
+      cycleStartMonth: employee.bonus_cycle_start_month,
+    };
+    const payConfig = {
+      payType: employee.pay_type,
+      salaryAmount: employee.salary_amount,
+      workingDays: employee.working_days,
+    };
     return unstable_cache(
       () =>
         loadPortalMonthSummary(
@@ -186,13 +259,20 @@ export const getPortalMonthSummary = cache(
           employee.id,
           employee.company_timezone,
           month,
-          0
+          bonusConfig,
+          payConfig
         ),
       [
         "portal-month-summary",
         employee.company_id,
         employee.id,
         month,
+        String(bonusConfig.bonusAmount),
+        bonusConfig.bonusPolicy,
+        String(bonusConfig.cycleStartMonth),
+        String(payConfig.payType),
+        String(payConfig.salaryAmount ?? 0),
+        payConfig.workingDays.join(","),
       ],
       {
         revalidate: PORTAL_MONTH_REVALIDATE_SECONDS,

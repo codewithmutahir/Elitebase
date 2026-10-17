@@ -2,13 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  invalidatePortalCompanyPayslipsCache,
+  invalidatePortalEmployeePayslipsCache,
+} from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
 import { resolveCurrency } from "@/lib/currencies";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_PAYSLIP_BYTES = 5 * 1024 * 1024;
 
-function revalidatePayslips() {
+function revalidatePayslips(companyId: string, employeeId?: string) {
+  if (employeeId) {
+    invalidatePortalEmployeePayslipsCache(companyId, employeeId);
+  } else {
+    invalidatePortalCompanyPayslipsCache(companyId);
+  }
   revalidatePath("/team/payslips");
   revalidatePath("/portal/payslips");
   revalidatePath("/portal/pay");
@@ -102,7 +111,7 @@ export async function createPayslip(formData: FormData) {
     return { error: "Could not publish payslip." };
   }
 
-  revalidatePayslips();
+  revalidatePayslips(company.id, employeeId);
   return { ok: true as const };
 }
 
@@ -112,7 +121,7 @@ export async function deletePayslip(payslipId: string) {
 
   const { data: existing } = await admin
     .from("payslips")
-    .select("id, file_path")
+    .select("id, file_path, employee_id")
     .eq("id", payslipId)
     .eq("company_id", company.id)
     .maybeSingle();
@@ -134,6 +143,6 @@ export async function deletePayslip(payslipId: string) {
     return { error: "Could not delete payslip." };
   }
 
-  revalidatePayslips();
+  revalidatePayslips(company.id, existing.employee_id);
   return { ok: true as const };
 }

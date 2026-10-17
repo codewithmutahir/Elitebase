@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  invalidatePortalCompanyBenefitsCache,
+  invalidatePortalEmployeeBenefitsCache,
+} from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
 import type {
   BenefitCategory,
@@ -23,7 +27,12 @@ const STATUSES: BenefitEnrollmentStatus[] = [
   "waived",
 ];
 
-function revalidateBenefits() {
+function revalidateBenefits(companyId: string, employeeId?: string) {
+  if (employeeId) {
+    invalidatePortalEmployeeBenefitsCache(companyId, employeeId);
+  } else {
+    invalidatePortalCompanyBenefitsCache(companyId);
+  }
   revalidatePath("/team/benefits");
   revalidatePath("/portal/benefits");
 }
@@ -51,7 +60,7 @@ export async function createCompanyBenefit(formData: FormData) {
     return { error: "Could not create benefit." };
   }
 
-  revalidateBenefits();
+  revalidateBenefits(company.id);
   return { ok: true as const };
 }
 
@@ -72,7 +81,7 @@ export async function setCompanyBenefitActive(
     return { error: "Could not update benefit." };
   }
 
-  revalidateBenefits();
+  revalidateBenefits(company.id);
   return { ok: true as const };
 }
 
@@ -125,13 +134,20 @@ export async function assignEmployeeBenefit(formData: FormData) {
     return { error: "Could not assign benefit." };
   }
 
-  revalidateBenefits();
+  revalidateBenefits(company.id, employeeId);
   return { ok: true as const };
 }
 
 export async function removeEmployeeBenefit(assignmentId: string) {
   const { company } = await requireCompanySession();
   const admin = createClient();
+  const { data: existing } = await admin
+    .from("employee_benefits")
+    .select("employee_id")
+    .eq("id", assignmentId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
   const { error } = await admin
     .from("employee_benefits")
     .delete()
@@ -143,6 +159,6 @@ export async function removeEmployeeBenefit(assignmentId: string) {
     return { error: "Could not remove assignment." };
   }
 
-  revalidateBenefits();
+  revalidateBenefits(company.id, existing?.employee_id);
   return { ok: true as const };
 }

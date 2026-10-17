@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { SVGProps } from "react";
+import { CookieSettingsButton } from "@/components/analytics/cookie-settings-button";
 import { ElitebaseLogo } from "@/components/brand/elitebase-logo";
 
 type SocialIconName = "linkedin" | "facebook" | "x" | "youtube" | "rss";
@@ -268,6 +269,15 @@ export function LandingFooter() {
                     </Link>
                   </span>
                 ))}
+                <span className="inline-flex items-center">
+                  <span
+                    className="mx-2 text-[var(--eb-muted)]/50"
+                    aria-hidden
+                  >
+                    ·
+                  </span>
+                  <CookieSettingsButton className="text-[0.8125rem] text-[var(--eb-muted)] transition-colors hover:text-[var(--eb-text)] sm:text-sm" />
+                </span>
               </nav>
             </div>
           </div>

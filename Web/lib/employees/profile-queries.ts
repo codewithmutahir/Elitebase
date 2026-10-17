@@ -2,11 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { getEmployeePerformanceStats } from "@/lib/employees/performance";
 import type { EmployeePerformanceStats } from "@/lib/employees/performance";
 import { createEmployeeDocumentSignedUrl } from "@/lib/storage/employee-documents";
+import {
+  normalizeBonusPolicy,
+  normalizeCycleStartMonth,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
 
 export type EmployeeStatus = "active" | "terminated";
 export type EmploymentType = "employee" | "manager" | "contractor";
 export type PayType = "hourly" | "salary";
 export type SalaryPeriod = "monthly";
+export type { BonusPolicy };
 
 export type EmployeeDocument = {
   id: string;
@@ -55,6 +61,8 @@ export type EmployeeProfile = {
   schedule_end_time: string;
   bonus_amount: number;
   bonus_note: string | null;
+  bonus_policy: BonusPolicy;
+  bonus_cycle_start_month: number;
   date_of_birth: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
@@ -99,6 +107,7 @@ export async function getEmployeeProfile(
       department_id, departments ( name ), position, hire_date, hourly_rate,
       pay_type, salary_amount, salary_period, working_days,
       schedule_start_time, schedule_end_time, bonus_amount, bonus_note,
+      bonus_policy, bonus_cycle_start_month,
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
       is_active, face_registered_at, face_consent, face_consent_at, needs_reenrollment, created_at,
@@ -167,6 +176,10 @@ export async function getEmployeeProfile(
     schedule_end_time: (data.schedule_end_time as string) ?? "17:00",
     bonus_amount: Number(data.bonus_amount ?? 0),
     bonus_note: (data.bonus_note as string) ?? null,
+    bonus_policy: normalizeBonusPolicy(data.bonus_policy),
+    bonus_cycle_start_month: normalizeCycleStartMonth(
+      data.bonus_cycle_start_month
+    ),
     date_of_birth: data.date_of_birth,
     emergency_contact_name: data.emergency_contact_name,
     emergency_contact_phone: data.emergency_contact_phone,

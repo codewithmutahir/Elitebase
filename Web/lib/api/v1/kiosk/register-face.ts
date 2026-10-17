@@ -112,8 +112,27 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     console.error("register-face failed:", error.message);
+    const { captureServerEvent } = await import(
+      "@/lib/analytics/posthog-server"
+    );
+    const { AnalyticsEvent } = await import("@/lib/analytics/events");
+    await captureServerEvent(
+      tablet.company_id,
+      AnalyticsEvent.faceEnrollFailed,
+      { companyId: tablet.company_id, source: "kiosk" }
+    );
     return jsonError("Could not save face registration.", 500);
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    tablet.company_id,
+    AnalyticsEvent.faceEnrollSucceeded,
+    { companyId: tablet.company_id, source: "kiosk" }
+  );
 
   return jsonOk({
     employee_id: employeeId,

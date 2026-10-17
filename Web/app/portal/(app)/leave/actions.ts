@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { invalidatePortalEmployeeMonthCache } from "@/lib/cache/invalidate";
+import {
+  invalidatePortalEmployeeLeaveCache,
+  invalidatePortalEmployeeMonthCache,
+} from "@/lib/cache/invalidate";
 import {
   checkPortalRateLimit,
   portalRateLimitMessage,
@@ -21,8 +24,11 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function revalidatePortalLeave(companyId: string, employeeId: string) {
   invalidatePortalEmployeeMonthCache(companyId, employeeId);
+  invalidatePortalEmployeeLeaveCache(companyId, employeeId);
   revalidatePath("/portal/leave");
   revalidatePath("/portal");
+  revalidatePath("/portal/attendance");
+  revalidatePath("/portal/pay");
   revalidatePath("/team/time-off");
 }
 
@@ -96,6 +102,16 @@ export async function createPortalLeaveRequest(input: {
     return { error: "Could not submit leave request." };
   }
 
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    `emp_${employee.id}`,
+    AnalyticsEvent.leaveSubmitted,
+    { companyId: employee.company_id, requestType }
+  );
+
   revalidatePortalLeave(employee.company_id, employee.id);
   return { ok: true as const, id: data.id };
 }
@@ -133,6 +149,16 @@ export async function cancelPortalLeaveRequest(requestId: string) {
         "Only pending requests can be cancelled, or this request was already updated.",
     };
   }
+
+  const { captureServerEvent } = await import(
+    "@/lib/analytics/posthog-server"
+  );
+  const { AnalyticsEvent } = await import("@/lib/analytics/events");
+  await captureServerEvent(
+    `emp_${employee.id}`,
+    AnalyticsEvent.leaveCancelled,
+    { companyId: employee.company_id }
+  );
 
   revalidatePortalLeave(employee.company_id, employee.id);
   return { ok: true as const };

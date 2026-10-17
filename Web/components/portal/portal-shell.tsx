@@ -6,21 +6,26 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { Toaster } from "@/components/ui/sonner";
 import { PortalHeader } from "@/components/portal/portal-header";
+import { PortalRouteSkeleton } from "@/components/portal/portal-route-skeleton";
 import { PortalSidebar } from "@/components/portal/portal-sidebar";
+import { PortalNavProvider, usePortalNav } from "@/contexts/portal-nav-context";
 
 const SIDEBAR_EXPANDED_KEY = "portal-sidebar-expanded";
 
 type PortalShellProps = {
   employeeName: string;
   companyName: string;
+  companyLogoUrl: string | null;
   children: ReactNode;
 };
 
-export function PortalShell({
+function PortalShellFrame({
   employeeName,
   companyName,
+  companyLogoUrl,
   children,
 }: PortalShellProps) {
+  const { pending } = usePortalNav();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
@@ -74,6 +79,7 @@ export function PortalShell({
         <PortalSidebar
           employeeName={employeeName}
           companyName={companyName}
+          companyLogoUrl={companyLogoUrl}
           mobileOpen={mobileNavOpen}
           onMobileClose={closeMobileNav}
           expanded={sidebarExpanded}
@@ -90,6 +96,7 @@ export function PortalShell({
           <PortalHeader
             employeeName={employeeName}
             companyName={companyName}
+            companyLogoUrl={companyLogoUrl}
             onMenuClick={openMobileNav}
             sidebarExpanded={sidebarExpanded}
             onSidebarToggle={toggleSidebar}
@@ -105,13 +112,24 @@ export function PortalShell({
               p: { xs: 2, sm: 3, md: 4 },
             }}
           >
-            <Box sx={{ minWidth: 0, maxWidth: "100%", width: "100%" }}>
-              {children}
+            <Box
+              sx={{ minWidth: 0, maxWidth: "100%", width: "100%" }}
+              aria-busy={pending}
+            >
+              {pending ? <PortalRouteSkeleton /> : children}
             </Box>
           </Box>
         </Stack>
       </Box>
       <Toaster position="top-right" richColors closeButton />
     </>
+  );
+}
+
+export function PortalShell(props: PortalShellProps) {
+  return (
+    <PortalNavProvider>
+      <PortalShellFrame {...props} />
+    </PortalNavProvider>
   );
 }

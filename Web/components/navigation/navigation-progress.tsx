@@ -2,12 +2,18 @@
 
 import { Suspense, useCallback, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import {
+  getNavigationPending,
+  setNavigationPending,
+  subscribeNavigationPending,
+} from "@/lib/navigation/navigation-pending-store";
 
 const MAX_PROGRESS = 0.92;
 const START_SCALE = 0.08;
 const TICK_FACTOR = 0.09;
 const STUCK_TIMEOUT_MS = 12_000;
 const FADE_OUT_MS = 180;
+const MIN_VISIBLE_MS = 280;
 
 function isModifiedClick(event: MouseEvent) {
   return (
@@ -26,7 +32,12 @@ function isInternalNavigation(anchor: HTMLAnchorElement, origin: string) {
   }
 
   const href = anchor.getAttribute("href");
-  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+  if (
+    !href ||
+    href.startsWith("#") ||
+    href.startsWith("mailto:") ||
+    href.startsWith("tel:")
+  ) {
     return false;
   }
 
@@ -44,8 +55,12 @@ function NavigationProgressBar() {
   const rafRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const minVisibleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRef = useRef(false);
   const valueRef = useRef(0);
+  const startedAtRef = useRef(0);
+  /** True when this bar armed pending for a plain <a> click (no useTransition owner). */
+  const ownsPendingRef = useRef(false);
 
   const clearTimers = useCallback(() => {
     if (timeoutRef.current) {
@@ -55,6 +70,10 @@ function NavigationProgressBar() {
     if (fadeRef.current) {
       clearTimeout(fadeRef.current);
       fadeRef.current = null;
+    }
+    if (minVisibleRef.current) {
+      clearTimeout(minVisibleRef.current);
+      minVisibleRef.current = null;
     }
   }, []);
 
@@ -69,7 +88,10 @@ function NavigationProgressBar() {
     if (!activeRef.current) return;
 
     const delta = (MAX_PROGRESS - valueRef.current) * TICK_FACTOR;
-    valueRef.current = Math.min(MAX_PROGRESS, valueRef.current + Math.max(delta, 0.004));
+    valueRef.current = Math.min(
+      MAX_PROGRESS,
+      valueRef.current + Math.max(delta, 0.004)
+    );
     paint(valueRef.current, 1);
 
     if (valueRef.current < MAX_PROGRESS) {
@@ -77,29 +99,7 @@ function NavigationProgressBar() {
     }
   }, [paint]);
 
-  const start = useCallback(() => {
-    if (activeRef.current) return;
-
-    clearTimers();
-    cancelAnimationFrame(rafRef.current);
-
-    activeRef.current = true;
-    valueRef.current = START_SCALE;
-    paint(START_SCALE, 1);
-    rafRef.current = requestAnimationFrame(tick);
-
-    timeoutRef.current = setTimeout(() => {
-      activeRef.current = false;
-      paint(1, 0);
-      valueRef.current = 0;
-    }, STUCK_TIMEOUT_MS);
-  }, [clearTimers, paint, tick]);
-
-  const done = useCallback(() => {
-    if (!activeRef.current) return;
-
-    clearTimers();
-    cancelAnimationFrame(rafRef.current);
+  const finishPaint = useCallback(() => {
     activeRef.current = false;
     valueRef.current = 1;
     paint(1, 1);
@@ -108,7 +108,58 @@ function NavigationProgressBar() {
       valueRef.current = 0;
       paint(0, 0);
     }, FADE_OUT_MS);
-  }, [clearTimers, paint]);
+  }, [paint]);
+
+  const beginAnimation = useCallback(() => {
+    clearTimers();
+    cancelAnimationFrame(rafRef.current);
+
+    activeRef.current = true;
+    startedAtRef.current = Date.now();
+    valueRef.current = START_SCALE;
+    paint(START_SCALE, 1);
+    rafRef.current = requestAnimationFrame(tick);
+
+    timeoutRef.current = setTimeout(() => {
+      if (ownsPendingRef.current) {
+        ownsPendingRef.current = false;
+        setNavigationPending(false);
+      }
+      finishPaint();
+    }, STUCK_TIMEOUT_MS);
+  }, [clearTimers, finishPaint, paint, tick]);
+
+  const endAnimation = useCallback(() => {
+    if (!activeRef.current) return;
+
+    clearTimers();
+    cancelAnimationFrame(rafRef.current);
+
+    const elapsed = Date.now() - startedAtRef.current;
+    const wait = Math.max(0, MIN_VISIBLE_MS - elapsed);
+
+    const finish = () => {
+      if (ownsPendingRef.current) {
+        ownsPendingRef.current = false;
+        setNavigationPending(false);
+      }
+      finishPaint();
+    };
+
+    if (wait === 0) {
+      finish();
+      return;
+    }
+
+    minVisibleRef.current = setTimeout(finish, wait);
+  }, [clearTimers, finishPaint]);
+
+  useEffect(() => {
+    return subscribeNavigationPending((pending) => {
+      if (pending) beginAnimation();
+      else endAnimation();
+    });
+  }, [beginAnimation, endAnimation]);
 
   useEffect(() => {
     const origin = window.location.origin;
@@ -133,22 +184,15 @@ function NavigationProgressBar() {
       })();
 
       if (!nextRoute || nextRoute === currentRoute) return;
-      start();
+
+      // Plain links: we own pending until the URL settles.
+      ownsPendingRef.current = true;
+      setNavigationPending(true);
     };
 
-    const onPopState = () => start();
-
-    const originalPushState = history.pushState.bind(history);
-    const originalReplaceState = history.replaceState.bind(history);
-
-    history.pushState = (...args) => {
-      start();
-      return originalPushState(...args);
-    };
-
-    history.replaceState = (...args) => {
-      start();
-      return originalReplaceState(...args);
+    const onPopState = () => {
+      ownsPendingRef.current = true;
+      setNavigationPending(true);
     };
 
     document.addEventListener("click", onClick, true);
@@ -157,19 +201,22 @@ function NavigationProgressBar() {
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPopState);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
     };
-  }, [pathname, searchParams, start]);
+  }, [pathname, searchParams]);
 
   useEffect(() => {
-    done();
-  }, [pathname, searchParams, done]);
+    if (!ownsPendingRef.current) return;
+    endAnimation();
+  }, [pathname, searchParams, endAnimation]);
 
   useEffect(
     () => () => {
       cancelAnimationFrame(rafRef.current);
       clearTimers();
+      if (ownsPendingRef.current || getNavigationPending()) {
+        ownsPendingRef.current = false;
+        setNavigationPending(false);
+      }
     },
     [clearTimers]
   );
@@ -177,11 +224,11 @@ function NavigationProgressBar() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-x-0 top-0 z-[9999] h-[2px] motion-reduce:hidden"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[9999] h-[3px]"
     >
       <div
         ref={barRef}
-        className="h-full origin-left bg-[var(--eb-accent,#d9a63f)] will-change-transform"
+        className="h-full origin-left bg-[var(--eb-accent,#d9a63f)] shadow-[0_0_12px_var(--eb-accent-glow,rgba(217,166,63,0.35))] will-change-transform"
         style={{
           transform: "scaleX(0)",
           opacity: 0,

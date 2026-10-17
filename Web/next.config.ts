@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -31,4 +32,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Matches `npx @sentry/wizard … --org elite-solution-usa --project elitebase-web`
+  org: process.env.SENTRY_ORG || "elite-solution-usa",
+  project: process.env.SENTRY_PROJECT || "elitebase-web",
+  // Loaded from env / `.env.sentry-build-plugin` during `next build`
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  // Avoid ad-blockers dropping events (wizard default pattern)
+  tunnelRoute: "/monitoring",
+});

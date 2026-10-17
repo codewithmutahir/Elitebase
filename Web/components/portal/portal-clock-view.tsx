@@ -856,6 +856,7 @@ function CameraPreview({
       <Box
         component="video"
         ref={videoRef}
+        className="eb-replay-block"
         muted
         playsInline
         autoPlay

@@ -1,3 +1,10 @@
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
+import { REFERENCE_DATA_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  portalCompanyLeaveTag,
+  portalEmployeeLeaveTag,
+} from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 
 export type TimeOffRequestType = "vacation" | "sick" | "personal" | "unpaid" | "paid_leave" | "unpaid_leave";
@@ -75,8 +82,7 @@ export async function listTimeOffRequests(
   return mapTimeOffRows((data ?? []) as RawRow[]);
 }
 
-/** Employee-scoped leave history for the portal. */
-export async function listEmployeeTimeOffRequests(
+async function loadEmployeeTimeOffRequests(
   companyId: string,
   employeeId: string
 ): Promise<TimeOffRequestRow[]> {
@@ -97,6 +103,25 @@ export async function listEmployeeTimeOffRequests(
 
   return mapTimeOffRows((data ?? []) as RawRow[]);
 }
+
+/** Employee-scoped leave history for the portal (cached + tagged). */
+export const listEmployeeTimeOffRequests = cache(
+  async (
+    companyId: string,
+    employeeId: string
+  ): Promise<TimeOffRequestRow[]> =>
+    unstable_cache(
+      () => loadEmployeeTimeOffRequests(companyId, employeeId),
+      ["portal-employee-leave", companyId, employeeId],
+      {
+        revalidate: REFERENCE_DATA_REVALIDATE_SECONDS,
+        tags: [
+          portalEmployeeLeaveTag(companyId, employeeId),
+          portalCompanyLeaveTag(companyId),
+        ],
+      }
+    )()
+);
 
 export async function listApprovedTimeOffForRange(
   companyId: string,

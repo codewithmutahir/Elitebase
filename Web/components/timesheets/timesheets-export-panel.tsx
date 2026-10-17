@@ -89,8 +89,20 @@ export function TimesheetsExportPanel({
       );
       triggerBlobDownload(blob, filename);
       toast.success("Timesheet CSV downloaded");
+      void import("@/lib/analytics/posthog-client").then(
+        ({ captureClientEvent }) => {
+          void import("@/lib/analytics/events").then(({ AnalyticsEvent }) => {
+            captureClientEvent(AnalyticsEvent.timesheetExported, {
+              month: month || null,
+            });
+          });
+        }
+      );
     } catch (error) {
       console.error("timesheet export failed:", error);
+      void import("@/lib/analytics/report-error").then(({ reportError }) => {
+        reportError(error, { surface: "dashboard", route: "/timesheets" });
+      });
       toast.error(getUserFacingError(error));
     } finally {
       exportingRef.current = false;

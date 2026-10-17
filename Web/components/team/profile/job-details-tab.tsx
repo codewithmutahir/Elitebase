@@ -52,6 +52,27 @@ import {
   normalizeWorkingDays,
   type WorkingDayPreset,
 } from "@/lib/employees/working-days";
+import {
+  BONUS_POLICIES,
+  cycleStartFromHireDate,
+  formatBonusPolicyLabel,
+  type BonusPolicy,
+} from "@/lib/payroll/bonus";
+
+const MONTH_OPTIONS = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+] as const;
 
 type JobDetailsTabProps = {
   employee: EmployeeProfile;
@@ -157,6 +178,12 @@ export function JobDetailsTab({
     String(employee.bonus_amount ?? 0),
   );
   const [bonusNote, setBonusNote] = useState(employee.bonus_note ?? "");
+  const [bonusPolicy, setBonusPolicy] = useState<BonusPolicy>(
+    employee.bonus_policy ?? "six_monthly",
+  );
+  const [bonusCycleStartMonth, setBonusCycleStartMonth] = useState(
+    String(employee.bonus_cycle_start_month ?? 1),
+  );
 
   function applyPreset(preset: WorkingDayPreset) {
     setWorkingDays([...WORKING_DAY_PRESETS[preset]]);
@@ -193,10 +220,13 @@ export function JobDetailsTab({
     setScheduleEnd(employee.schedule_end_time ?? "17:00");
     setBonusAmount(String(employee.bonus_amount ?? 0));
     setBonusNote(employee.bonus_note ?? "");
+    setBonusPolicy(employee.bonus_policy ?? "six_monthly");
+    setBonusCycleStartMonth(String(employee.bonus_cycle_start_month ?? 1));
   }
 
   function save() {
     startTransition(async () => {
+      const cycleMonth = Number(bonusCycleStartMonth) || 1;
       const result = await updateEmployeeJobDetails(employee.id, {
         employment_type: employmentType,
         hourly_rate: Number(hourlyRate) || 0,
@@ -208,6 +238,8 @@ export function JobDetailsTab({
         schedule_end_time: scheduleEnd,
         bonus_amount: Number(bonusAmount) || 0,
         bonus_note: bonusNote.trim() || null,
+        bonus_policy: bonusPolicy,
+        bonus_cycle_start_month: cycleMonth,
       });
       if (result.error) {
         toast.error(result.error);
@@ -224,6 +256,8 @@ export function JobDetailsTab({
         schedule_end_time: scheduleEnd,
         bonus_amount: Number(bonusAmount) || 0,
         bonus_note: bonusNote.trim() || null,
+        bonus_policy: bonusPolicy,
+        bonus_cycle_start_month: cycleMonth,
       });
       setEditing(false);
       toast.success("Job details saved");
@@ -438,6 +472,64 @@ export function JobDetailsTab({
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
+                  <Select
+                    label="Bonus policy"
+                    value={bonusPolicy}
+                    displayEmpty={false}
+                    onChange={(e) =>
+                      setBonusPolicy(e.target.value as BonusPolicy)
+                    }
+                    options={BONUS_POLICIES.map((policy) => ({
+                      value: policy,
+                      label: formatBonusPolicyLabel(policy),
+                    }))}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Select
+                    label="Bonus cycle starts"
+                    value={bonusCycleStartMonth}
+                    displayEmpty={false}
+                    onChange={(e) => setBonusCycleStartMonth(e.target.value)}
+                    options={MONTH_OPTIONS.map((month) => ({
+                      value: month.value,
+                      label: month.label,
+                    }))}
+                  />
+                  <Typography
+                    sx={{
+                      mt: 0.75,
+                      fontSize: "0.75rem",
+                      color: "text.secondary",
+                    }}
+                  >
+                    Default from hire month
+                    {hireDate
+                      ? ` (${MONTH_OPTIONS[cycleStartFromHireDate(hireDate) - 1]?.label})`
+                      : ""}
+                    .{" "}
+                    <Box
+                      component="button"
+                      type="button"
+                      onClick={() =>
+                        setBonusCycleStartMonth(
+                          String(cycleStartFromHireDate(hireDate || null))
+                        )
+                      }
+                      sx={{
+                        ...dashboardAccentLinkSx,
+                        border: 0,
+                        background: "none",
+                        p: 0,
+                        cursor: "pointer",
+                        font: "inherit",
+                      }}
+                    >
+                      Use hire month
+                    </Box>
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Input
                     label="Bonus note"
                     value={bonusNote}
@@ -551,6 +643,13 @@ export function JobDetailsTab({
                     sx={{ ...profileValueSx, mt: 0.5 }}
                   >
                     {formatMoney(employee.bonus_amount, currency)}
+                    {" · "}
+                    {formatBonusPolicyLabel(employee.bonus_policy)}
+                    {" · starts "}
+                    {
+                      MONTH_OPTIONS[employee.bonus_cycle_start_month - 1]
+                        ?.label
+                    }
                     {employee.bonus_note ? (
                       <Typography
                         component="span"

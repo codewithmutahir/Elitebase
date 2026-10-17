@@ -13,6 +13,9 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[global error]", error);
+    void import("@/lib/analytics/report-error").then(({ reportError }) => {
+      reportError(error, { surface: "marketing" });
+    });
   }, [error]);
 
   return (

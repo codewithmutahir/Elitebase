@@ -1,10 +1,5 @@
 /**
  * Backfill missing clock-in / clock-out rows in attendance from schedule times.
- *
- * Usage (from Web/):
- *   npx tsx scripts/backfill-missing-punches.mjs              # dry-run, all companies
- *   npx tsx scripts/backfill-missing-punches.mjs --apply      # write to DB
- *   npx tsx scripts/backfill-missing-punches.mjs --company=<uuid> --from=2025-01-01 --to=2026-03-30
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
