@@ -18,6 +18,8 @@
     "test:record-punch:integration": "npx tsx lib/kiosk/record-punch.integration.test.ts",
     "test:stale-shift": "npx tsx lib/attendance/stale-shift.test.ts",
     "test:attendance-dedupe": "npx tsx lib/attendance/dedupe-plan.test.ts",
+    "test:leave-balance": "npx tsx lib/leave-balance/days.test.ts",
+    "test:payslip-calc": "npx tsx lib/payslips/calculate.test.ts",
     "attendance:dedupe": "npx tsx scripts/attendance-dedupe.mjs"
   },
   "dependencies": {

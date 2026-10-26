@@ -77,17 +77,21 @@ function CompanyMark({
     return (
       <Box
         sx={{
-          position: "relative",
+          display: "flex",
           width: size,
           height: size,
           flexShrink: 0,
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
         }}
       >
         <Image
           src={logoUrl}
           alt={`${name} logo`}
-          fill
-          style={{ objectFit: "contain" }}
+          width={size}
+          height={size}
+          style={{ width: size, height: "auto", maxHeight: size, objectFit: "contain" }}
           unoptimized
         />
       </Box>
@@ -129,7 +133,8 @@ export function PortalSidebar({
   const pathname = usePathname();
   const { navigate, pending } = usePortalNav();
   const theme = useTheme();
-  const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+  // Match employer sidebar: avoid SSR false → mobile drawer flash hiding nav.
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md"), { noSsr: true });
   const width = expanded ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_COLLAPSED;
 
   function handleSignOut() {
@@ -166,7 +171,15 @@ export function PortalSidebar({
         </Stack>
       </Box>
 
-      <List dense sx={{ px: expanded ? 1.25 : 0.75, flex: 1 }}>
+      <List
+        dense
+        sx={{
+          px: expanded ? 1.25 : 0.75,
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+        }}
+      >
         {NAV.map((item) => {
           const active = item.exact
             ? pathname === item.href
@@ -260,8 +273,10 @@ export function PortalSidebar({
         open={mobileOpen}
         onClose={onMobileClose}
         ModalProps={{ keepMounted: true }}
+        className="portal-print-hide"
         sx={{
           display: { xs: "block", md: "none" },
+          "@media print": { display: "none" },
           "& .MuiDrawer-paper": {
             width: SIDEBAR_WIDTH,
             bgcolor: "background.paper",
@@ -279,6 +294,7 @@ export function PortalSidebar({
   return (
     <Box
       component="aside"
+      className="portal-print-hide"
       sx={{
         display: { xs: "none", md: "block" },
         width,
@@ -290,6 +306,7 @@ export function PortalSidebar({
           t.transitions.create("width", {
             duration: t.transitions.duration.shorter,
           }),
+        "@media print": { display: "none !important" },
       }}
     >
       <Box sx={{ position: "sticky", top: 0, height: "100vh" }}>{nav}</Box>

@@ -13,6 +13,7 @@ import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
 import { EmployeeActionDialogs } from "@/components/team/employee-action-dialogs";
 import { DocumentsTab } from "@/components/team/profile/documents-tab";
 import { JobDetailsTab } from "@/components/team/profile/job-details-tab";
+import { LeaveBalanceCard } from "@/components/team/profile/leave-balance-card";
 import { PerformanceTab } from "@/components/team/profile/performance-tab";
 import { PersonalTab } from "@/components/team/profile/personal-tab";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -26,6 +27,8 @@ import {
 } from "@/lib/dashboard/sx";
 import { employeeInitials } from "@/lib/employees/format";
 import type { EmployeeProfile } from "@/lib/employees/profile-queries";
+import type { LeaveBalanceAdjustmentRow } from "@/lib/leave-balance/queries";
+import type { LeaveBalanceView } from "@/lib/leave-balance/types";
 
 const TABS = [
   { id: "job-details", label: "Job Details" },
@@ -39,11 +42,15 @@ type TabId = (typeof TABS)[number]["id"];
 type EmployeeProfileViewProps = {
   initialEmployee: EmployeeProfile;
   companyName: string;
+  leaveBalance?: LeaveBalanceView | null;
+  leaveAdjustments?: LeaveBalanceAdjustmentRow[];
 };
 
 export function EmployeeProfileView({
   initialEmployee,
   companyName,
+  leaveBalance = null,
+  leaveAdjustments = [],
 }: EmployeeProfileViewProps) {
   const router = useRouter();
   const { theme: dashboardTheme } = useDashboardTheme();
@@ -285,11 +292,20 @@ export function EmployeeProfileView({
           transition={{ duration: 0.2 }}
         >
           {activeTab === "job-details" ? (
-            <JobDetailsTab
-              employee={employee}
-              companyName={companyName}
-              onUpdated={patchEmployee}
-            />
+            <Stack spacing={3}>
+              <JobDetailsTab
+                employee={employee}
+                companyName={companyName}
+                onUpdated={patchEmployee}
+              />
+              {leaveBalance ? (
+                <LeaveBalanceCard
+                  employeeId={employee.id}
+                  balance={leaveBalance}
+                  adjustments={leaveAdjustments}
+                />
+              ) : null}
+            </Stack>
           ) : null}
           {activeTab === "personal" ? (
             <PersonalTab employee={employee} onUpdated={patchEmployee} />

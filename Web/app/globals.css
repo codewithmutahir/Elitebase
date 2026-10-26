@@ -960,3 +960,75 @@ html[data-dashboard-theme="light"] .dashboard-sheet .MuiSvgIcon-root {
     scroll-behavior: auto !important;
   }
 }
+
+/* Payslip / portal print: only the slip card(s), no chrome */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .dashboard-main-glow,
+  .print\:hidden,
+  aside,
+  header,
+  [data-sonner-toaster],
+  .portal-print-hide {
+    display: none !important;
+  }
+
+  body * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Flatten portal shell so only main content flows */
+  body {
+    overflow: visible !important;
+  }
+
+  main {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .portal-payslips-page {
+    display: block !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .payslip-print-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+  }
+
+  .payslip-print-block + .payslip-print-block {
+    break-before: page;
+    page-break-before: always;
+    margin-top: 0 !important;
+  }
+
+  [data-payslip-document] {
+    border: 1px solid #ccc !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RosterPinCell } from "@/components/team/roster-pin-cell";
+import { SalaryIncrementsCard } from "@/components/team/profile/salary-increments-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCompany } from "@/contexts/company-context";
 import { useDashboardTheme } from "@/contexts/dashboard-theme-context";
@@ -42,6 +43,7 @@ import {
   formatHourlyRate,
   formatMonthlySalary,
 } from "@/lib/employees/format";
+import { formatIncrementKind } from "@/lib/employees/salary-increments";
 import { formatMoney } from "@/lib/money/format";
 import type { EmployeeProfile, PayType } from "@/lib/employees/profile-queries";
 import {
@@ -258,6 +260,14 @@ export function JobDetailsTab({
         bonus_note: bonusNote.trim() || null,
         bonus_policy: bonusPolicy,
         bonus_cycle_start_month: cycleMonth,
+        ...(result.loggedIncrement
+          ? {
+              salary_increments: [
+                result.loggedIncrement,
+                ...(employee.salary_increments ?? []),
+              ],
+            }
+          : {}),
       });
       setEditing(false);
       toast.success("Job details saved");
@@ -709,6 +719,8 @@ export function JobDetailsTab({
         </CardContent>
       </Card>
 
+      <SalaryIncrementsCard employee={employee} onUpdated={onUpdated} />
+
       <Card sx={dashboardCardSx}>
         <Box
           component="button"
@@ -793,15 +805,51 @@ export function JobDetailsTab({
         </CardHeader>
         <CardContent>
           <Box sx={{ position: "relative" }}>
-            {employee.hire_date ? (
+            {employee.hire_date || (employee.salary_increments?.length ?? 0) > 0 ? (
               <Box component="span" sx={profileTimelineRailSx} aria-hidden />
             ) : null}
             <Stack component="ul" spacing={2} sx={profileTimelineListSx}>
+            {(employee.salary_increments ?? []).slice(0, 3).map((row, index) => (
+              <Box key={row.id} component="li" sx={profileTimelineRowSx}>
+                <Box sx={profileTimelineMarkerColSx}>
+                  <Box
+                    component="span"
+                    sx={
+                      index === 0
+                        ? profileTimelineDotSx
+                        : profileTimelineDotMutedSx
+                    }
+                    aria-hidden
+                  />
+                </Box>
+                <Box sx={profileTimelineContentSx}>
+                  <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
+                    {formatIncrementKind(row.kind)} ·{" "}
+                    {row.increment_amount >= 0 ? "+" : ""}
+                    {formatMoney(row.increment_amount, currency)}
+                  </Typography>
+                  <Typography
+                    sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
+                  >
+                    {formatDateShort(row.effective_date)}
+                    {row.reason ? ` · ${row.reason}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
             {employee.hire_date ? (
               <>
                 <Box component="li" sx={profileTimelineRowSx}>
                   <Box sx={profileTimelineMarkerColSx}>
-                    <Box component="span" sx={profileTimelineDotSx} aria-hidden />
+                    <Box
+                      component="span"
+                      sx={
+                        (employee.salary_increments?.length ?? 0) === 0
+                          ? profileTimelineDotSx
+                          : profileTimelineDotMutedSx
+                      }
+                      aria-hidden
+                    />
                   </Box>
                   <Box sx={profileTimelineContentSx}>
                     <Typography sx={{ ...profileValueSx, fontWeight: 500 }}>
@@ -834,14 +882,14 @@ export function JobDetailsTab({
                   </Box>
                 </Box>
               </>
-            ) : (
+            ) : (employee.salary_increments?.length ?? 0) === 0 ? (
               <Box
                 component="li"
                 sx={{ ...dashboardPageIntroSx, fontSize: "0.875rem" }}
               >
-                No hire date on file.
+                No hire date or increments on file.
               </Box>
-            )}
+            ) : null}
             </Stack>
           </Box>
         </CardContent>

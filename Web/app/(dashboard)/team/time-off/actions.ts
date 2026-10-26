@@ -8,6 +8,10 @@ import {
   invalidatePortalEmployeeMonthCache,
 } from "@/lib/cache/invalidate";
 import { requireCompanySession } from "@/lib/employees/session";
+import {
+  deductBalanceForApproval,
+  restoreBalanceForRequest,
+} from "@/lib/leave-balance/service";
 import type { TimeOffRequestType } from "@/lib/time-off/queries";
 
 const TIME_OFF_PATH = "/team/time-off";
@@ -34,6 +38,7 @@ function revalidateTimeOff(companyId: string, employeeId?: string) {
   revalidatePath("/portal");
   revalidatePath("/portal/attendance");
   revalidatePath("/portal/pay");
+  revalidatePath("/employees");
 }
 
 export type CreateTimeOffInput = {
@@ -100,7 +105,9 @@ export async function reviewTimeOffRequest(
 
   const { data: existing } = await admin
     .from("time_off_requests")
-    .select("id, status, employee_id")
+    .select(
+      "id, status, employee_id, request_type, start_date, end_date"
+    )
     .eq("id", requestId)
     .eq("company_id", company.id)
     .maybeSingle();
@@ -110,22 +117,55 @@ export async function reviewTimeOffRequest(
     return { error: "Only pending requests can be reviewed." };
   }
 
-  const { error } = await admin
+  let balanceDays = 0;
+  let lwpDays = 0;
+
+  if (decision === "approved") {
+    const deducted = await deductBalanceForApproval({
+      companyId: company.id,
+      employeeId: existing.employee_id,
+      requestId: existing.id,
+      requestType: existing.request_type as TimeOffRequestType,
+      startDate: existing.start_date,
+      endDate: existing.end_date,
+      admin,
+    });
+    if (!deducted.ok) return { error: deducted.error };
+    balanceDays = deducted.balanceDays;
+    lwpDays = deducted.lwpDays;
+  }
+
+  const { data: updated, error } = await admin
     .from("time_off_requests")
     .update({
       status: decision,
       reviewed_at: new Date().toISOString(),
+      balance_days_charged: decision === "approved" ? balanceDays : 0,
+      lwp_days: decision === "approved" ? lwpDays : 0,
     })
     .eq("id", requestId)
-    .eq("company_id", company.id);
+    .eq("company_id", company.id)
+    .eq("status", "pending")
+    .select("id");
 
-  if (error) {
-    console.error("reviewTimeOffRequest failed:", error.message);
-    return { error: "Could not update request." };
+  if (error || !updated?.length) {
+    if (decision === "approved") {
+      await restoreBalanceForRequest({
+        companyId: company.id,
+        employeeId: existing.employee_id,
+        requestId: existing.id,
+        admin,
+      });
+    }
+    console.error("reviewTimeOffRequest failed:", error?.message);
+    return {
+      error:
+        "Could not update request (it may have been reviewed already). Balance was not changed.",
+    };
   }
 
   revalidateTimeOff(company.id, existing.employee_id);
-  return { ok: true };
+  return { ok: true, lwpDays };
 }
 
 export async function cancelTimeOffRequest(requestId: string) {
@@ -144,15 +184,42 @@ export async function cancelTimeOffRequest(requestId: string) {
     return { error: "This request cannot be cancelled." };
   }
 
-  const { error } = await admin
-    .from("time_off_requests")
-    .update({ status: "cancelled" })
-    .eq("id", requestId)
-    .eq("company_id", company.id);
+  const wasApproved = existing.status === "approved";
 
-  if (error) {
-    console.error("cancelTimeOffRequest failed:", error.message);
+  const { data: updated, error } = await admin
+    .from("time_off_requests")
+    .update({
+      status: "cancelled",
+      balance_days_charged: 0,
+      lwp_days: 0,
+    })
+    .eq("id", requestId)
+    .eq("company_id", company.id)
+    .in("status", ["pending", "approved"])
+    .select("id");
+
+  if (error || !updated?.length) {
+    console.error("cancelTimeOffRequest failed:", error?.message);
     return { error: "Could not cancel request." };
+  }
+
+  if (wasApproved) {
+    const restored = await restoreBalanceForRequest({
+      companyId: company.id,
+      employeeId: existing.employee_id,
+      requestId: existing.id,
+      admin,
+    });
+    if (!restored.ok) {
+      console.error(
+        "cancelTimeOffRequest restore after cancel:",
+        restored.error
+      );
+      return {
+        error:
+          "Request cancelled, but leave balance could not be restored automatically. Adjust the balance manually.",
+      };
+    }
   }
 
   revalidateTimeOff(company.id, existing.employee_id);

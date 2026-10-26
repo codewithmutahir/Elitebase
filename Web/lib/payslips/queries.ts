@@ -7,6 +7,8 @@ import {
 } from "@/lib/cache/tags";
 import { createClient } from "@/lib/supabase/server";
 import { createEmployeeDocumentSignedUrl } from "@/lib/storage/employee-documents";
+import type { CalculatePayslipResult } from "@/lib/payslips/calculate";
+import type { PayslipStatus } from "@/lib/payslips/status";
 
 export type PayslipRow = {
   id: string;
@@ -15,13 +17,23 @@ export type PayslipRow = {
   period_start: string;
   period_end: string;
   period_label: string | null;
+  year: number | null;
+  month: number | null;
+  status: PayslipStatus;
+  version: number;
   gross_amount: number | null;
   net_amount: number | null;
   currency: string | null;
   file_url: string | null;
   notes: string | null;
-  published_at: string;
+  published_at: string | null;
   created_at: string;
+  apply_company_stamp: boolean;
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
+  approved_by_name: string | null;
+  approved_at: string | null;
+  snapshot: CalculatePayslipResult | null;
 };
 
 type RawPayslip = {
@@ -30,14 +42,24 @@ type RawPayslip = {
   period_start: string;
   period_end: string;
   period_label: string | null;
+  year: number | null;
+  month: number | null;
+  status: string | null;
+  version: number | null;
   gross_amount: number | string | null;
   net_amount: number | string | null;
   currency: string | null;
   file_path: string | null;
   file_url: string | null;
   notes: string | null;
-  published_at: string;
+  published_at: string | null;
   created_at: string;
+  apply_company_stamp: boolean | null;
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
+  approved_by_name: string | null;
+  approved_at: string | null;
+  snapshot: CalculatePayslipResult | null;
   employees: { full_name: string } | { full_name: string }[] | null;
 };
 
@@ -55,6 +77,8 @@ async function mapPayslip(
     row.file_url
   );
 
+  const status = (row.status ?? "published") as PayslipStatus;
+
   return {
     id: row.id,
     employee_id: row.employee_id,
@@ -62,6 +86,10 @@ async function mapPayslip(
     period_start: row.period_start,
     period_end: row.period_end,
     period_label: row.period_label,
+    year: row.year != null ? Number(row.year) : null,
+    month: row.month != null ? Number(row.month) : null,
+    status,
+    version: Number(row.version ?? 1),
     gross_amount:
       row.gross_amount != null ? Number(row.gross_amount) : null,
     net_amount: row.net_amount != null ? Number(row.net_amount) : null,
@@ -70,6 +98,12 @@ async function mapPayslip(
     notes: row.notes,
     published_at: row.published_at,
     created_at: row.created_at,
+    apply_company_stamp: Boolean(row.apply_company_stamp),
+    reviewed_by_name: row.reviewed_by_name,
+    reviewed_at: row.reviewed_at,
+    approved_by_name: row.approved_by_name,
+    approved_at: row.approved_at,
+    snapshot: row.snapshot ?? null,
   };
 }
 
@@ -92,6 +126,10 @@ export async function listCompanyPayslips(
       period_start,
       period_end,
       period_label,
+      year,
+      month,
+      status,
+      version,
       gross_amount,
       net_amount,
       currency,
@@ -100,11 +138,19 @@ export async function listCompanyPayslips(
       notes,
       published_at,
       created_at,
+      apply_company_stamp,
+      reviewed_by_name,
+      reviewed_at,
+      approved_by_name,
+      approved_at,
+      snapshot,
       employees ( full_name )
     `
     )
     .eq("company_id", companyId)
-    .order("published_at", { ascending: false });
+    .is("replaced_by_id", null)
+    .order("year", { ascending: false })
+    .order("month", { ascending: false });
 
   if (error) {
     console.error("listCompanyPayslips:", error.message);
@@ -130,6 +176,10 @@ async function loadEmployeePayslips(
       period_start,
       period_end,
       period_label,
+      year,
+      month,
+      status,
+      version,
       gross_amount,
       net_amount,
       currency,
@@ -138,12 +188,21 @@ async function loadEmployeePayslips(
       notes,
       published_at,
       created_at,
+      apply_company_stamp,
+      reviewed_by_name,
+      reviewed_at,
+      approved_by_name,
+      approved_at,
+      snapshot,
       employees ( full_name )
     `
     )
     .eq("company_id", companyId)
     .eq("employee_id", employeeId)
-    .order("published_at", { ascending: false });
+    .eq("status", "published")
+    .is("replaced_by_id", null)
+    .order("year", { ascending: false })
+    .order("month", { ascending: false });
 
   if (error) {
     console.error("listEmployeePayslips:", error.message);

@@ -10,6 +10,12 @@ export type CompanyRow = {
   allow_remote_punch: boolean;
   require_geofence: boolean;
   is_active: boolean;
+  leave_sick_total_default: number;
+  leave_paid_total_default: number;
+  leave_year_type: "calendar" | "anniversary";
+  leave_prorate_mid_year: boolean;
+  lates_per_day_deduction: number;
+  late_remainder_carry_month: boolean;
 };
 
 async function fetchCompanyByOwnerId(ownerUid: string) {
@@ -17,7 +23,7 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
   const { data, error } = await admin
     .from("companies")
     .select(
-      "id, name, logo_url, timezone, currency, allow_remote_punch, require_geofence, is_active"
+      "id, name, logo_url, timezone, currency, allow_remote_punch, require_geofence, is_active, leave_sick_total_default, leave_paid_total_default, leave_year_type, leave_prorate_mid_year, lates_per_day_deduction, late_remainder_carry_month"
     )
     .eq("owner_uid", ownerUid)
     .maybeSingle();
@@ -32,11 +38,22 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
   // Suspended tenants must not resolve to an active company session.
   if (data.is_active === false) return null;
 
+  const yearType =
+    data.leave_year_type === "anniversary" ? "anniversary" : "calendar";
+  const latesPer = Number(data.lates_per_day_deduction ?? 3);
+
   return {
     ...data,
     allow_remote_punch: Boolean(data.allow_remote_punch),
     require_geofence: data.require_geofence !== false,
     is_active: data.is_active !== false,
+    leave_sick_total_default: Number(data.leave_sick_total_default ?? 6),
+    leave_paid_total_default: Number(data.leave_paid_total_default ?? 6),
+    leave_year_type: yearType,
+    leave_prorate_mid_year: Boolean(data.leave_prorate_mid_year),
+    lates_per_day_deduction:
+      Number.isFinite(latesPer) && latesPer >= 1 ? Math.trunc(latesPer) : 3,
+    late_remainder_carry_month: Boolean(data.late_remainder_carry_month),
   } as CompanyRow;
 }
 

@@ -93,6 +93,7 @@ export function PortalHeader({
       position="sticky"
       elevation={0}
       color="transparent"
+      className="portal-print-hide"
       sx={{
         position: "sticky",
         zIndex: 30,
@@ -102,6 +103,7 @@ export function PortalHeader({
           muiAlpha(theme, (palette) => palette.background.paper, 0.8),
         backdropFilter: "blur(12px)",
         color: "text.primary",
+        "@media print": { display: "none !important" },
       }}
     >
       <HeaderNavProgress force={portalNavPending} />
@@ -182,17 +184,26 @@ export function PortalHeader({
             {companyLogoUrl ? (
               <Box
                 sx={{
-                  position: "relative",
+                  display: "flex",
                   width: 32,
                   height: 32,
                   flexShrink: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
                 }}
               >
                 <Image
                   src={companyLogoUrl}
                   alt={`${companyName} logo`}
-                  fill
-                  style={{ objectFit: "contain" }}
+                  width={32}
+                  height={32}
+                  style={{
+                    width: 32,
+                    height: "auto",
+                    maxHeight: 32,
+                    objectFit: "contain",
+                  }}
                   unoptimized
                 />
               </Box>

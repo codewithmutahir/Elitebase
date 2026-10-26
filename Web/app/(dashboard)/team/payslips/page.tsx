@@ -16,12 +16,15 @@ export default async function TeamPayslipsPage() {
   return (
     <Stack spacing={3}>
       <Typography sx={dashboardPageIntroSx}>
-        Publish official payslips for employees to download in the portal.
+        Generate drafts from attendance and payroll data, then review, approve,
+        and publish. Employees only see published slips.
       </Typography>
       <PayslipsView
         payslips={payslips}
         employees={employees}
         currency={company.currency}
+        companyName={company.name}
+        logoUrl={company.logo_url}
       />
     </Stack>
   );

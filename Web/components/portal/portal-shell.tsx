@@ -52,7 +52,7 @@ function PortalShellFrame({
   return (
     <>
       <Box
-        className="dashboard-main-glow"
+        className="dashboard-main-glow portal-print-hide"
         aria-hidden
         sx={{
           pointerEvents: "none",
@@ -74,6 +74,12 @@ function PortalShellFrame({
             xs: "minmax(0, 1fr)",
             md: "auto minmax(0, 1fr)",
           },
+          "@media print": {
+            display: "block",
+            overflow: "visible",
+            maxWidth: "none",
+            minHeight: 0,
+          },
         }}
       >
         <PortalSidebar
@@ -91,16 +97,24 @@ function PortalShellFrame({
             maxWidth: "100%",
             flex: 1,
             overflow: "hidden",
+            "@media print": {
+              display: "block",
+              overflow: "visible",
+              minHeight: 0,
+              maxWidth: "none",
+            },
           }}
         >
-          <PortalHeader
-            employeeName={employeeName}
-            companyName={companyName}
-            companyLogoUrl={companyLogoUrl}
-            onMenuClick={openMobileNav}
-            sidebarExpanded={sidebarExpanded}
-            onSidebarToggle={toggleSidebar}
-          />
+          <Box className="portal-print-hide">
+            <PortalHeader
+              employeeName={employeeName}
+              companyName={companyName}
+              companyLogoUrl={companyLogoUrl}
+              onMenuClick={openMobileNav}
+              sidebarExpanded={sidebarExpanded}
+              onSidebarToggle={toggleSidebar}
+            />
+          </Box>
           <Box
             component="main"
             sx={{
@@ -110,6 +124,11 @@ function PortalShellFrame({
               overflowX: "hidden",
               overflowY: "auto",
               p: { xs: 2, sm: 3, md: 4 },
+              "@media print": {
+                p: 0,
+                overflow: "visible",
+                maxWidth: "none",
+              },
             }}
           >
             <Box
@@ -121,7 +140,9 @@ function PortalShellFrame({
           </Box>
         </Stack>
       </Box>
-      <Toaster position="top-right" richColors closeButton />
+      <Box className="portal-print-hide">
+        <Toaster position="top-right" richColors closeButton />
+      </Box>
     </>
   );
 }

@@ -7,12 +7,17 @@ import {
   normalizeCycleStartMonth,
   type BonusPolicy,
 } from "@/lib/payroll/bonus";
+import {
+  normalizeIncrementKind,
+  type SalaryIncrement,
+} from "@/lib/employees/salary-increments";
 
 export type EmployeeStatus = "active" | "terminated";
 export type EmploymentType = "employee" | "manager" | "contractor";
 export type PayType = "hourly" | "salary";
 export type SalaryPeriod = "monthly";
 export type { BonusPolicy };
+export type { SalaryIncrement };
 
 export type EmployeeDocument = {
   id: string;
@@ -82,6 +87,7 @@ export type EmployeeProfile = {
   documents: EmployeeDocument[];
   notes: EmployeeNote[];
   milestones: EmployeeMilestone[];
+  salary_increments: SalaryIncrement[];
   performance: EmployeePerformanceStats;
 };
 
@@ -123,7 +129,8 @@ export async function getEmployeeProfile(
     return null;
   }
 
-  const [documentsRes, notesRes, milestonesRes, performance] = await Promise.all([
+  const [documentsRes, notesRes, milestonesRes, incrementsRes, performance] =
+    await Promise.all([
     admin
       .from("employee_documents")
       .select("id, category, name, file_url, file_path, status, versions, created_at")
@@ -142,6 +149,15 @@ export async function getEmployeeProfile(
       .eq("employee_id", employeeId)
       .eq("company_id", companyId)
       .order("milestone_date", { ascending: true }),
+    admin
+      .from("employee_salary_increments")
+      .select(
+        "id, employee_id, company_id, effective_date, pay_type, previous_amount, new_amount, increment_amount, kind, reason, created_by, created_by_name, created_at"
+      )
+      .eq("employee_id", employeeId)
+      .eq("company_id", companyId)
+      .order("effective_date", { ascending: false })
+      .order("created_at", { ascending: false }),
     getEmployeePerformanceStats(companyId, employeeId),
   ]);
 
@@ -214,6 +230,38 @@ export async function getEmployeeProfile(
     ),
     notes: (notesRes.data ?? []) as EmployeeNote[],
     milestones: (milestonesRes.data ?? []) as EmployeeMilestone[],
+    salary_increments: ((incrementsRes.data ?? []) as Array<{
+      id: string;
+      employee_id: string;
+      company_id: string;
+      effective_date: string;
+      pay_type: string;
+      previous_amount: number | string;
+      new_amount: number | string;
+      increment_amount: number | string | null;
+      kind: string;
+      reason: string | null;
+      created_by: string | null;
+      created_by_name: string;
+      created_at: string;
+    }>).map((row) => ({
+      id: row.id,
+      employee_id: row.employee_id,
+      company_id: row.company_id,
+      effective_date: row.effective_date,
+      pay_type: (row.pay_type === "salary" ? "salary" : "hourly") as PayType,
+      previous_amount: Number(row.previous_amount),
+      new_amount: Number(row.new_amount),
+      increment_amount:
+        row.increment_amount != null
+          ? Number(row.increment_amount)
+          : Number(row.new_amount) - Number(row.previous_amount),
+      kind: normalizeIncrementKind(row.kind),
+      reason: row.reason,
+      created_by: row.created_by,
+      created_by_name: row.created_by_name ?? "",
+      created_at: row.created_at,
+    })),
     performance,
   };
 }

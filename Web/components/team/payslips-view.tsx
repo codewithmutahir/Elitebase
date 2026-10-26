@@ -9,6 +9,15 @@ import {
   createPayslip,
   deletePayslip,
 } from "@/app/(dashboard)/team/payslips/actions";
+import {
+  bulkGeneratePayslipDrafts,
+  generatePayslipDraft,
+  markPayslipApproved,
+  markPayslipReviewed,
+  publishPayslip,
+  setPayslipStamp,
+} from "@/app/(dashboard)/team/payslips/lifecycle-actions";
+import { PayslipDocument } from "@/components/payslips/payslip-document";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -28,27 +37,39 @@ import {
   formatPayslipPeriod,
   type PayslipRow,
 } from "@/lib/payslips/queries";
+import { formatPayslipStatus } from "@/lib/payslips/status";
 
 type PayslipsViewProps = {
   payslips: PayslipRow[];
   employees: EmployeeListItem[];
   currency: string | null;
+  companyName: string;
+  logoUrl: string | null;
 };
 
 export function PayslipsView({
   payslips,
   employees,
   currency,
+  companyName,
+  logoUrl,
 }: PayslipsViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const now = new Date();
+  const [genEmployeeId, setGenEmployeeId] = useState("");
+  const [genYear, setGenYear] = useState(String(now.getFullYear()));
+  const [genMonth, setGenMonth] = useState(String(now.getMonth() + 1));
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.status === "active"),
     [employees]
   );
+
+  const preview = payslips.find((p) => p.id === previewId) ?? null;
 
   return (
     <Stack spacing={3}>
@@ -62,7 +83,123 @@ export function PayslipsView({
       <Card sx={dashboardCardSx}>
         <CardHeader>
           <Typography component="h2" sx={dashboardSectionTitleSx}>
-            Publish payslip
+            Generate from attendance
+          </Typography>
+          <Typography sx={dashboardPageIntroSx}>
+            Creates a draft using salary, leave balance, lates, loans, and
+            allowances. Review → Approve → Publish before employees can see it.
+          </Typography>
+        </CardHeader>
+        <CardContent>
+          <Stack spacing={2}>
+            <Select
+              id="genEmployeeId"
+              label="Employee"
+              value={genEmployeeId || activeEmployees[0]?.id || ""}
+              onChange={(e) => setGenEmployeeId(e.target.value)}
+              displayEmpty={false}
+              options={activeEmployees.map((employee) => ({
+                value: employee.id,
+                label: employee.full_name,
+              }))}
+            />
+            <Box
+              sx={{
+                display: "grid",
+                gap: 2,
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              }}
+            >
+              <Input
+                id="genYear"
+                label="Year"
+                type="number"
+                value={genYear}
+                onChange={(e) => setGenYear(e.target.value)}
+              />
+              <Input
+                id="genMonth"
+                label="Month (1–12)"
+                type="number"
+                min={1}
+                max={12}
+                value={genMonth}
+                onChange={(e) => setGenMonth(e.target.value)}
+              />
+            </Box>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+              <PendingButton
+                type="button"
+                pending={pending}
+                pendingLabel="Generating…"
+                onClick={() => {
+                  setError(null);
+                  setSuccess(null);
+                  startTransition(async () => {
+                    const result = await generatePayslipDraft({
+                      employeeId: genEmployeeId || activeEmployees[0]?.id || "",
+                      year: Number(genYear),
+                      month: Number(genMonth),
+                    });
+                    if ("error" in result && result.error) {
+                      setError(result.error);
+                      return;
+                    }
+                    setSuccess("Draft generated.");
+                    if ("id" in result && result.id) setPreviewId(result.id);
+                    router.refresh();
+                  });
+                }}
+              >
+                Generate draft
+              </PendingButton>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={() => {
+                  setError(null);
+                  setSuccess(null);
+                  startTransition(async () => {
+                    const result = await bulkGeneratePayslipDrafts({
+                      year: Number(genYear),
+                      month: Number(genMonth),
+                    });
+                    setSuccess(
+                      `Bulk generate: ${result.successCount} ok, ${result.failureCount} failed.`
+                    );
+                    router.refresh();
+                  });
+                }}
+              >
+                Generate for all active
+              </Button>
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {preview?.snapshot ? (
+        <PayslipDocument
+          data={preview.snapshot}
+          meta={{
+            companyName,
+            logoUrl,
+            currency: preview.currency ?? currency,
+            reviewedByName: preview.reviewed_by_name,
+            reviewedAt: preview.reviewed_at,
+            approvedByName: preview.approved_by_name,
+            approvedAt: preview.approved_at,
+            applyCompanyStamp: preview.apply_company_stamp,
+          }}
+          mode="edit"
+        />
+      ) : null}
+
+      <Card sx={dashboardCardSx}>
+        <CardHeader>
+          <Typography component="h2" sx={dashboardSectionTitleSx}>
+            Upload payslip (legacy)
           </Typography>
           <Typography sx={dashboardPageIntroSx}>
             Employees see published slips in their portal. Optional PDF/image
@@ -183,13 +320,13 @@ export function PayslipsView({
       <Card sx={dashboardCardSx}>
         <CardHeader>
           <Typography component="h2" sx={dashboardSectionTitleSx}>
-            Published payslips
+            Payslips
           </Typography>
         </CardHeader>
         <CardContent>
           {payslips.length === 0 ? (
             <Typography sx={dashboardPageIntroSx}>
-              No payslips published yet.
+              No payslips yet. Generate a draft or upload a file.
             </Typography>
           ) : (
             <Stack spacing={1.5}>
@@ -200,7 +337,9 @@ export function PayslipsView({
                 >
                   <div>
                     <p className="text-sm font-medium text-[var(--eb-text)]">
-                      {row.employee_name} · {formatPayslipPeriod(row)}
+                      {row.employee_name} · {formatPayslipPeriod(row)} ·{" "}
+                      {formatPayslipStatus(row.status)}
+                      {row.version > 1 ? ` · v${row.version}` : ""}
                     </p>
                     <p className="text-xs text-[var(--eb-muted)]">
                       {row.net_amount != null
@@ -209,9 +348,109 @@ export function PayslipsView({
                           ? `Gross ${formatMoney(row.gross_amount, row.currency ?? currency)}`
                           : "No amounts"}
                       {row.file_url ? " · File attached" : ""}
+                      {row.reviewed_by_name
+                        ? ` · Reviewed by ${row.reviewed_by_name}`
+                        : ""}
+                      {row.approved_by_name
+                        ? ` · Approved by ${row.approved_by_name}`
+                        : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {row.snapshot ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPreviewId((id) => (id === row.id ? null : row.id))
+                        }
+                      >
+                        {previewId === row.id ? "Hide" : "Preview"}
+                      </Button>
+                    ) : null}
+                    {row.status === "draft" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await markPayslipReviewed(row.id);
+                            if (result.error) setError(result.error);
+                            else {
+                              setSuccess("Marked reviewed.");
+                              router.refresh();
+                            }
+                          });
+                        }}
+                      >
+                        Mark reviewed
+                      </Button>
+                    ) : null}
+                    {row.status === "reviewed" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await markPayslipApproved(row.id);
+                            if (result.error) setError(result.error);
+                            else {
+                              setSuccess("Approved.");
+                              router.refresh();
+                            }
+                          });
+                        }}
+                      >
+                        Approve
+                      </Button>
+                    ) : null}
+                    {row.status === "approved" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await publishPayslip(row.id);
+                            if (result.error) setError(result.error);
+                            else {
+                              setSuccess("Published to employee portal.");
+                              router.refresh();
+                            }
+                          });
+                        }}
+                      >
+                        Publish
+                      </Button>
+                    ) : null}
+                    {row.status !== "published" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pending || (!logoUrl && !row.apply_company_stamp)}
+                        title={
+                          !logoUrl
+                            ? "Upload a company logo in Settings first"
+                            : undefined
+                        }
+                        onClick={() => {
+                          startTransition(async () => {
+                            const result = await setPayslipStamp(
+                              row.id,
+                              !row.apply_company_stamp
+                            );
+                            if (result.error) setError(result.error);
+                            else router.refresh();
+                          });
+                        }}
+                      >
+                        {row.apply_company_stamp ? "Remove stamp" : "Stamp"}
+                      </Button>
+                    ) : null}
                     {row.file_url ? (
                       <Button
                         type="button"
@@ -225,34 +464,36 @@ export function PayslipsView({
                           />
                         }
                       >
-                        View
+                        File
                       </Button>
                     ) : null}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => {
-                        setError(null);
-                        setSuccess(null);
-                        startTransition(async () => {
-                          try {
-                            const result = await deletePayslip(row.id);
-                            if (result.error) {
-                              setError(result.error);
-                              return;
+                    {row.status !== "published" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          setError(null);
+                          setSuccess(null);
+                          startTransition(async () => {
+                            try {
+                              const result = await deletePayslip(row.id);
+                              if (result.error) {
+                                setError(result.error);
+                                return;
+                              }
+                              setSuccess("Payslip deleted.");
+                              router.refresh();
+                            } catch (caught) {
+                              setError(getUserFacingError(caught));
                             }
-                            setSuccess("Payslip deleted.");
-                            router.refresh();
-                          } catch (caught) {
-                            setError(getUserFacingError(caught));
-                          }
-                        });
-                      }}
-                    >
-                      Delete
-                    </Button>
+                          });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    ) : null}
                   </div>
                 </Box>
               ))}

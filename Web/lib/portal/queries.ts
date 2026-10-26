@@ -19,6 +19,7 @@ export type PortalEmployee = {
   pay_type: string | null;
   hourly_rate: number | null;
   salary_amount: number | null;
+  hire_date: string | null;
   working_days: number[];
   bonus_amount: number;
   bonus_policy: BonusPolicy;
@@ -55,6 +56,7 @@ async function fetchEmployeeByUserId(
       pay_type,
       hourly_rate,
       salary_amount,
+      hire_date,
       working_days,
       bonus_amount,
       bonus_policy,
@@ -124,6 +126,7 @@ async function fetchEmployeeByUserId(
     pay_type: data.pay_type,
     hourly_rate: data.hourly_rate,
     salary_amount: data.salary_amount,
+    hire_date: (data.hire_date as string | null) ?? null,
     working_days: normalizeWorkingDays(
       (data.working_days as number[] | null) ?? [1, 2, 3, 4, 5]
     ),

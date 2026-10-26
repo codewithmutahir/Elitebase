@@ -24,6 +24,10 @@ export default async function SettingsPage({
         timezone={company.timezone}
         currency={company.currency}
         logoUrl={company.logo_url}
+        leaveSickTotalDefault={company.leave_sick_total_default}
+        leavePaidTotalDefault={company.leave_paid_total_default}
+        leaveYearType={company.leave_year_type}
+        leaveProrateMidYear={company.leave_prorate_mid_year}
         saved={params.saved === "1"}
         errorMessage={settingsErrorMessage(params.error)}
       />

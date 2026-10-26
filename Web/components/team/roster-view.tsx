@@ -96,12 +96,15 @@ type RosterViewProps = {
   employees: EmployeeListItem[];
   departmentOptions: DepartmentOption[];
   currency: string | null;
+  /** leave year remaining/allotted, e.g. "10/12" */
+  leaveRemainingByEmployeeId?: Record<string, string>;
 };
 
 export function RosterView({
   employees,
   departmentOptions,
   currency,
+  leaveRemainingByEmployeeId = {},
 }: RosterViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -495,6 +498,7 @@ export function RosterView({
                   <DataTableHead>Department</DataTableHead>
                   <DataTableHead>Role</DataTableHead>
                   <DataTableHead>Wage</DataTableHead>
+                  <DataTableHead>Leave</DataTableHead>
                   <DataTableHead>Status</DataTableHead>
                   <DataTableHead align="right">Actions</DataTableHead>
                 </DataTableRow>
@@ -502,7 +506,7 @@ export function RosterView({
               <DataTableBody>
                 {filtered.length === 0 ? (
                   <DataTableRow>
-                    <DataTableCell colSpan={8}>
+                    <DataTableCell colSpan={9}>
                       <DataTableEmpty>
                         No team members match your filters.
                       </DataTableEmpty>
@@ -687,6 +691,19 @@ export function RosterView({
                               Add wage
                             </Box>
                           )}
+                        </DataTableCell>
+
+                        <DataTableCell>
+                          <Typography
+                            sx={{
+                              fontSize: "0.8125rem",
+                              fontVariantNumeric: "tabular-nums",
+                              color: "text.secondary",
+                            }}
+                            title="Leave remaining / allotted for current leave year"
+                          >
+                            {leaveRemainingByEmployeeId[employee.id] ?? "—"}
+                          </Typography>
                         </DataTableCell>
 
                         <DataTableCell>

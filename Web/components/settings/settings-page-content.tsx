@@ -27,6 +27,10 @@ type SettingsPageContentProps = {
   timezone: string | null;
   currency: string | null;
   logoUrl: string | null;
+  leaveSickTotalDefault: number;
+  leavePaidTotalDefault: number;
+  leaveYearType: "calendar" | "anniversary";
+  leaveProrateMidYear: boolean;
   saved: boolean;
   errorMessage: string | null;
 };
@@ -36,6 +40,10 @@ export function SettingsPageContent({
   timezone,
   currency,
   logoUrl,
+  leaveSickTotalDefault,
+  leavePaidTotalDefault,
+  leaveYearType,
+  leaveProrateMidYear,
   saved,
   errorMessage,
 }: SettingsPageContentProps) {
@@ -158,6 +166,114 @@ export function SettingsPageContent({
                     defaultValue={selectedTimezone}
                   />
                   <CurrencySelect defaultValue={selectedCurrency} />
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Card sx={dashboardCardSx}>
+              <CardHeader>
+                <Typography component="h2" sx={dashboardSectionTitleSx}>
+                  Leave policy
+                </Typography>
+                <Typography sx={dashboardPageIntroSx}>
+                  Annual allotments for new leave-year balances. Defaults: 6 sick
+                  + 6 paid. Existing balance rows are not rewritten when you
+                  change these defaults.
+                </Typography>
+              </CardHeader>
+              <CardContent>
+                <Stack spacing={3}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "1fr 1fr",
+                      },
+                    }}
+                  >
+                    <Input
+                      id="leave_sick_total_default"
+                      name="leave_sick_total_default"
+                      label="Sick leave per year"
+                      type="number"
+                      required
+                      defaultValue={String(leaveSickTotalDefault)}
+                      min={0}
+                      max={366}
+                    />
+                    <Input
+                      id="leave_paid_total_default"
+                      name="leave_paid_total_default"
+                      label="Paid leave per year"
+                      type="number"
+                      required
+                      defaultValue={String(leavePaidTotalDefault)}
+                      min={0}
+                      max={366}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography
+                      component="label"
+                      htmlFor="leave_year_type"
+                      sx={{
+                        mb: 0.75,
+                        display: "block",
+                        fontSize: "0.875rem",
+                        fontWeight: 500,
+                        color: "text.primary",
+                      }}
+                    >
+                      Leave year
+                    </Typography>
+                    <Box
+                      component="select"
+                      id="leave_year_type"
+                      name="leave_year_type"
+                      defaultValue={leaveYearType}
+                      sx={{
+                        width: "100%",
+                        borderRadius: "10px",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        px: 1.5,
+                        py: 1.25,
+                        fontSize: "0.875rem",
+                        color: "text.primary",
+                      }}
+                    >
+                      <option value="calendar">Calendar year (Jan–Dec)</option>
+                      <option value="anniversary">
+                        Anniversary year (from hire date)
+                      </option>
+                    </Box>
+                  </Box>
+                  <Box
+                    component="label"
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1,
+                      fontSize: "0.875rem",
+                      color: "text.primary",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Box
+                      component="input"
+                      type="checkbox"
+                      name="leave_prorate_mid_year"
+                      defaultChecked={leaveProrateMidYear}
+                      sx={{ mt: 0.35 }}
+                    />
+                    <span>
+                      Pro-rate allotments for employees hired mid leave-year
+                      (round to nearest day).
+                    </span>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>

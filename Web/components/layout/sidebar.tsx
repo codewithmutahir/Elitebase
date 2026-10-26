@@ -480,12 +480,28 @@ export function Sidebar({
         }}
       >
         {company.logo_url ? (
-          <Box sx={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              width: 40,
+              height: 40,
+              flexShrink: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+            }}
+          >
             <Image
               src={company.logo_url}
               alt={`${company.name} logo`}
-              fill
-              style={{ objectFit: "contain" }}
+              width={40}
+              height={40}
+              style={{
+                width: 40,
+                height: "auto",
+                maxHeight: 40,
+                objectFit: "contain",
+              }}
               unoptimized
             />
           </Box>

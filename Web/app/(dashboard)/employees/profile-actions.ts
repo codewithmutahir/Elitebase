@@ -14,11 +14,30 @@ import {
   normalizeCycleStartMonth,
   type BonusPolicy,
 } from "@/lib/payroll/bonus";
+import {
+  currentPayAmount,
+  normalizeIncrementKind,
+  roundMoney,
+  type SalaryIncrementKind,
+} from "@/lib/employees/salary-increments";
 
 function revalidateEmployee(companyId: string, employeeId: string) {
   invalidateEmployeeListsCache(companyId);
   revalidatePath("/employees");
   revalidatePath(`/employees/${employeeId}`);
+}
+
+async function resolveAuthorName(): Promise<string> {
+  try {
+    const [{ auth }, { headers }] = await Promise.all([
+      import("@/lib/auth"),
+      import("next/headers"),
+    ]);
+    const fullSession = await auth.api.getSession({ headers: await headers() });
+    return fullSession?.user?.name ?? "Admin";
+  } catch {
+    return "Admin";
+  }
 }
 
 export async function updateEmployeeJobDetails(
@@ -38,7 +57,7 @@ export async function updateEmployeeJobDetails(
     bonus_cycle_start_month: number;
   }
 ) {
-  const { company } = await requireCompanySession();
+  const { company, userId } = await requireCompanySession();
   const admin = createClient();
   const workingDays = normalizeWorkingDays(data.working_days);
   const bonusPolicy = normalizeBonusPolicy(data.bonus_policy);
@@ -58,6 +77,31 @@ export async function updateEmployeeJobDetails(
   if (data.bonus_amount < 0) {
     return { error: "Bonus amount cannot be negative." };
   }
+
+  const { data: existing, error: fetchError } = await admin
+    .from("employees")
+    .select("id, pay_type, salary_amount, hourly_rate")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (fetchError || !existing) {
+    return { error: "Employee not found." };
+  }
+
+  const previousAmount = currentPayAmount({
+    pay_type: existing.pay_type as PayType,
+    salary_amount:
+      existing.salary_amount != null ? Number(existing.salary_amount) : null,
+    hourly_rate: Number(existing.hourly_rate ?? 0),
+  });
+  const nextAmount =
+    data.pay_type === "salary"
+      ? roundMoney(Number(data.salary_amount ?? 0))
+      : roundMoney(Number(data.hourly_rate ?? 0));
+  const payChanged =
+    existing.pay_type !== data.pay_type ||
+    roundMoney(previousAmount) !== nextAmount;
 
   const { error } = await admin
     .from("employees")
@@ -84,6 +128,75 @@ export async function updateEmployeeJobDetails(
     return { error: "Could not save job details." };
   }
 
+  let loggedIncrement: {
+    id: string;
+    employee_id: string;
+    company_id: string;
+    effective_date: string;
+    pay_type: PayType;
+    previous_amount: number;
+    new_amount: number;
+    increment_amount: number;
+    kind: SalaryIncrementKind;
+    reason: string | null;
+    created_by: string | null;
+    created_by_name: string;
+    created_at: string;
+  } | null = null;
+
+  if (payChanged && nextAmount > 0) {
+    const authorName = await resolveAuthorName();
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: insertedIncrement, error: incrementError } = await admin
+      .from("employee_salary_increments")
+      .insert({
+        company_id: company.id,
+        employee_id: employeeId,
+        effective_date: today,
+        pay_type: data.pay_type,
+        previous_amount: roundMoney(previousAmount),
+        new_amount: nextAmount,
+        kind: "adjustment",
+        reason:
+          existing.pay_type !== data.pay_type
+            ? `Pay type changed to ${data.pay_type}`
+            : "Updated from job details",
+        created_by: userId,
+        created_by_name: authorName,
+      })
+      .select(
+        "id, employee_id, company_id, effective_date, pay_type, previous_amount, new_amount, increment_amount, kind, reason, created_by, created_by_name, created_at"
+      )
+      .maybeSingle();
+
+    if (incrementError) {
+      console.error(
+        "updateEmployeeJobDetails increment log:",
+        incrementError.message
+      );
+    } else if (insertedIncrement) {
+      loggedIncrement = {
+        id: insertedIncrement.id as string,
+        employee_id: insertedIncrement.employee_id as string,
+        company_id: insertedIncrement.company_id as string,
+        effective_date: insertedIncrement.effective_date as string,
+        pay_type:
+          insertedIncrement.pay_type === "salary" ? "salary" : "hourly",
+        previous_amount: Number(insertedIncrement.previous_amount),
+        new_amount: Number(insertedIncrement.new_amount),
+        increment_amount:
+          insertedIncrement.increment_amount != null
+            ? Number(insertedIncrement.increment_amount)
+            : nextAmount - roundMoney(previousAmount),
+        kind: normalizeIncrementKind(insertedIncrement.kind as string),
+        reason: (insertedIncrement.reason as string | null) ?? null,
+        created_by: (insertedIncrement.created_by as string | null) ?? null,
+        created_by_name: (insertedIncrement.created_by_name as string) ?? "",
+        created_at: insertedIncrement.created_at as string,
+      };
+    }
+  }
+
   try {
     await syncWorkingDaysToAvailability(company.id, employeeId, workingDays);
   } catch {
@@ -94,7 +207,229 @@ export async function updateEmployeeJobDetails(
   revalidatePath("/schedule/schedule");
   revalidatePath("/schedule/availability");
   revalidatePath("/team/payroll");
-  return { ok: true };
+  return { ok: true as const, loggedIncrement };
+}
+
+export async function recordSalaryIncrement(
+  employeeId: string,
+  data: {
+    effective_date: string;
+    new_amount: number;
+    kind?: SalaryIncrementKind;
+    reason?: string | null;
+  }
+) {
+  const { company, userId } = await requireCompanySession();
+  const admin = createClient();
+
+  const effectiveDate = data.effective_date?.trim();
+  if (!effectiveDate || Number.isNaN(Date.parse(`${effectiveDate}T12:00:00`))) {
+    return { error: "Effective date is required." };
+  }
+
+  const newAmount = roundMoney(Number(data.new_amount));
+  if (!Number.isFinite(newAmount) || newAmount <= 0) {
+    return { error: "New pay amount must be greater than zero." };
+  }
+
+  const kind = normalizeIncrementKind(data.kind);
+  const reason = data.reason?.trim() || null;
+
+  const { data: employee, error: fetchError } = await admin
+    .from("employees")
+    .select("id, pay_type, salary_amount, hourly_rate, status")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (fetchError || !employee) {
+    return { error: "Employee not found." };
+  }
+
+  if (employee.status === "terminated") {
+    return { error: "Cannot record an increment for a deactivated employee." };
+  }
+
+  const payType = (employee.pay_type ?? "hourly") as PayType;
+  const previousAmount = roundMoney(
+    currentPayAmount({
+      pay_type: payType,
+      salary_amount:
+        employee.salary_amount != null ? Number(employee.salary_amount) : null,
+      hourly_rate: Number(employee.hourly_rate ?? 0),
+    })
+  );
+
+  if (previousAmount === newAmount) {
+    return { error: "New amount is the same as current pay." };
+  }
+
+  const authorName = await resolveAuthorName();
+
+  const { data: inserted, error: insertError } = await admin
+    .from("employee_salary_increments")
+    .insert({
+      company_id: company.id,
+      employee_id: employeeId,
+      effective_date: effectiveDate,
+      pay_type: payType,
+      previous_amount: previousAmount,
+      new_amount: newAmount,
+      kind,
+      reason,
+      created_by: userId,
+      created_by_name: authorName,
+    })
+    .select(
+      "id, employee_id, company_id, effective_date, pay_type, previous_amount, new_amount, increment_amount, kind, reason, created_by, created_by_name, created_at"
+    )
+    .single();
+
+  if (insertError || !inserted) {
+    console.error("recordSalaryIncrement:", insertError?.message);
+    return { error: "Could not save increment." };
+  }
+
+  const payUpdate =
+    payType === "salary"
+      ? { salary_amount: newAmount, salary_period: "monthly" as const }
+      : { hourly_rate: newAmount };
+
+  const { error: updateError } = await admin
+    .from("employees")
+    .update(payUpdate)
+    .eq("id", employeeId)
+    .eq("company_id", company.id);
+
+  if (updateError) {
+    console.error("recordSalaryIncrement update pay:", updateError.message);
+    await admin
+      .from("employee_salary_increments")
+      .delete()
+      .eq("id", inserted.id)
+      .eq("company_id", company.id);
+    return { error: "Could not update employee pay." };
+  }
+
+  revalidateEmployee(company.id, employeeId);
+  revalidatePath("/team/payroll");
+  return {
+    ok: true as const,
+    increment: {
+      id: inserted.id as string,
+      employee_id: inserted.employee_id as string,
+      company_id: inserted.company_id as string,
+      effective_date: inserted.effective_date as string,
+      pay_type: (inserted.pay_type === "salary" ? "salary" : "hourly") as PayType,
+      previous_amount: Number(inserted.previous_amount),
+      new_amount: Number(inserted.new_amount),
+      increment_amount:
+        inserted.increment_amount != null
+          ? Number(inserted.increment_amount)
+          : newAmount - previousAmount,
+      kind: normalizeIncrementKind(inserted.kind as string),
+      reason: (inserted.reason as string | null) ?? null,
+      created_by: (inserted.created_by as string | null) ?? null,
+      created_by_name: (inserted.created_by_name as string) ?? "",
+      created_at: inserted.created_at as string,
+    },
+    pay_type: payType,
+    salary_amount: payType === "salary" ? newAmount : null,
+    hourly_rate: payType === "hourly" ? newAmount : 0,
+  };
+}
+
+/** Deletes the latest increment and restores prior pay when it matches current pay. */
+export async function undoLatestSalaryIncrement(employeeId: string) {
+  const { company } = await requireCompanySession();
+  const admin = createClient();
+
+  const { data: employee, error: fetchError } = await admin
+    .from("employees")
+    .select("id, pay_type, salary_amount, hourly_rate")
+    .eq("id", employeeId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+
+  if (fetchError || !employee) {
+    return { error: "Employee not found." };
+  }
+
+  const { data: latest, error: latestError } = await admin
+    .from("employee_salary_increments")
+    .select(
+      "id, pay_type, previous_amount, new_amount, effective_date, created_at"
+    )
+    .eq("employee_id", employeeId)
+    .eq("company_id", company.id)
+    .order("effective_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) {
+    console.error("undoLatestSalaryIncrement:", latestError.message);
+    return { error: "Could not load increment history." };
+  }
+
+  if (!latest) {
+    return { error: "No increments to undo." };
+  }
+
+  const payType = (employee.pay_type ?? "hourly") as PayType;
+  const currentAmount = roundMoney(
+    currentPayAmount({
+      pay_type: payType,
+      salary_amount:
+        employee.salary_amount != null ? Number(employee.salary_amount) : null,
+      hourly_rate: Number(employee.hourly_rate ?? 0),
+    })
+  );
+  const recordedNew = roundMoney(Number(latest.new_amount));
+  const previousAmount = roundMoney(Number(latest.previous_amount));
+
+  if (latest.pay_type === payType && currentAmount === recordedNew) {
+    const payUpdate =
+      payType === "salary"
+        ? {
+            salary_amount: previousAmount > 0 ? previousAmount : null,
+            salary_period: "monthly" as const,
+          }
+        : { hourly_rate: previousAmount };
+
+    const { error: updateError } = await admin
+      .from("employees")
+      .update(payUpdate)
+      .eq("id", employeeId)
+      .eq("company_id", company.id);
+
+    if (updateError) {
+      console.error("undoLatestSalaryIncrement pay:", updateError.message);
+      return { error: "Could not restore previous pay." };
+    }
+  }
+
+  const { error: deleteError } = await admin
+    .from("employee_salary_increments")
+    .delete()
+    .eq("id", latest.id)
+    .eq("company_id", company.id);
+
+  if (deleteError) {
+    console.error("undoLatestSalaryIncrement delete:", deleteError.message);
+    return { error: "Could not remove increment record." };
+  }
+
+  revalidateEmployee(company.id, employeeId);
+  revalidatePath("/team/payroll");
+  return {
+    ok: true as const,
+    restored_pay_type: payType,
+    restored_amount:
+      latest.pay_type === payType && currentAmount === recordedNew
+        ? previousAmount
+        : currentAmount,
+  };
 }
 
 export async function updateEmployeePersonalInfo(

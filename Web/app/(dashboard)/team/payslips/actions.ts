@@ -92,12 +92,20 @@ export async function createPayslip(formData: FormData) {
     fileUrl = null;
   }
 
+  const year = Number(periodStart.slice(0, 4));
+  const month = Number(periodStart.slice(5, 7));
+
   const { error } = await admin.from("payslips").insert({
     company_id: company.id,
     employee_id: employeeId,
     period_start: periodStart,
     period_end: periodEnd,
     period_label: periodLabel,
+    year,
+    month,
+    status: "published",
+    published_at: new Date().toISOString(),
+    version: 1,
     gross_amount: grossAmount,
     net_amount: netAmount,
     currency: resolveCurrency(company.currency),
