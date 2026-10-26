@@ -392,6 +392,181 @@ export async function publishPayslip(
   return { ok: true as const };
 }
 
+/**
+ * Edit a published payslip by creating a tracked revision.
+ * Old published row stays (audit); employee keeps seeing it until the new
+ * revision is published. New tip is a draft that must go through review again.
+ */
+export async function revisePublishedPayslip(input: {
+  payslipId: string;
+  revisionNote: string;
+  confirmNetClamp?: boolean;
+}) {
+  const { company, userId, user } = await requireCompanySession();
+  const admin = createClient();
+
+  const note = input.revisionNote.trim();
+  if (note.length < 3 || note.length > 500) {
+    return { error: "Revision note must be 3–500 characters." };
+  }
+
+  const { data: existing } = await admin
+    .from("payslips")
+    .select(
+      "id, status, employee_id, year, month, version, lock_version, period_start, period_end, period_label, currency, apply_company_stamp, snapshot, net_amount, gross_amount"
+    )
+    .eq("id", input.payslipId)
+    .eq("company_id", company.id)
+    .is("replaced_by_id", null)
+    .maybeSingle();
+
+  if (!existing) return { error: "Payslip not found." };
+  if (existing.status !== "published") {
+    return { error: "Only published payslips can be revised. Edit the open draft instead." };
+  }
+
+  const year = Number(existing.year);
+  const month = Number(existing.month);
+  const nextVersion = Number(existing.version ?? 1) + 1;
+
+  const loaded = await loadPayslipCalcInput({
+    companyId: company.id,
+    employeeId: existing.employee_id,
+    year,
+    month,
+    admin,
+  });
+  if (!loaded.ok) return { error: loaded.error };
+
+  const calculated = calculatePayslip(loaded.input);
+  if (calculated.netClamped && !input.confirmNetClamp) {
+    return {
+      error:
+        "Revised net would be zero/negative. Confirm to create the draft anyway.",
+      requiresNetClampConfirm: true as const,
+      warnings: calculated.warnings,
+    };
+  }
+
+  const { periodStart, periodEnd } = periodBounds(year, month);
+  const now = new Date().toISOString();
+
+  // Free the unique (employee, year, month) tip slot: mark published as
+  // temporarily self-replaced, then insert the draft tip, then point to it.
+  const { data: locked, error: lockError } = await admin
+    .from("payslips")
+    .update({
+      replaced_by_id: existing.id,
+      lock_version: Number(existing.lock_version ?? 1) + 1,
+      updated_at: now,
+    })
+    .eq("id", existing.id)
+    .eq("company_id", company.id)
+    .eq("status", "published")
+    .is("replaced_by_id", null)
+    .eq("lock_version", existing.lock_version)
+    .select("id, lock_version");
+
+  if (lockError || !locked?.length) {
+    console.error("revisePublishedPayslip lock:", lockError?.message);
+    return {
+      error:
+        "Could not lock the published slip for revision (concurrent edit). Try again.",
+    };
+  }
+
+  const { data: inserted, error: insertError } = await admin
+    .from("payslips")
+    .insert({
+      company_id: company.id,
+      employee_id: existing.employee_id,
+      year,
+      month,
+      period_start: periodStart,
+      period_end: periodEnd,
+      period_label: calculated.payPeriodLabel,
+      gross_amount: fromCents(calculated.grossCents),
+      net_amount: fromCents(calculated.netSalaryCents),
+      currency: loaded.currency ?? existing.currency,
+      status: "draft",
+      version: nextVersion,
+      revision_note: note,
+      supersedes_id: existing.id,
+      calculated_snapshot: calculated,
+      snapshot: calculated,
+      overrides: {},
+      apply_company_stamp: Boolean(existing.apply_company_stamp),
+      published_at: null,
+      lock_version: 1,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) {
+    await admin
+      .from("payslips")
+      .update({
+        replaced_by_id: null,
+        lock_version: Number(locked[0].lock_version) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id);
+    console.error("revisePublishedPayslip insert:", insertError?.message);
+    return { error: "Could not create revision draft." };
+  }
+
+  const { error: linkError } = await admin
+    .from("payslips")
+    .update({
+      replaced_by_id: inserted.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", existing.id)
+    .eq("company_id", company.id);
+
+  if (linkError) {
+    console.error("revisePublishedPayslip link:", linkError.message);
+    // Draft exists; published still points at self — repair to draft id best-effort already failed.
+    return {
+      error:
+        "Revision draft created but history link failed. Refresh and contact support if the old slip looks stuck.",
+      id: inserted.id as string,
+    };
+  }
+
+  await writePayrollAudit({
+    companyId: company.id,
+    actorUid: userId,
+    action: "payslip.revise",
+    entityType: "payslip",
+    entityId: inserted.id,
+    employeeId: existing.employee_id,
+    before: {
+      id: existing.id,
+      version: existing.version,
+      net_amount: existing.net_amount,
+      gross_amount: existing.gross_amount,
+      snapshot: existing.snapshot,
+    },
+    after: {
+      id: inserted.id,
+      version: nextVersion,
+      revision_note: note,
+      net_amount: fromCents(calculated.netSalaryCents),
+      revised_by: user.name || user.email,
+    },
+    admin,
+  });
+
+  revalidatePayslipPaths(company.id, existing.employee_id);
+  return {
+    ok: true as const,
+    id: inserted.id as string,
+    version: nextVersion,
+  };
+}
+
 export async function setPayslipStamp(payslipId: string, apply: boolean) {
   const { company, userId } = await requireCompanySession();
   const admin = createClient();

@@ -129,12 +129,31 @@ export async function deletePayslip(payslipId: string) {
 
   const { data: existing } = await admin
     .from("payslips")
-    .select("id, file_path, employee_id")
+    .select("id, file_path, employee_id, status, supersedes_id")
     .eq("id", payslipId)
     .eq("company_id", company.id)
     .maybeSingle();
 
   if (!existing) return { error: "Payslip not found." };
+  if (existing.status === "published") {
+    return {
+      error:
+        "Published payslips cannot be deleted. Use Edit to create a tracked revision instead.",
+    };
+  }
+
+  // If this draft replaced a published slip, restore that slip as the tip.
+  if (existing.supersedes_id) {
+    await admin
+      .from("payslips")
+      .update({
+        replaced_by_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.supersedes_id)
+      .eq("company_id", company.id)
+      .eq("replaced_by_id", payslipId);
+  }
 
   if (existing.file_path) {
     await admin.storage.from("employee-documents").remove([existing.file_path]);

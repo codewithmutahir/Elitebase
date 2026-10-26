@@ -21,6 +21,8 @@ export type PayslipRow = {
   month: number | null;
   status: PayslipStatus;
   version: number;
+  revision_note: string | null;
+  supersedes_id: string | null;
   gross_amount: number | null;
   net_amount: number | null;
   currency: string | null;
@@ -46,6 +48,8 @@ type RawPayslip = {
   month: number | null;
   status: string | null;
   version: number | null;
+  revision_note: string | null;
+  supersedes_id: string | null;
   gross_amount: number | string | null;
   net_amount: number | string | null;
   currency: string | null;
@@ -90,6 +94,8 @@ async function mapPayslip(
     month: row.month != null ? Number(row.month) : null,
     status,
     version: Number(row.version ?? 1),
+    revision_note: row.revision_note ?? null,
+    supersedes_id: row.supersedes_id ?? null,
     gross_amount:
       row.gross_amount != null ? Number(row.gross_amount) : null,
     net_amount: row.net_amount != null ? Number(row.net_amount) : null,
@@ -130,6 +136,8 @@ export async function listCompanyPayslips(
       month,
       status,
       version,
+      revision_note,
+      supersedes_id,
       gross_amount,
       net_amount,
       currency,
@@ -167,6 +175,8 @@ async function loadEmployeePayslips(
   employeeId: string
 ): Promise<PayslipRow[]> {
   const admin = createClient();
+  // Include published rows even if a draft revision replaced them as the tip,
+  // so employees keep seeing the last published slip until the revision ships.
   const { data, error } = await admin
     .from("payslips")
     .select(
@@ -180,6 +190,8 @@ async function loadEmployeePayslips(
       month,
       status,
       version,
+      revision_note,
+      supersedes_id,
       gross_amount,
       net_amount,
       currency,
@@ -200,18 +212,29 @@ async function loadEmployeePayslips(
     .eq("company_id", companyId)
     .eq("employee_id", employeeId)
     .eq("status", "published")
-    .is("replaced_by_id", null)
     .order("year", { ascending: false })
-    .order("month", { ascending: false });
+    .order("month", { ascending: false })
+    .order("version", { ascending: false });
 
   if (error) {
     console.error("listEmployeePayslips:", error.message);
     return [];
   }
 
-  return Promise.all(
+  const mapped = await Promise.all(
     ((data ?? []) as RawPayslip[]).map((row) => mapPayslip(admin, row))
   );
+
+  // One published slip per year/month (highest version wins).
+  const seen = new Set<string>();
+  const latest: PayslipRow[] = [];
+  for (const row of mapped) {
+    const key = `${row.year ?? row.period_start.slice(0, 4)}-${row.month ?? row.period_start.slice(5, 7)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    latest.push(row);
+  }
+  return latest;
 }
 
 /** Portal payslips (cached + tagged; signed URLs refresh within TTL). */

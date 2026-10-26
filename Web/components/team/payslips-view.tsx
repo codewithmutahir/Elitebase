@@ -15,12 +15,21 @@ import {
   markPayslipApproved,
   markPayslipReviewed,
   publishPayslip,
+  revisePublishedPayslip,
   setPayslipStamp,
 } from "@/app/(dashboard)/team/payslips/lifecycle-actions";
 import { PayslipDocument } from "@/components/payslips/payslip-document";
 import { PendingButton } from "@/components/dashboard/pending-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -30,6 +39,7 @@ import {
   dashboardPageIntroSx,
   dashboardSectionTitleSx,
 } from "@/lib/dashboard/sx";
+import { dashboardDialogContentClass } from "@/lib/dashboard/styles";
 import type { EmployeeListItem } from "@/lib/employees/queries";
 import { getUserFacingError } from "@/lib/errors/user-facing";
 import { formatMoney } from "@/lib/money/format";
@@ -63,6 +73,8 @@ export function PayslipsView({
   const [genYear, setGenYear] = useState(String(now.getFullYear()));
   const [genMonth, setGenMonth] = useState(String(now.getMonth() + 1));
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [reviseTarget, setReviseTarget] = useState<PayslipRow | null>(null);
+  const [revisionNote, setRevisionNote] = useState("");
 
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.status === "active"),
@@ -70,6 +82,29 @@ export function PayslipsView({
   );
 
   const preview = payslips.find((p) => p.id === previewId) ?? null;
+
+  function submitRevision() {
+    if (!reviseTarget) return;
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const result = await revisePublishedPayslip({
+        payslipId: reviseTarget.id,
+        revisionNote,
+      });
+      if ("error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setSuccess(
+        `Revision v${"version" in result ? result.version : "?"} created as draft. Review → Approve → Publish when ready.`
+      );
+      if ("id" in result && result.id) setPreviewId(result.id);
+      setReviseTarget(null);
+      setRevisionNote("");
+      router.refresh();
+    });
+  }
 
   return (
     <Stack spacing={3}>
@@ -354,6 +389,10 @@ export function PayslipsView({
                       {row.approved_by_name
                         ? ` · Approved by ${row.approved_by_name}`
                         : ""}
+                      {row.revision_note
+                        ? ` · Revision: ${row.revision_note}`
+                        : ""}
+                      {row.supersedes_id ? " · Edits prior published version" : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -367,6 +406,19 @@ export function PayslipsView({
                         }
                       >
                         {previewId === row.id ? "Hide" : "Preview"}
+                      </Button>
+                    ) : null}
+                    {row.status === "published" ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          setRevisionNote("");
+                          setReviseTarget(row);
+                        }}
+                      >
+                        Edit
                       </Button>
                     ) : null}
                     {row.status === "draft" ? (
@@ -501,6 +553,58 @@ export function PayslipsView({
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={reviseTarget != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReviseTarget(null);
+            setRevisionNote("");
+          }
+        }}
+      >
+        <DialogContent className={dashboardDialogContentClass}>
+          <DialogHeader>
+            <DialogTitle>Edit published payslip</DialogTitle>
+            <DialogDescription>
+              Creates a new draft revision (v
+              {reviseTarget ? reviseTarget.version + 1 : "—"}) for{" "}
+              {reviseTarget?.employee_name}. The published copy stays visible to
+              the employee until you review, approve, and publish this revision.
+              Edits are audit-logged with your note.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            id="revision-note"
+            label="Revision note (required)"
+            value={revisionNote}
+            onChange={(e) => setRevisionNote(e.target.value)}
+            placeholder="e.g. Corrected late deduction after attendance fix"
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => {
+                setReviseTarget(null);
+                setRevisionNote("");
+              }}
+            >
+              Cancel
+            </Button>
+            <PendingButton
+              type="button"
+              pending={pending}
+              pendingLabel="Creating…"
+              disabled={revisionNote.trim().length < 3}
+              onClick={submitRevision}
+            >
+              Create revision draft
+            </PendingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Stack>
   );
 }
