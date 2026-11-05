@@ -131,6 +131,26 @@ function testLoanClamp() {
   assert.equal(result.loanBalanceAfterCents, 0);
 }
 
+function testAbsentDayDeduction() {
+  const result = calculatePayslip(
+    baseInput({
+      loans: [],
+      allowances: [],
+      attendance: {
+        lateCount: 0,
+        presentDays: 20,
+        absentDays: 2,
+        paidLeaveDays: 0,
+        sickLeaveDays: 0,
+        unpaidLeaveDays: 0,
+        offDays: 4,
+      },
+    })
+  );
+  assert.equal(result.absentDays, 2);
+  assert.equal(result.absentDeductionCents, result.salaryPerDayCents * 2);
+}
+
 function testLateDeductionFiveLates() {
   const result = calculatePayslip(
     baseInput({
@@ -244,6 +264,7 @@ const tests = [
   testHolidaySubtracted,
   testLeaveExhaustionUnpaidDeduction,
   testLoanClamp,
+  testAbsentDayDeduction,
   testLateDeductionFiveLates,
   testNetNeverNegativeSilent,
   testZeroWorkingDaysGuard,

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computeAttendanceStatus } from "@/lib/attendance/status";
+import { resolveGraceMinutes } from "@/lib/attendance/grace";
 import { formatShiftTimeRange } from "@/lib/schedules/format";
 import { timesheetShiftWages } from "@/lib/schedules/wages";
 import { normalizeWorkingDays } from "@/lib/employees/working-days";
@@ -11,8 +12,10 @@ import {
 } from "@/lib/payroll/bonus";
 import {
   isDateOnApprovedTimeOff,
+  listApprovedTimeOffForRange,
   listApprovedUnpaidLeaveForRange,
 } from "@/lib/time-off/queries";
+import { isWorkingDayOnDate } from "@/lib/employees/working-days";
 import { getAllTimesheetRows } from "@/lib/timesheets/data";
 import { missingPunchSummary } from "@/lib/timesheets/missing-punches";
 import {
@@ -51,6 +54,8 @@ type EmployeeExportMeta = {
   hourly_rate: number;
   salary_amount: number | null;
   working_days: number[];
+  /** Per-employee override of late grace margin; null = inherit company default. */
+  late_grace_minutes: number | null;
 };
 
 type ScheduleSlot = PublishedScheduleSlot;
@@ -91,7 +96,8 @@ function scheduledTimeLabel(
 function resolvePunctuality(
   row: TimesheetRow,
   scheduleStartHm: string,
-  timezone: string
+  timezone: string,
+  graceMinutes: number
 ): { onTime: boolean; late: boolean } {
   if (!row.clockIn) {
     return { onTime: false, late: false };
@@ -104,7 +110,8 @@ function resolvePunctuality(
   const computed = computeAttendanceStatus(
     row.clockIn,
     scheduleStartHm,
-    timezone
+    timezone,
+    graceMinutes
   );
   return computed === "on_time"
     ? { onTime: true, late: false }
@@ -132,7 +139,13 @@ function enrichRow(
     start_date: string;
     end_date: string;
   }[],
+  approvedLeave: {
+    employee_id: string;
+    start_date: string;
+    end_date: string;
+  }[],
   timezone: string,
+  companyLateGraceMinutes: number,
   options: { forceAbsent?: boolean }
 ): TimesheetExportRow {
   const meta = employees.get(row.employeeId);
@@ -148,17 +161,37 @@ function enrichRow(
     employees,
     schedulesByKey
   );
-  const { onTime, late } = resolvePunctuality(row, scheduleStartHm, timezone);
+  const graceMinutes = resolveGraceMinutes({
+    employeeOverride: meta?.late_grace_minutes,
+    companyDefault: companyLateGraceMinutes,
+  });
+  const { onTime, late } = resolvePunctuality(
+    row,
+    scheduleStartHm,
+    timezone,
+    graceMinutes
+  );
   const unpaidLeaveDay = isDateOnApprovedTimeOff(
     row.date,
     row.employeeId,
     unpaidLeave
   );
+  const onApprovedLeave = isDateOnApprovedTimeOff(
+    row.date,
+    row.employeeId,
+    approvedLeave
+  );
+  const onWorkingDay = meta
+    ? isWorkingDayOnDate(meta.working_days, row.date)
+    : false;
+  const hasPublishedShift = Boolean(
+    schedulesByKey.get(`${row.employeeId}:${row.date}`)
+  );
   const absent =
     options.forceAbsent ||
     (!row.clockIn &&
-      !unpaidLeaveDay &&
-      Boolean(schedulesByKey.get(`${row.employeeId}:${row.date}`)));
+      !onApprovedLeave &&
+      (hasPublishedShift || onWorkingDay));
 
   const payType = meta?.pay_type ?? "hourly";
   const hourlyRate = meta?.hourly_rate ?? 0;
@@ -245,7 +278,7 @@ async function fetchEmployeeExportMeta(
   const { data, error } = await admin
     .from("employees")
     .select(
-      "id, full_name, departments ( name ), schedule_start_time, schedule_end_time, bonus_amount, bonus_policy, bonus_cycle_start_month, pay_type, hourly_rate, salary_amount, working_days"
+      "id, full_name, departments ( name ), schedule_start_time, schedule_end_time, bonus_amount, bonus_policy, bonus_cycle_start_month, pay_type, hourly_rate, salary_amount, working_days, late_grace_minutes"
     )
     .eq("company_id", companyId)
     .in("id", employeeIds);
@@ -276,9 +309,29 @@ async function fetchEmployeeExportMeta(
       working_days: normalizeWorkingDays(
         (row.working_days as number[] | null) ?? [1, 2, 3, 4, 5]
       ),
+      late_grace_minutes:
+        row.late_grace_minutes == null
+          ? null
+          : Number(row.late_grace_minutes),
     });
   }
   return map;
+}
+
+/**
+ * Company-level late-grace margin, falls back to 15 if the column is missing
+ * (e.g. local dev without the latest migration applied).
+ */
+async function fetchCompanyLateGraceMinutes(companyId: string): Promise<number> {
+  const admin = createClient();
+  const { data } = await admin
+    .from("companies")
+    .select("late_grace_minutes")
+    .eq("id", companyId)
+    .maybeSingle();
+  const raw = data?.late_grace_minutes;
+  if (raw == null || !Number.isFinite(Number(raw))) return 15;
+  return Number(raw);
 }
 
 export async function getTimesheetExportRows(
@@ -313,15 +366,25 @@ export async function getTimesheetExportRows(
     }
   }
 
-  const [employees, unpaidLeave] = await Promise.all([
-    fetchEmployeeExportMeta(companyId, employeeIds),
-    listApprovedUnpaidLeaveForRange(companyId, from, to),
-  ]);
+  const [employees, unpaidLeave, approvedLeave, companyLateGraceMinutes] =
+    await Promise.all([
+      fetchEmployeeExportMeta(companyId, employeeIds),
+      listApprovedUnpaidLeaveForRange(companyId, from, to),
+      listApprovedTimeOffForRange(companyId, from, to),
+      fetchCompanyLateGraceMinutes(companyId),
+    ]);
 
   const enriched = baseRows.map((row) =>
-    enrichRow(row, employees, schedulesByKey, unpaidLeave, timezone, {
-      forceAbsent: row.id.startsWith("absent:"),
-    })
+    enrichRow(
+      row,
+      employees,
+      schedulesByKey,
+      unpaidLeave,
+      approvedLeave,
+      timezone,
+      companyLateGraceMinutes,
+      { forceAbsent: row.id.startsWith("absent:") }
+    )
   );
 
   return applyPolicyAwareBonus(enriched, employees);

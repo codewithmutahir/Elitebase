@@ -215,6 +215,16 @@ export function PayslipDocument({
           }
           negative={data.leaveDeductionCents > 0}
         />
+        <Row label="Absent Days" value={data.absentDays ?? 0} />
+        <Row
+          label="Absent Deduction"
+          value={
+            (data.absentDeductionCents ?? 0) > 0
+              ? `(${money(data.absentDeductionCents ?? 0, currency)})`
+              : "—"
+          }
+          negative={(data.absentDeductionCents ?? 0) > 0}
+        />
         <Row
           label="Lates"
           value={`${data.lateCount} (${data.lateDaysDeducted} day${data.lateDaysDeducted === 1 ? "" : "s"} · rem ${data.lateRemainder})`}

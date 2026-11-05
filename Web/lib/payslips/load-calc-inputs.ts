@@ -11,6 +11,12 @@ import { normalizeWorkingDays } from "@/lib/employees/working-days";
 import { formatBonusPolicyLabel, normalizeBonusPolicy } from "@/lib/payroll/bonus";
 import type { CalculatePayslipInput } from "@/lib/payslips/calculate";
 import { createClient } from "@/lib/supabase/server";
+import { companyTimezone } from "@/lib/dashboard/format";
+import {
+  fetchAttendanceEvents,
+} from "@/lib/timesheets/data";
+import { buildTimesheetRows } from "@/lib/timesheets/pairing";
+import { mergeTimesheetRowsWithScheduledAbsences } from "@/lib/timesheets/scheduled-absent";
 
 function monthBounds(year: number, month: number): { from: string; to: string } {
   const from = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -52,7 +58,9 @@ export async function loadPayslipCalcInput(options: {
 
   const { data: company } = await admin
     .from("companies")
-    .select("currency, lates_per_day_deduction, late_remainder_carry_month, leave_year_type")
+    .select(
+      "currency, timezone, lates_per_day_deduction, late_remainder_carry_month, leave_year_type"
+    )
     .eq("id", companyId)
     .maybeSingle();
 
@@ -151,6 +159,29 @@ export async function loadPayslipCalcInput(options: {
 
   const bonusPolicy = normalizeBonusPolicy(employee.bonus_policy);
 
+  const timezone = companyTimezone(company?.timezone as string | null);
+  const events = await fetchAttendanceEvents(
+    companyId,
+    from,
+    to,
+    employeeId
+  );
+  const baseRows = buildTimesheetRows(events, timezone, from, to);
+  const mergedRows = await mergeTimesheetRowsWithScheduledAbsences(
+    companyId,
+    from,
+    to,
+    baseRows,
+    employeeId
+  );
+  const absentDays = mergedRows.filter((row) =>
+    row.id.startsWith("absent:")
+  ).length;
+  const presentDates = new Set<string>();
+  for (const row of mergedRows) {
+    if (row.clockIn) presentDates.add(row.date);
+  }
+
   const input: CalculatePayslipInput = {
     employeeName: employee.full_name as string,
     employeeId,
@@ -173,8 +204,8 @@ export async function loadPayslipCalcInput(options: {
     },
     attendance: {
       lateCount: lateDays.size,
-      presentDays: 0,
-      absentDays: 0,
+      presentDays: presentDates.size,
+      absentDays,
       paidLeaveDays,
       sickLeaveDays,
       unpaidLeaveDays,

@@ -51,6 +51,7 @@ export async function updateEmployeeJobDetails(
     working_days: number[];
     schedule_start_time: string;
     schedule_end_time: string;
+    late_grace_minutes: number | null;
     bonus_amount: number;
     bonus_note: string | null;
     bonus_policy: BonusPolicy;
@@ -76,6 +77,14 @@ export async function updateEmployeeJobDetails(
 
   if (data.bonus_amount < 0) {
     return { error: "Bonus amount cannot be negative." };
+  }
+
+  let lateGraceMinutes: number | null = data.late_grace_minutes;
+  if (lateGraceMinutes != null) {
+    if (!Number.isFinite(lateGraceMinutes)) {
+      return { error: "Late margin must be a number between 0 and 120." };
+    }
+    lateGraceMinutes = Math.min(120, Math.max(0, Math.trunc(lateGraceMinutes)));
   }
 
   const { data: existing, error: fetchError } = await admin
@@ -115,6 +124,7 @@ export async function updateEmployeeJobDetails(
       working_days: workingDays,
       schedule_start_time: startTime,
       schedule_end_time: endTime,
+      late_grace_minutes: lateGraceMinutes,
       bonus_amount: data.bonus_amount ?? 0,
       bonus_note: data.bonus_note?.trim() || null,
       bonus_policy: bonusPolicy,

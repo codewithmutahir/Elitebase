@@ -176,6 +176,11 @@ export function JobDetailsTab({
   const [scheduleEnd, setScheduleEnd] = useState(
     employee.schedule_end_time ?? "17:00",
   );
+  const [lateGraceOverride, setLateGraceOverride] = useState(
+    employee.late_grace_minutes != null
+      ? String(employee.late_grace_minutes)
+      : "",
+  );
   const [bonusAmount, setBonusAmount] = useState(
     String(employee.bonus_amount ?? 0),
   );
@@ -220,6 +225,11 @@ export function JobDetailsTab({
     setHireDate(employee.hire_date ?? "");
     setScheduleStart(employee.schedule_start_time ?? "09:00");
     setScheduleEnd(employee.schedule_end_time ?? "17:00");
+    setLateGraceOverride(
+      employee.late_grace_minutes != null
+        ? String(employee.late_grace_minutes)
+        : "",
+    );
     setBonusAmount(String(employee.bonus_amount ?? 0));
     setBonusNote(employee.bonus_note ?? "");
     setBonusPolicy(employee.bonus_policy ?? "six_monthly");
@@ -229,6 +239,10 @@ export function JobDetailsTab({
   function save() {
     startTransition(async () => {
       const cycleMonth = Number(bonusCycleStartMonth) || 1;
+      const lateGraceMinutes =
+        lateGraceOverride.trim() === ""
+          ? null
+          : Number(lateGraceOverride);
       const result = await updateEmployeeJobDetails(employee.id, {
         employment_type: employmentType,
         hourly_rate: Number(hourlyRate) || 0,
@@ -238,6 +252,7 @@ export function JobDetailsTab({
         working_days: workingDays,
         schedule_start_time: scheduleStart,
         schedule_end_time: scheduleEnd,
+        late_grace_minutes: lateGraceMinutes,
         bonus_amount: Number(bonusAmount) || 0,
         bonus_note: bonusNote.trim() || null,
         bonus_policy: bonusPolicy,
@@ -256,6 +271,7 @@ export function JobDetailsTab({
         working_days: normalizeWorkingDays(workingDays),
         schedule_start_time: scheduleStart,
         schedule_end_time: scheduleEnd,
+        late_grace_minutes: lateGraceMinutes,
         bonus_amount: Number(bonusAmount) || 0,
         bonus_note: bonusNote.trim() || null,
         bonus_policy: bonusPolicy,
@@ -467,6 +483,17 @@ export function JobDetailsTab({
                     onChange={(e) => setScheduleEnd(e.target.value)}
                   />
                 </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Input
+                    label="Late margin override (minutes)"
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={lateGraceOverride}
+                    onChange={(e) => setLateGraceOverride(e.target.value)}
+                    placeholder="Company default"
+                  />
+                </Grid>
               </Grid>
 
               <Grid container spacing={2}>
@@ -641,6 +668,16 @@ export function JobDetailsTab({
                 <Typography component="dd" sx={{ ...profileValueSx, mt: 0.5 }}>
                   {employee.schedule_start_time?.slice(0, 5) ?? "09:00"} –{" "}
                   {employee.schedule_end_time?.slice(0, 5) ?? "17:00"}
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+                <Typography component="dt" sx={profileFieldLabelSx}>
+                  Late margin
+                </Typography>
+                <Typography component="dd" sx={{ ...profileValueSx, mt: 0.5 }}>
+                  {employee.late_grace_minutes != null
+                    ? `${employee.late_grace_minutes} min (override)`
+                    : "Company default"}
                 </Typography>
               </Grid>
               {employee.bonus_amount > 0 ? (

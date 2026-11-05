@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeAttendanceStatus } from "@/lib/attendance/status";
+import { resolveGraceMinutes } from "@/lib/attendance/grace";
 import {
   companyTimezone,
   dateKeyInTimezone,
@@ -37,6 +38,7 @@ type EmployeeScheduleMeta = {
   full_name: string;
   schedule_start_time: string;
   schedule_end_time: string;
+  late_grace_minutes: number | null;
 };
 
 function pgTimeToHm(value: string) {
@@ -126,7 +128,9 @@ async function fetchEmployeeScheduleMeta(
 
   const { data, error } = await admin
     .from("employees")
-    .select("id, full_name, schedule_start_time, schedule_end_time")
+    .select(
+      "id, full_name, schedule_start_time, schedule_end_time, late_grace_minutes"
+    )
     .eq("company_id", companyId)
     .in("id", employeeIds);
 
@@ -141,6 +145,10 @@ async function fetchEmployeeScheduleMeta(
       full_name: (row.full_name as string) ?? "Unknown",
       schedule_start_time: (row.schedule_start_time as string) ?? "09:00:00",
       schedule_end_time: (row.schedule_end_time as string) ?? "17:00:00",
+      late_grace_minutes:
+        row.late_grace_minutes == null
+          ? null
+          : Number(row.late_grace_minutes),
     });
   }
   return map;
@@ -209,7 +217,7 @@ export async function planMissingPunchBackfill(
 
   const { data: companyRow, error: companyError } = await admin
     .from("companies")
-    .select("timezone")
+    .select("timezone, late_grace_minutes")
     .eq("id", companyId)
     .maybeSingle();
 
@@ -219,6 +227,10 @@ export async function planMissingPunchBackfill(
   }
 
   const timezone = companyTimezone(companyRow.timezone as string | null);
+  const companyLateGraceMinutes =
+    companyRow.late_grace_minutes == null
+      ? 15
+      : Number(companyRow.late_grace_minutes);
   const events = await fetchAttendanceEvents(admin, companyId, from, to);
   const rows = buildTimesheetRows(events, timezone, from, to);
 
@@ -271,6 +283,10 @@ export async function planMissingPunchBackfill(
         if (inMs >= outMs) continue;
       }
 
+      const graceMinutes = resolveGraceMinutes({
+        employeeOverride: employees.get(row.employeeId)?.late_grace_minutes,
+        companyDefault: companyLateGraceMinutes,
+      });
       plans.push({
         companyId,
         employeeId: row.employeeId,
@@ -283,7 +299,8 @@ export async function planMissingPunchBackfill(
         attendanceStatus: computeAttendanceStatus(
           timestampIso,
           startHm,
-          timezone
+          timezone,
+          graceMinutes
         ),
         reason: "Inferred scheduled shift start (missing clock-in)",
       });

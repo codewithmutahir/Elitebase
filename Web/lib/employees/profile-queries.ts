@@ -64,6 +64,8 @@ export type EmployeeProfile = {
   working_days: number[];
   schedule_start_time: string;
   schedule_end_time: string;
+  /** Nullable override of company late margin (minutes). */
+  late_grace_minutes: number | null;
   bonus_amount: number;
   bonus_note: string | null;
   bonus_policy: BonusPolicy;
@@ -112,7 +114,7 @@ export async function getEmployeeProfile(
       id, company_id, full_name, email, phone, role, employment_type, status,
       department_id, departments ( name ), position, hire_date, hourly_rate,
       pay_type, salary_amount, salary_period, working_days,
-      schedule_start_time, schedule_end_time, bonus_amount, bonus_note,
+      schedule_start_time, schedule_end_time, late_grace_minutes, bonus_amount, bonus_note,
       bonus_policy, bonus_cycle_start_month,
       date_of_birth, emergency_contact_name, emergency_contact_phone,
       emergency_contact_relation, terminated_at, termination_reason,
@@ -190,6 +192,10 @@ export async function getEmployeeProfile(
       : [1, 2, 3, 4, 5],
     schedule_start_time: (data.schedule_start_time as string) ?? "09:00",
     schedule_end_time: (data.schedule_end_time as string) ?? "17:00",
+    late_grace_minutes:
+      data.late_grace_minutes == null
+        ? null
+        : Number(data.late_grace_minutes),
     bonus_amount: Number(data.bonus_amount ?? 0),
     bonus_note: (data.bonus_note as string) ?? null,
     bonus_policy: normalizeBonusPolicy(data.bonus_policy),

@@ -16,6 +16,7 @@ export type CompanyRow = {
   leave_prorate_mid_year: boolean;
   lates_per_day_deduction: number;
   late_remainder_carry_month: boolean;
+  late_grace_minutes: number;
 };
 
 async function fetchCompanyByOwnerId(ownerUid: string) {
@@ -23,7 +24,7 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
   const { data, error } = await admin
     .from("companies")
     .select(
-      "id, name, logo_url, timezone, currency, allow_remote_punch, require_geofence, is_active, leave_sick_total_default, leave_paid_total_default, leave_year_type, leave_prorate_mid_year, lates_per_day_deduction, late_remainder_carry_month"
+      "id, name, logo_url, timezone, currency, allow_remote_punch, require_geofence, is_active, leave_sick_total_default, leave_paid_total_default, leave_year_type, leave_prorate_mid_year, lates_per_day_deduction, late_remainder_carry_month, late_grace_minutes"
     )
     .eq("owner_uid", ownerUid)
     .maybeSingle();
@@ -41,6 +42,7 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
   const yearType =
     data.leave_year_type === "anniversary" ? "anniversary" : "calendar";
   const latesPer = Number(data.lates_per_day_deduction ?? 3);
+  const grace = Number(data.late_grace_minutes ?? 15);
 
   return {
     ...data,
@@ -54,6 +56,10 @@ async function fetchCompanyByOwnerId(ownerUid: string) {
     lates_per_day_deduction:
       Number.isFinite(latesPer) && latesPer >= 1 ? Math.trunc(latesPer) : 3,
     late_remainder_carry_month: Boolean(data.late_remainder_carry_month),
+    late_grace_minutes:
+      Number.isFinite(grace) && grace >= 0 && grace <= 120
+        ? Math.trunc(grace)
+        : 15,
   } as CompanyRow;
 }
 

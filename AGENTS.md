@@ -187,6 +187,64 @@ Face matching reuses InsightFace `buffalo_sc` / Python face service (same 512-d 
 
 ---
 
+## Attendance & punctuality policy
+
+Single source of truth for how Elitebase decides **on time / late / absent** and how those roll into payroll. All kiosk, portal, timesheet, CSV, and payslip code must agree on these rules — never re-derive them locally.
+
+### Late margin (grace period)
+
+- Clock-in **at or before** scheduled start **+ grace minutes** → `on_time`. After that → `late`.
+- **Company default:** `companies.late_grace_minutes` (smallint, 0–120, **default 15**). Editable from `Settings → Attendance policy`.
+- **Per-employee override:** `employees.late_grace_minutes` (nullable smallint, 0–120). `null` = use the company default. Edited from the Job details tab on the employee profile.
+- Resolution order at any call site: `employees.late_grace_minutes ?? companies.late_grace_minutes ?? 15`.
+- `Web/lib/attendance/status.ts` → `computeAttendanceStatus(clockInIso, scheduleStartHm, timezone, graceMinutes)` is the **only** function that decides on-time vs late. Call it from kiosk (`lib/api/v1/kiosk/clock-action.ts`), portal (`lib/portal/clock.ts`), timesheet export (`lib/timesheets/export-rows.ts`), and backfill (`lib/timesheets/backfill-missing-punches.ts`). Never inline the comparison.
+
+### Absent — default, not opt-in
+
+An employee is **absent** on any date that satisfies **all** of:
+
+1. The date is in the employee's `working_days` (ISO 1–7) **or** has a published schedule slot.
+2. The date is **not** a company holiday.
+3. The date is **not** inside an approved time-off request (paid, sick, unpaid).
+4. There is **no non-voided `clock_in`** event for that date in the company timezone.
+
+This means an unpunched working day is absent **by default**, even if no schedule was published. The old "only count absent when a published schedule existed" behavior is gone.
+
+Implemented in `Web/lib/timesheets/scheduled-absent.ts` (kept as the shared source; feeds timesheet view, CSV export, and payslip calc through `TimesheetRow` + `forceAbsent`).
+
+### Lates → absent-day conversion (monthly bucket)
+
+- Every **N** late clock-ins in a payroll month = **1 absent day deduction**, where `N = companies.lates_per_day_deduction` (smallint, 1–30, **default 3**).
+- Logic is a **monthly total**, not a strict consecutive streak: 3 lates anywhere in the month → 1 off; 4 lates → 1 off + 1 remainder; 6 → 2 off; and so on with no cap. Any additional lates after the 3rd keep rolling into more off-days (`floor(lates / N)`).
+- Lives in `Web/lib/payslips/calculate.ts` → `convertLatesToDays(lateCount, latesPerDay)`. Do not reimplement.
+- Carry of leftover remainder to next month is controlled by `companies.late_remainder_carry_month` (default `false`).
+
+### Payroll impact
+
+Both of the following deduct **one day of base salary per day** (`salaryPerDayCents = baseSalary / workingDays`, half-up):
+
+| Source | Shown on payslip as |
+|---|---|
+| Unpunched working days (absent by default) | **Absent Days** + **Absent Deduction** |
+| Lates → whole days via `convertLatesToDays` | **Lates** (`N (D days · rem R)`) + **Late Deduction** |
+
+Approved paid/sick leave days do **not** deduct. Approved unpaid leave days deduct as `Leaves Deduction`.
+
+Net salary is never silently negative — `calculatePayslip` clamps to 0 and surfaces a warning (`netClamped`).
+
+### CSV / timesheet export
+
+Standard CSV already carries per-row `On time`, `Late`, `Absent`, `Missing clock in`, `Missing clock out`, `Unpaid leave` (`Web/lib/timesheets/csv.ts`). The per-employee **Subtotal** row summarizes Absent days in the shift count column. New default-absent rows flow through automatically because `export-rows.ts` honors `forceAbsent` on rows whose id starts with `absent:`.
+
+### What this policy forbids
+
+- Hardcoded grace constants anywhere outside `Web/lib/attendance/status.ts`.
+- Any site counting lates/absents directly from `attendance` rows instead of going through `scheduled-absent.ts` + `calculate.ts`.
+- Treating a published schedule as the *only* trigger for an absent day (working-day fallback must apply).
+- Changing per-employee or company grace via a server action without re-validating `0–120`.
+
+---
+
 ## Implementation map
 
 | Area | Path |

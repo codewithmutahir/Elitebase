@@ -113,6 +113,7 @@ export type CalculatePayslipResult = {
   bonusPolicyLabel: string | null;
   salaryPerDayCents: number;
   leaveDeductionCents: number;
+  absentDeductionCents: number;
   lateCount: number;
   lateDaysDeducted: number;
   lateRemainder: number;
@@ -267,9 +268,14 @@ export function calculatePayslip(
     0,
     Math.trunc(input.attendance.unpaidLeaveDays)
   );
+  const absentDaysCount = Math.max(0, Math.trunc(input.attendance.absentDays));
   const leaveDeductionCents = multiplyCentsByDays(
     salaryPerDayCents,
     unpaidLeaveDays
+  );
+  const absentDeductionCents = multiplyCentsByDays(
+    salaryPerDayCents,
+    absentDaysCount
   );
 
   const latesPer = Math.max(1, Math.trunc(input.latesPerDayDeduction ?? 3));
@@ -326,6 +332,7 @@ export function calculatePayslip(
   const grossCents = earningsCents + positiveOther;
   const totalDeductionsCents =
     leaveDeductionCents +
+    absentDeductionCents +
     lateDeductionCents +
     loanDeductionCents +
     negativeOther;
@@ -336,6 +343,7 @@ export function calculatePayslip(
     allowancesTotalCents +
     otherAdjustmentsCents -
     leaveDeductionCents -
+    absentDeductionCents -
     lateDeductionCents -
     loanDeductionCents;
 
@@ -361,7 +369,7 @@ export function calculatePayslip(
     holidayDays,
     workingDays,
     presentDays: Math.max(0, Math.trunc(input.attendance.presentDays)),
-    absentDays: Math.max(0, Math.trunc(input.attendance.absentDays)),
+    absentDays: absentDaysCount,
     paidLeaveDays: Math.max(0, Math.trunc(input.attendance.paidLeaveDays)),
     sickLeaveDays: Math.max(0, Math.trunc(input.attendance.sickLeaveDays)),
     unpaidLeaveDays,
@@ -371,6 +379,7 @@ export function calculatePayslip(
     bonusPolicyLabel: input.bonusPolicyLabel ?? null,
     salaryPerDayCents,
     leaveDeductionCents,
+    absentDeductionCents,
     lateCount: Math.max(0, Math.trunc(input.attendance.lateCount)),
     lateDaysDeducted,
     lateRemainder,

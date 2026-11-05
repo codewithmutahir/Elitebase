@@ -28,6 +28,9 @@ export default async function SettingsPage({
         leavePaidTotalDefault={company.leave_paid_total_default}
         leaveYearType={company.leave_year_type}
         leaveProrateMidYear={company.leave_prorate_mid_year}
+        lateGraceMinutes={company.late_grace_minutes}
+        latesPerDayDeduction={company.lates_per_day_deduction}
+        lateRemainderCarryMonth={company.late_remainder_carry_month}
         saved={params.saved === "1"}
         errorMessage={settingsErrorMessage(params.error)}
       />

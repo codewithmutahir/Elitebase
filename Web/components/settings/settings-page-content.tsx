@@ -31,6 +31,9 @@ type SettingsPageContentProps = {
   leavePaidTotalDefault: number;
   leaveYearType: "calendar" | "anniversary";
   leaveProrateMidYear: boolean;
+  lateGraceMinutes: number;
+  latesPerDayDeduction: number;
+  lateRemainderCarryMonth: boolean;
   saved: boolean;
   errorMessage: string | null;
 };
@@ -44,6 +47,9 @@ export function SettingsPageContent({
   leavePaidTotalDefault,
   leaveYearType,
   leaveProrateMidYear,
+  lateGraceMinutes,
+  latesPerDayDeduction,
+  lateRemainderCarryMonth,
   saved,
   errorMessage,
 }: SettingsPageContentProps) {
@@ -166,6 +172,76 @@ export function SettingsPageContent({
                     defaultValue={selectedTimezone}
                   />
                   <CurrencySelect defaultValue={selectedCurrency} />
+                </Stack>
+              </CardContent>
+            </Card>
+
+            <Card sx={dashboardCardSx}>
+              <CardHeader>
+                <Typography component="h2" sx={dashboardSectionTitleSx}>
+                  Attendance policy
+                </Typography>
+                <Typography sx={dashboardPageIntroSx}>
+                  Late margin after scheduled start, and how many lates in a
+                  payroll month convert to one absent day for payslip deductions.
+                </Typography>
+              </CardHeader>
+              <CardContent>
+                <Stack spacing={3}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 2,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "1fr 1fr",
+                      },
+                    }}
+                  >
+                    <Input
+                      id="late_grace_minutes"
+                      name="late_grace_minutes"
+                      label="Late margin (minutes)"
+                      type="number"
+                      required
+                      defaultValue={String(lateGraceMinutes)}
+                      min={0}
+                      max={120}
+                    />
+                    <Input
+                      id="lates_per_day_deduction"
+                      name="lates_per_day_deduction"
+                      label="Lates per absent day"
+                      type="number"
+                      required
+                      defaultValue={String(latesPerDayDeduction)}
+                      min={1}
+                      max={30}
+                    />
+                  </Box>
+                  <Box
+                    component="label"
+                    sx={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1,
+                      fontSize: "0.875rem",
+                      color: "text.primary",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Box
+                      component="input"
+                      type="checkbox"
+                      name="late_remainder_carry_month"
+                      defaultChecked={lateRemainderCarryMonth}
+                      sx={{ mt: 0.35 }}
+                    />
+                    <span>
+                      Carry leftover late count to the next payroll month
+                      (otherwise remainder resets each month).
+                    </span>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>

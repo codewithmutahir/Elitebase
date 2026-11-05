@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { computeAttendanceStatus } from "@/lib/attendance/status";
+import { resolveGraceMinutes } from "@/lib/attendance/grace";
 import { companyTimezone } from "@/lib/dashboard/format";
 import {
   isErrorResponse,
@@ -92,14 +93,14 @@ export async function POST(request: NextRequest) {
   if (type === "clock_in") {
     const { data: empSchedule } = await admin
       .from("employees")
-      .select("schedule_start_time")
+      .select("schedule_start_time, late_grace_minutes")
       .eq("id", employeeId)
       .eq("company_id", tablet.company_id)
       .maybeSingle();
 
     const { data: companyRow } = await admin
       .from("companies")
-      .select("timezone")
+      .select("timezone, late_grace_minutes")
       .eq("id", tablet.company_id)
       .maybeSingle();
 
@@ -107,11 +108,16 @@ export async function POST(request: NextRequest) {
       (empSchedule?.schedule_start_time as string) ?? "09:00:00";
     const scheduleHm = scheduleStart.trim().slice(0, 5);
     const tz = companyTimezone(companyRow?.timezone);
+    const graceMinutes = resolveGraceMinutes({
+      employeeOverride: empSchedule?.late_grace_minutes as number | null,
+      companyDefault: companyRow?.late_grace_minutes as number | null,
+    });
 
     attendanceStatus = computeAttendanceStatus(
       new Date().toISOString(),
       scheduleHm,
-      tz
+      tz,
+      graceMinutes
     );
   }
 

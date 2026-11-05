@@ -105,6 +105,10 @@ function sumWages(rows: TimesheetExportRow[]) {
   return Math.round(rows.reduce((sum, row) => sum + row.wages, 0) * 100) / 100;
 }
 
+function countAbsentDays(rows: TimesheetExportRow[]) {
+  return rows.filter((row) => row.absent).length;
+}
+
 function yesNo(value: boolean) {
   return value ? "Yes" : "No";
 }
@@ -199,7 +203,7 @@ function standardSubtotalLine(
     bonus > 0 ? money(bonus) : "",
     money(totalPay),
     "Subtotal",
-    `${group.length} shift(s)`,
+    `${group.length} shift(s) · ${countAbsentDays(group)} absent`,
     "",
     "",
     "",

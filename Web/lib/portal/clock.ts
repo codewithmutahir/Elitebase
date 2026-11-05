@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { computeAttendanceStatus } from "@/lib/attendance/status";
+import { resolveGraceMinutes } from "@/lib/attendance/grace";
 import {
   isClockedInForStatus,
   isOnBreakForStatus,
@@ -271,10 +272,15 @@ export async function submitPortalClockPunch(input: {
     const scheduleHm = String(empSchedule?.schedule_start_time ?? "09:00")
       .trim()
       .slice(0, 5);
+    const graceMinutes = resolveGraceMinutes({
+      employeeOverride: employee.late_grace_minutes,
+      companyDefault: employee.company_late_grace_minutes,
+    });
     attendanceStatus = computeAttendanceStatus(
       new Date().toISOString(),
       scheduleHm,
-      companyTimezone(employee.company_timezone)
+      companyTimezone(employee.company_timezone),
+      graceMinutes
     );
   }
 

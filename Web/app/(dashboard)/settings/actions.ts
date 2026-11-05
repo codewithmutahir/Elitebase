@@ -39,6 +39,19 @@ export async function updateCompanySettings(formData: FormData) {
     yearTypeRaw === "anniversary" ? "anniversary" : "calendar";
   const leaveProrate = formData.get("leave_prorate_mid_year") === "on";
 
+  const graceRaw = Number(formData.get("late_grace_minutes"));
+  const lateGraceMinutes = Number.isFinite(graceRaw)
+    ? Math.min(120, Math.max(0, Math.trunc(graceRaw)))
+    : company.late_grace_minutes ?? 15;
+
+  const latesPerRaw = Number(formData.get("lates_per_day_deduction"));
+  const latesPerDayDeduction = Number.isFinite(latesPerRaw)
+    ? Math.min(30, Math.max(1, Math.trunc(latesPerRaw)))
+    : company.lates_per_day_deduction ?? 3;
+
+  const lateRemainderCarry =
+    formData.get("late_remainder_carry_month") === "on";
+
   const admin = createClient();
   const updates: {
     name: string;
@@ -49,6 +62,9 @@ export async function updateCompanySettings(formData: FormData) {
     leave_paid_total_default: number;
     leave_year_type: "calendar" | "anniversary";
     leave_prorate_mid_year: boolean;
+    late_grace_minutes: number;
+    lates_per_day_deduction: number;
+    late_remainder_carry_month: boolean;
   } = {
     name,
     timezone,
@@ -57,6 +73,9 @@ export async function updateCompanySettings(formData: FormData) {
     leave_paid_total_default: leavePaidTotal,
     leave_year_type: leaveYearType,
     leave_prorate_mid_year: leaveProrate,
+    late_grace_minutes: lateGraceMinutes,
+    lates_per_day_deduction: latesPerDayDeduction,
+    late_remainder_carry_month: lateRemainderCarry,
   };
 
   const logo = formData.get("logo");

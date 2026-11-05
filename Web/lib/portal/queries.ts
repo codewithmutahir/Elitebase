@@ -26,6 +26,8 @@ export type PortalEmployee = {
   bonus_cycle_start_month: number;
   schedule_start_time: string | null;
   schedule_end_time: string | null;
+  /** Per-employee override of the company late-grace margin. null = inherit. */
+  late_grace_minutes: number | null;
   face_registered_at: string | null;
   company_name: string;
   company_logo_url: string | null;
@@ -33,6 +35,8 @@ export type PortalEmployee = {
   company_currency: string | null;
   company_allow_remote_punch: boolean;
   company_require_geofence: boolean;
+  /** Company-wide late grace in minutes (0–120, default 15). */
+  company_late_grace_minutes: number;
   needs_reenrollment: boolean;
   has_face_descriptor: boolean;
 };
@@ -63,6 +67,7 @@ async function fetchEmployeeByUserId(
       bonus_cycle_start_month,
       schedule_start_time,
       schedule_end_time,
+      late_grace_minutes,
       face_registered_at,
       needs_reenrollment,
       companies (
@@ -72,6 +77,7 @@ async function fetchEmployeeByUserId(
         currency,
         allow_remote_punch,
         require_geofence,
+        late_grace_minutes,
         is_active
       )
     `
@@ -94,6 +100,7 @@ async function fetchEmployeeByUserId(
         currency: string | null;
         allow_remote_punch: boolean | null;
         require_geofence: boolean | null;
+        late_grace_minutes: number | null;
         is_active: boolean | null;
       }
     | {
@@ -103,6 +110,7 @@ async function fetchEmployeeByUserId(
         currency: string | null;
         allow_remote_punch: boolean | null;
         require_geofence: boolean | null;
+        late_grace_minutes: number | null;
         is_active: boolean | null;
       }[]
     | null;
@@ -137,6 +145,10 @@ async function fetchEmployeeByUserId(
     ),
     schedule_start_time: data.schedule_start_time,
     schedule_end_time: data.schedule_end_time,
+    late_grace_minutes:
+      data.late_grace_minutes == null
+        ? null
+        : Number(data.late_grace_minutes),
     face_registered_at: data.face_registered_at,
     company_name: companyRow?.name ?? "Your company",
     company_logo_url: companyRow?.logo_url ?? null,
@@ -144,6 +156,7 @@ async function fetchEmployeeByUserId(
     company_currency: companyRow?.currency ?? null,
     company_allow_remote_punch: Boolean(companyRow?.allow_remote_punch),
     company_require_geofence: companyRow?.require_geofence !== false,
+    company_late_grace_minutes: Number(companyRow?.late_grace_minutes ?? 15),
     needs_reenrollment: Boolean(data.needs_reenrollment),
     has_face_descriptor: Boolean(data.face_registered_at),
   };
