@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  useSyncExternalStore,
+} from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -40,6 +47,8 @@ const MOBILE_TIP_DISMISS_KEY = "elitebase-portal-mobile-tip-dismissed";
 /** Prefer a warm fix from page load if still fresh at punch. */
 const GPS_WARM_MAX_AGE_MS = 120_000;
 
+const subscribe = () => () => {};
+
 export function PortalClockView({ status }: PortalClockViewProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -53,8 +62,6 @@ export function PortalClockView({ status }: PortalClockViewProps) {
     "idle" | "ready" | "approx" | "skipped" | "required_fail"
   >("idle");
   const [gpsError, setGpsError] = useState<string | null>(null);
-  const [isDesktop, setIsDesktop] = useState(false);
-  const [showMobileTip, setShowMobileTip] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -80,7 +87,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
         if (sessionStorage.getItem(ENROLL_BANNER_KEY) === "1") {
           sessionStorage.removeItem(ENROLL_BANNER_KEY);
           setMessage(
-            "Face saved. Tap Clock in — we check location once, verify your face, and record the punch."
+            "Face saved. Tap Clock in — we check location once, verify your face, and record the punch.",
           );
         }
       } catch {
@@ -100,7 +107,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
         !navigator.mediaDevices?.getUserMedia
       ) {
         setCameraError(
-          "This browser cannot access the camera. Use Chrome/Edge on HTTPS or localhost."
+          "This browser cannot access the camera. Use Chrome/Edge on HTTPS or localhost.",
         );
         return;
       }
@@ -182,22 +189,25 @@ export function PortalClockView({ status }: PortalClockViewProps) {
       setGpsError(null);
       setGpsStatus(result.source === "ip" ? "approx" : "ready");
     },
-    []
+    [],
   );
 
-  useEffect(() => {
-    const desktop = !isLikelyMobileDevice();
-    setIsDesktop(desktop);
-    if (!desktop) {
-      setShowMobileTip(false);
-      return;
-    }
+  const isDesktop = useSyncExternalStore(
+    subscribe,
+    () => !isLikelyMobileDevice(), // client
+    () => false, // server
+  );
+
+  const [tipDismissed, setTipDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
     try {
-      setShowMobileTip(sessionStorage.getItem(MOBILE_TIP_DISMISS_KEY) !== "1");
+      return sessionStorage.getItem(MOBILE_TIP_DISMISS_KEY) === "1";
     } catch {
-      setShowMobileTip(true);
+      return false;
     }
-  }, []);
+  });
+
+  const showMobileTip = isDesktop && !tipDismissed;
 
   /** Warm GPS (then IP if geofence optional) while the employee looks at the camera. */
   useEffect(() => {
@@ -229,7 +239,12 @@ export function PortalClockView({ status }: PortalClockViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [status.allowRemotePunch, status.requireGeofence, needsFaceEnroll, applyLocation]);
+  }, [
+    status.allowRemotePunch,
+    status.requireGeofence,
+    needsFaceEnroll,
+    applyLocation,
+  ]);
 
   function captureFrame(): Blob | null {
     const video = videoRef.current;
@@ -254,7 +269,9 @@ export function PortalClockView({ status }: PortalClockViewProps) {
       if (!blob) return null;
       samples.push(blob);
       if (i < ENROLL_SAMPLE_COUNT - 1) {
-        await new Promise((resolve) => setTimeout(resolve, ENROLL_SAMPLE_GAP_MS));
+        await new Promise((resolve) =>
+          setTimeout(resolve, ENROLL_SAMPLE_GAP_MS),
+        );
       }
     }
     return samples;
@@ -370,7 +387,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
           setError(
             (gpsError ||
               "Location is required for your company. Try again from a phone with GPS.") +
-              mobileHint
+              mobileHint,
           );
           return;
         }
@@ -395,9 +412,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
           return;
         }
         if ("ok" in result && result.ok) {
-          const site = result.worksiteName
-            ? ` at ${result.worksiteName}`
-            : "";
+          const site = result.worksiteName ? ` at ${result.worksiteName}` : "";
           setGpsError(null);
           const locNote =
             coords?.source === "gps"
@@ -406,7 +421,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
                 ? " Approximate network location was saved."
                 : " Location was not available, so it was not saved.";
           setMessage(
-            `${prettyAction(result.type)} recorded${site}. Face matched (${result.faceScore}).${locNote}`
+            `${prettyAction(result.type)} recorded${site}. Face matched (${result.faceScore}).${locNote}`,
           );
           router.refresh();
         }
@@ -423,8 +438,8 @@ export function PortalClockView({ status }: PortalClockViewProps) {
     return (
       <Panel>
         <Typography sx={{ color: "text.secondary" }}>
-          Remote clock-in is turned off for your company. Use the on-site
-          kiosk, or ask your manager to enable portal punch in Settings.
+          Remote clock-in is turned off for your company. Use the on-site kiosk,
+          or ask your manager to enable portal punch in Settings.
         </Typography>
       </Panel>
     );
@@ -453,7 +468,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
               } catch {
                 /* ignore */
               }
-              setShowMobileTip(false);
+              setTipDismissed(true);
             }}
           />
         ) : null}
@@ -506,12 +521,18 @@ export function PortalClockView({ status }: PortalClockViewProps) {
         />
 
         {error ? (
-          <Typography role="alert" sx={{ color: "error.main", fontSize: "0.875rem" }}>
+          <Typography
+            role="alert"
+            sx={{ color: "error.main", fontSize: "0.875rem" }}
+          >
             {error}
           </Typography>
         ) : null}
         {message ? (
-          <Typography role="status" sx={{ color: "success.main", fontSize: "0.875rem" }}>
+          <Typography
+            role="status"
+            sx={{ color: "success.main", fontSize: "0.875rem" }}
+          >
             {message}
           </Typography>
         ) : null}
@@ -586,7 +607,7 @@ export function PortalClockView({ status }: PortalClockViewProps) {
             } catch {
               /* ignore */
             }
-            setShowMobileTip(false);
+            setTipDismissed(true);
           }}
         />
       ) : null}
@@ -606,7 +627,9 @@ export function PortalClockView({ status }: PortalClockViewProps) {
         <Typography sx={{ fontWeight: 560, color: "text.primary" }}>
           Status: {stateLabel}
         </Typography>
-        <Typography sx={{ mt: 0.75, color: "text.secondary", fontSize: "0.875rem" }}>
+        <Typography
+          sx={{ mt: 0.75, color: "text.secondary", fontSize: "0.875rem" }}
+        >
           Face is saved. Tap an action below — we verify your face
           {status.requireGeofence
             ? " and require GPS inside a worksite."
@@ -618,7 +641,9 @@ export function PortalClockView({ status }: PortalClockViewProps) {
               mt: 0.75,
               fontSize: "0.8125rem",
               color:
-                gpsStatus === "required_fail" ? "warning.main" : "text.secondary",
+                gpsStatus === "required_fail"
+                  ? "warning.main"
+                  : "text.secondary",
             }}
           >
             {locationHint}
@@ -634,12 +659,18 @@ export function PortalClockView({ status }: PortalClockViewProps) {
       />
 
       {error ? (
-        <Typography role="alert" sx={{ color: "error.main", fontSize: "0.875rem" }}>
+        <Typography
+          role="alert"
+          sx={{ color: "error.main", fontSize: "0.875rem" }}
+        >
           {error}
         </Typography>
       ) : null}
       {message ? (
-        <Typography role="status" sx={{ color: "success.main", fontSize: "0.875rem" }}>
+        <Typography
+          role="status"
+          sx={{ color: "success.main", fontSize: "0.875rem" }}
+        >
           {message}
         </Typography>
       ) : null}
@@ -722,13 +753,20 @@ function MobileRecommendBanner({
         <Smartphone size={20} aria-hidden />
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: "0.9rem", color: "text.primary" }}>
+        <Typography
+          sx={{ fontWeight: 600, fontSize: "0.9rem", color: "text.primary" }}
+        >
           {requireGeofence
             ? "Use your phone for clock-in"
             : "Phone recommended for better location"}
         </Typography>
         <Typography
-          sx={{ mt: 0.4, fontSize: "0.8125rem", color: "text.secondary", lineHeight: 1.45 }}
+          sx={{
+            mt: 0.4,
+            fontSize: "0.8125rem",
+            color: "text.secondary",
+            lineHeight: 1.45,
+          }}
         >
           {requireGeofence
             ? "Your company requires GPS inside a worksite. Desktop browsers often can’t get a fix — open this portal on your phone for reliable clock-in."
@@ -778,9 +816,7 @@ function StepsCard({
                 size={18}
                 aria-hidden
                 style={{
-                  color: step.active
-                    ? "var(--eb-gold-500)"
-                    : "var(--eb-muted)",
+                  color: step.active ? "var(--eb-gold-500)" : "var(--eb-muted)",
                   flexShrink: 0,
                 }}
               />
@@ -789,7 +825,8 @@ function StepsCard({
               sx={{
                 fontSize: "0.875rem",
                 fontWeight: step.active || step.done ? 600 : 400,
-                color: step.done || step.active ? "text.primary" : "text.secondary",
+                color:
+                  step.done || step.active ? "text.primary" : "text.secondary",
               }}
             >
               {index + 1}. {step.label}
@@ -894,7 +931,10 @@ function CameraPreview({
             gap: 1.5,
           }}
         >
-          <Typography component="p" sx={{ fontSize: "0.875rem", color: "grey.300" }}>
+          <Typography
+            component="p"
+            sx={{ fontSize: "0.875rem", color: "grey.300" }}
+          >
             {cameraError || "Starting camera…"}
           </Typography>
           {cameraError && onRetry ? (
